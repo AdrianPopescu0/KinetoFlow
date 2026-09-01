@@ -17,9 +17,15 @@ export default function HomePage() {
           Gestionează programele de recuperare, urmărește progresul pacienților și păstrează
           accesul clinic securizat.
         </p>
-        <div className="mt-8 flex justify-center">
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link href="/login" className={cn(buttonVariants(), "h-11 px-5")}>
             Autentificare
+          </Link>
+          <Link
+            href="/p/demo"
+            className={cn(buttonVariants({ variant: "outline" }), "h-11 px-5")}
+          >
+            Program pacient (demo)
           </Link>
         </div>
       </div>

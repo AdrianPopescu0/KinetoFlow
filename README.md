@@ -33,7 +33,7 @@ npm install
 npm run dev -- --port 43123 --hostname 127.0.0.1
 ```
 
-Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login).
+Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau programul pacient [http://127.0.0.1:43123/p/demo](http://127.0.0.1:43123/p/demo).
 
 ## Autentificare
 
@@ -43,6 +43,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login).
 | `/recuperare-parola` | Cerere de resetare a parolei |
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
 | `/auth/callback` | Schimb PKCE pentru sesiune după email |
+| `/p/[patientToken]` | Programul pacientului (exerciții + check-in zilnic) |
 
 Reguli de securitate aplicate:
 
@@ -59,4 +60,5 @@ lib/supabase/server.ts   # createServerClient + cookies
 middleware.ts            # sesiune + protecție rute
 app/login/actions.ts     # Server Action login()
 app/login/page.tsx       # UI login
+app/p/[patientToken]/page.tsx  # Programul pacientului
 ```
