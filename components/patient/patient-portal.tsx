@@ -105,15 +105,22 @@ export function PatientPortal({ program }: PatientPortalProps) {
             </p>
           </div>
           <div className="flex flex-col gap-4">
-            {program.exercises.map((exercise) => (
-              <ExerciseCard
-                key={exercise.id}
-                exercise={exercise}
-                completed={completedIds.includes(exercise.id)}
-                locked={Boolean(storedCheckin)}
-                onToggle={toggleExercise}
-              />
-            ))}
+            {program.exercises.length === 0 ? (
+              <p className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-600 shadow-sm">
+                Terapeutul nu a alocat încă exerciții pentru azi. Completează totuși check-in-ul
+                zilnic.
+              </p>
+            ) : (
+              program.exercises.map((exercise) => (
+                <ExerciseCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  completed={completedIds.includes(exercise.id)}
+                  locked={Boolean(storedCheckin)}
+                  onToggle={toggleExercise}
+                />
+              ))
+            )}
           </div>
         </section>
 

@@ -46,6 +46,12 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 | `/auth/callback` | Schimb PKCE pentru sesiune după email |
 | `/p/[patientToken]` | Programul pacientului (exerciții + check-in zilnic) |
 
+## Schema pacienți
+
+În Supabase: **SQL Editor** → lipește și rulează `supabase/migrations/001_patients.sql`.
+
+Tabele: `patients` (token UUID unic pentru `/p/[token]`), `exercises`, `check_ins`. RLS: terapeutul vede doar pacienții lui.
+
 Reguli de securitate aplicate:
 
 - Validare pe server pentru email și parolă înainte de apelul Auth

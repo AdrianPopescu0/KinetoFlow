@@ -67,14 +67,9 @@ export function isValidPatientToken(token: string): boolean {
 }
 
 export function getPatientProgram(token: string): PatientProgram | null {
-  if (!isValidPatientToken(token)) {
-    return null
-  }
-
   const normalized = token.toLowerCase()
-  const isKnee = normalized.includes("mihai") || normalized.includes("genunchi")
 
-  if (isKnee) {
+  if (normalized.includes("mihai") || normalized.includes("genunchi")) {
     return {
       token,
       firstName: "Mihai",
@@ -84,13 +79,17 @@ export function getPatientProgram(token: string): PatientProgram | null {
     }
   }
 
-  return {
-    token,
-    firstName: "Ana",
-    programLabel: "Recuperare umăr — săptămâna 4 din 6",
-    progressPercent: 62,
-    exercises: SHOULDER_EXERCISES,
+  if (normalized === "demo" || normalized === "ana") {
+    return {
+      token,
+      firstName: "Ana",
+      programLabel: "Recuperare umăr — săptămâna 4 din 6",
+      progressPercent: 62,
+      exercises: SHOULDER_EXERCISES,
+    }
   }
+
+  return null
 }
 
 export const SLEEP_OPTIONS: { value: SleepQuality; emoji: string; label: string }[] = [
