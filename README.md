@@ -18,8 +18,8 @@ cp .env.example .env.local
 2. Completează în `.env.local`:
 
 - `NEXT_PUBLIC_SUPABASE_URL` — URL-ul proiectului (Settings → API)
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — cheia publicabilă (`sb_publishable_…`, sigură în browser)
-- `SUPABASE_SECRET_KEY` — cheia secretă (`sb_secret_…`), doar pe server, **fără** prefix `NEXT_PUBLIC_`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — cheia anonimă / publicabilă (`sb_publishable_…`)
+- `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
 - `NEXT_PUBLIC_SITE_URL` — originea aplicației (pentru linkurile de recuperare a parolei)
 
 În dashboard-ul Supabase, adaugă URL-urile de redirect:
@@ -56,10 +56,13 @@ Reguli de securitate aplicate:
 ## Structură relevantă
 
 ```
-lib/supabase/client.ts   # createBrowserClient
-lib/supabase/server.ts   # createServerClient + cookies
-middleware.ts            # sesiune + protecție rute
-app/login/actions.ts     # Server Action login()
-app/login/page.tsx       # UI login
-app/p/[patientToken]/page.tsx  # Programul pacientului
+src/utils/supabase/client.ts     # createBrowserClient (@supabase/ssr)
+src/utils/supabase/server.ts     # createServerClient + cookies
+src/utils/supabase/middleware.ts # refresh sesiune + protecție /dashboard
+src/utils/supabase/admin.ts      # client service role (doar server)
+middleware.ts                    # Next.js middleware
+app/login/actions.ts             # Server Action login()
+app/login/page.tsx               # UI login split-screen
+app/dashboard/page.tsx           # Dashboard terapeut (protejat)
+app/p/[patientToken]/page.tsx    # Programul pacientului
 ```

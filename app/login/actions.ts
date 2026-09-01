@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { AUTH_ERROR_MESSAGE, parseLoginCredentials } from "@/lib/auth/validation"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/utils/supabase/server"
 
 export type LoginActionState = {
   error: string

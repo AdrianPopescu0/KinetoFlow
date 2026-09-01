@@ -1,7 +1,7 @@
 "use server"
 
 import { parseRecoveryEmail } from "@/lib/auth/validation"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/utils/supabase/server"
 
 const RECOVERY_NOTICE =
   "Dacă există un cont asociat acestei adrese, vei primi un email cu instrucțiuni de resetare."

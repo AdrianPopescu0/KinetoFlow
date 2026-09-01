@@ -5,7 +5,7 @@ import { logout } from "@/app/dashboard/actions"
 import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/utils/supabase/server"
 
 export const metadata: Metadata = {
   title: "Dashboard | KinetoFlow",
