@@ -52,6 +52,8 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 Tabele: `patients` (token UUID unic pentru `/p/[token]`), `exercises`, `check_ins`. RLS: terapeutul vede doar pacienții lui.
 
+Fișa clinică: `/dashboard/patients/[id]`. Note clinice: rulează și `supabase/migrations/002_clinical_notes.sql`.
+
 Reguli de securitate aplicate:
 
 - Validare pe server pentru email și parolă înainte de apelul Auth
