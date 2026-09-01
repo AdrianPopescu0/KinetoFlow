@@ -36,7 +36,6 @@ function isDailyCheckin(value: unknown): value is DailyCheckin {
     typeof record.localDate === "string" &&
     typeof record.pain === "number" &&
     typeof record.sleep === "string" &&
-    typeof record.painKind === "string" &&
     typeof record.notes === "string" &&
     Array.isArray(record.completedExerciseIds)
   )

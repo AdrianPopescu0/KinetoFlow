@@ -48,11 +48,13 @@ function mapExercises(rows: ExerciseRecord[]): Exercise[] {
   return rows.map((row) => ({
     id: row.id,
     title: row.title,
-    category: row.notes?.trim() || "Programul tău",
-    youtubeId: youtubeIdFromUrl(row.video_url) ?? "xpQM250vj3E",
+    category: "Programul tău",
+    youtubeId: youtubeIdFromUrl(row.video_url),
+    videoUrl: row.video_url,
     sets: row.sets ?? 3,
     reps: row.reps ?? 10,
     restSeconds: 30,
+    instructions: row.notes?.trim() || "",
   }))
 }
 
@@ -85,7 +87,9 @@ export async function loadPatientProgramFromDatabase(
 
     return {
       token: record.token,
+      patientId: record.id,
       firstName: firstNameFromFullName(record.full_name),
+      fullName: record.full_name,
       programLabel: record.diagnosis?.trim() || "Programul tău de recuperare",
       progressPercent: exercises.length > 0 ? 20 : 0,
       exercises,

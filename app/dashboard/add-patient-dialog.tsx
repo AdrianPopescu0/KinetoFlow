@@ -7,6 +7,8 @@ import { createPatient } from "@/app/dashboard/patients/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { toast } from "@/components/ui/toaster"
 
 export function AddPatientDialog() {
   const [open, setOpen] = useState(false)
@@ -21,6 +23,7 @@ export function AddPatientDialog() {
         setError(result.error)
         return
       }
+      toast("Pacientul a fost adăugat. Linkul de acces este gata de copiat.")
       setOpen(false)
     })
   }
@@ -36,7 +39,7 @@ export function AddPatientDialog() {
         className="h-12 min-h-[48px] rounded-xl px-4"
       >
         <Plus className="size-4" />
-        Adaugă Pacient Nou
+        Adaugă Pacient
       </Button>
 
       {open ? (
@@ -51,60 +54,31 @@ export function AddPatientDialog() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-patient-title"
-            className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6"
+            className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6"
           >
             <h2 id="add-patient-title" className="text-lg font-semibold text-slate-800">
-              Pacient nou
+              Adaugă pacient
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Se generează automat un link de acces fără parolă, pe baza tokenului unic.
+              Generăm automat un token unic pentru accesul fără parolă.
             </p>
 
             <form action={handleSubmit} className="mt-5 flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="full_name">Nume complet</Label>
-                <Input
-                  id="full_name"
-                  name="full_name"
-                  required
-                  disabled={isPending}
-                  placeholder="Ana Popescu"
-                  className="h-11 border-slate-300"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="diagnosis">Diagnostic</Label>
-                <Input
-                  id="diagnosis"
-                  name="diagnosis"
-                  disabled={isPending}
-                  placeholder="Tendinopatie de umăr"
-                  className="h-11 border-slate-300"
-                />
-              </div>
+              <Field id="full_name" label="Nume" required placeholder="Ana Popescu" disabled={isPending} />
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    disabled={isPending}
-                    placeholder="ana@email.ro"
-                    className="h-11 border-slate-300"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="phone">Telefon</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    disabled={isPending}
-                    placeholder="07xx xxx xxx"
-                    className="h-11 border-slate-300"
-                  />
-                </div>
+                <Field id="phone" label="Telefon" placeholder="07xx xxx xxx" disabled={isPending} />
+                <Field id="email" label="Email" type="email" placeholder="ana@email.ro" disabled={isPending} />
+              </div>
+              <Field id="diagnosis" label="Diagnostic" placeholder="Tendinopatie de umăr" disabled={isPending} />
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="clinical_notes">Note clinice</Label>
+                <Textarea
+                  id="clinical_notes"
+                  name="clinical_notes"
+                  disabled={isPending}
+                  placeholder="Obiective, precauții, observații..."
+                  className="min-h-20 rounded-xl border-slate-300"
+                />
               </div>
 
               {error ? (
@@ -119,18 +93,18 @@ export function AddPatientDialog() {
                   variant="outline"
                   disabled={isPending}
                   onClick={() => setOpen(false)}
-                  className="h-11 min-h-[44px] rounded-xl"
+                  className="h-11 rounded-xl"
                 >
                   Anulează
                 </Button>
-                <Button type="submit" disabled={isPending} className="h-11 min-h-[44px] rounded-xl">
+                <Button type="submit" disabled={isPending} className="h-11 rounded-xl">
                   {isPending ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
                       Se salvează…
                     </>
                   ) : (
-                    "Salvează pacientul"
+                    "Salvează"
                   )}
                 </Button>
               </div>
@@ -139,5 +113,36 @@ export function AddPatientDialog() {
         </div>
       ) : null}
     </>
+  )
+}
+
+function Field({
+  id,
+  label,
+  required,
+  placeholder,
+  disabled,
+  type = "text",
+}: {
+  id: string
+  label: string
+  required?: boolean
+  placeholder?: string
+  disabled?: boolean
+  type?: string
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        name={id}
+        type={type}
+        required={required}
+        disabled={disabled}
+        placeholder={placeholder}
+        className="h-11 border-slate-300"
+      />
+    </div>
   )
 }

@@ -8,27 +8,33 @@ const SHOULDER_EXERCISES: Exercise[] = [
     title: "Pendul Codman",
     category: "Mobilitate Umăr",
     youtubeId: "xpQM250vj3E",
+    videoUrl: "https://www.youtube.com/watch?v=xpQM250vj3E",
     sets: 3,
     reps: 12,
     restSeconds: 30,
+    instructions: "Lasă brațul să atârne relaxat. Mișcarea vine din corp, nu din umăr.",
   },
   {
     id: "alunecari-perete",
     title: "Alunecări pe perete",
     category: "Mobilitate Umăr",
     youtubeId: "KM36zdNUzZk",
+    videoUrl: "https://www.youtube.com/watch?v=KM36zdNUzZk",
     sets: 3,
     reps: 10,
     restSeconds: 45,
+    instructions: "Spatele lipește peretele. Ridică brațele lent, fără să ridici umerii.",
   },
   {
     id: "retractie-scapulara",
     title: "Retracție scapulară",
     category: "Stabilitate Umăr",
     youtubeId: "KWVchSPBbks",
+    videoUrl: "https://www.youtube.com/watch?v=KWVchSPBbks",
     sets: 3,
     reps: 15,
     restSeconds: 30,
+    instructions: "Apropie omoplații, ține 2 secunde, apoi relaxează.",
   },
 ]
 
@@ -38,27 +44,33 @@ const KNEE_EXERCISES: Exercise[] = [
     title: "Extensie de genunchi din șezut",
     category: "Forță cvadriceps",
     youtubeId: "POpqNc7BgBU",
+    videoUrl: "https://www.youtube.com/watch?v=POpqNc7BgBU",
     sets: 3,
     reps: 12,
     restSeconds: 40,
+    instructions: "Întinde genunchiul controlat, fără să blochezi articulația.",
   },
   {
     id: "punte-glutei",
     title: "Punte de fesieri",
     category: "Stabilitate șold",
     youtubeId: "Rt_F1xjCUK4",
+    videoUrl: "https://www.youtube.com/watch?v=Rt_F1xjCUK4",
     sets: 3,
     reps: 10,
     restSeconds: 45,
+    instructions: "Ridică bazinul până formezi o linie dreaptă. Nu arcuia lombarii.",
   },
   {
     id: "mini-genuflexiuni",
     title: "Mini-genuflexiuni la perete",
     category: "Control genunchi",
     youtubeId: "KM36zdNUzZk",
+    videoUrl: "https://www.youtube.com/watch?v=KM36zdNUzZk",
     sets: 3,
     reps: 8,
     restSeconds: 50,
+    instructions: "Genunchii rămân pe linia vârfului picioarelor. Amplitude mică.",
   },
 ]
 
@@ -93,9 +105,9 @@ export function getPatientProgram(token: string): PatientProgram | null {
 }
 
 export const SLEEP_OPTIONS: { value: SleepQuality; emoji: string; label: string }[] = [
-  { value: "slab", emoji: "😫", label: "Slab" },
-  { value: "mediu", emoji: "😐", label: "Mediu" },
-  { value: "foarte-bun", emoji: "😊", label: "Foarte bun" },
+  { value: "intrerupt", emoji: "😫", label: "Întrerupt" },
+  { value: "moderat", emoji: "😐", label: "Moderat" },
+  { value: "odihnitor", emoji: "😊", label: "Odihnitor" },
 ]
 
 export const PAIN_KIND_OPTIONS: { value: PainKind; label: string }[] = [

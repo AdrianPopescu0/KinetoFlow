@@ -5,6 +5,7 @@ export type PatientRecord = {
   email: string | null
   phone: string | null
   diagnosis: string | null
+  clinical_notes: string | null
   token: string
   created_at: string
 }
@@ -17,4 +18,26 @@ export type ExerciseRecord = {
   sets: number | null
   reps: number | null
   notes: string | null
+}
+
+export type CheckInRecord = {
+  id: string
+  patient_id: string
+  vas_score: number
+  sleep_quality: string | null
+  pain_type: string | null
+  notes: string | null
+  created_at: string
+}
+
+export type PatientListItem = PatientRecord & {
+  lastVas: number | null
+  lastCheckInAt: string | null
+}
+
+export type DashboardStats = {
+  activePatients: number
+  checkInsToday: number
+  painAlerts: number
+  compliancePercent: number
 }
