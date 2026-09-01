@@ -32,7 +32,10 @@ export function RecoveryForm() {
   return (
     <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
       {error ? (
-        <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
+        <Alert
+          variant="destructive"
+          className="border-red-400/30 bg-red-500/10 text-red-100"
+        >
           <AlertCircle />
           <AlertTitle>Cerere invalidă</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -40,8 +43,8 @@ export function RecoveryForm() {
       ) : null}
 
       {message ? (
-        <Alert className="border-primary/20 bg-primary/5">
-          <CheckCircle2 className="text-primary" />
+        <Alert className="border-teal-400/20 bg-emerald-500/10 text-emerald-50">
+          <CheckCircle2 className="text-teal-300" />
           <AlertTitle>Verifică emailul</AlertTitle>
           <AlertDescription>{message}</AlertDescription>
         </Alert>
@@ -57,11 +60,15 @@ export function RecoveryForm() {
           required
           disabled={isPending}
           placeholder="nume@clinica.ro"
-          className="h-11 px-3"
+          className="h-12 min-h-12 px-3"
         />
       </div>
 
-      <Button type="submit" disabled={isPending} className="h-11 w-full font-semibold">
+      <Button
+        type="submit"
+        disabled={isPending}
+        className="h-12 min-h-[48px] w-full rounded-xl font-semibold"
+      >
         {isPending ? (
           <>
             <Loader2 className="size-4 animate-spin" />
@@ -72,9 +79,9 @@ export function RecoveryForm() {
         )}
       </Button>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm text-slate-300">
         Ți-ai amintit parola?{" "}
-        <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+        <Link href="/login" className="font-medium text-teal-300 underline-offset-4 hover:underline">
           Înapoi la autentificare
         </Link>
       </p>

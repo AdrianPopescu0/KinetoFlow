@@ -29,7 +29,10 @@ export function LoginForm() {
   return (
     <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
       {error ? (
-        <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
+        <Alert
+          variant="destructive"
+          className="border-red-400/30 bg-red-500/10 text-red-100"
+        >
           <AlertCircle />
           <AlertTitle>Autentificare eșuată</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -47,7 +50,7 @@ export function LoginForm() {
           required
           disabled={isPending}
           placeholder="nume@clinica.ro"
-          className="h-11 px-3"
+          className="h-12 min-h-12 px-3"
           aria-invalid={error ? true : undefined}
         />
       </div>
@@ -57,7 +60,7 @@ export function LoginForm() {
           <Label htmlFor="password">Parolă</Label>
           <Link
             href="/recuperare-parola"
-            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+            className="text-sm font-medium text-teal-300 underline-offset-4 hover:underline"
           >
             Ai uitat parola?
           </Link>
@@ -71,14 +74,14 @@ export function LoginForm() {
             required
             disabled={isPending}
             placeholder="••••••••"
-            className="h-11 px-3 pr-11"
+            className="h-12 min-h-12 px-3 pr-12"
             aria-invalid={error ? true : undefined}
           />
           <button
             type="button"
             onClick={() => setShowPassword((visible) => !visible)}
             disabled={isPending}
-            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-emerald-100/70 transition-colors hover:text-white disabled:opacity-50"
             aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
             aria-pressed={showPassword}
           >
@@ -90,7 +93,7 @@ export function LoginForm() {
       <Button
         type="submit"
         disabled={isPending}
-        className="h-11 w-full text-sm font-semibold"
+        className="h-12 min-h-[48px] w-full rounded-xl text-sm font-semibold"
       >
         {isPending ? (
           <>

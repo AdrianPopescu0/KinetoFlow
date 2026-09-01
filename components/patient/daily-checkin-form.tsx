@@ -2,6 +2,7 @@
 
 import { useId } from "react"
 
+import { glassCardClassName } from "@/components/brand/app-atmosphere"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -27,15 +28,15 @@ type DailyCheckinFormProps = {
 }
 
 const TONE_CLASS = {
-  green: "text-emerald-700",
-  orange: "text-amber-700",
-  red: "text-red-700",
+  green: "text-emerald-400",
+  orange: "text-amber-400",
+  red: "text-rose-400",
 } as const
 
 const TONE_TRACK = {
-  green: "#059669",
-  orange: "#d97706",
-  red: "#dc2626",
+  green: "#10b981",
+  orange: "#f59e0b",
+  red: "#f43f5e",
 } as const
 
 export function DailyCheckinForm({
@@ -58,15 +59,17 @@ export function DailyCheckinForm({
   const fillPercent = (pain / 10) * 100
 
   return (
-    <section className="flex flex-col gap-6 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
+    <section className={glassCardClassName("flex flex-col gap-6 p-4 sm:p-5")}>
       <div>
-        <h2 className="text-lg font-semibold tracking-tight text-[#0F4C5C]">Check-in zilnic</h2>
-        <p className="mt-1 text-sm text-slate-500">Durează sub 30 de secunde. Terapeutul vede răspunsul azi.</p>
+        <h2 className="text-lg font-semibold tracking-tight text-white">Check-in zilnic</h2>
+        <p className="mt-1 text-sm text-emerald-100/70">
+          Durează sub 30 de secunde. Terapeutul vede răspunsul azi.
+        </p>
       </div>
 
       <div className="flex flex-col gap-3">
         <div className="flex items-end justify-between gap-3">
-          <label htmlFor={sliderId} className="text-sm font-semibold text-[#0F4C5C]">
+          <label htmlFor={sliderId} className="text-sm font-semibold text-white">
             Nivel durere (VAS 0–10)
           </label>
           <span
@@ -88,7 +91,7 @@ export function DailyCheckinForm({
           className="kf-vas"
           style={{
             color: trackColor,
-            background: `linear-gradient(to right, ${trackColor} 0%, ${trackColor} ${fillPercent}%, #e2e8f0 ${fillPercent}%, #e2e8f0 100%)`,
+            background: `linear-gradient(to right, ${trackColor} 0%, ${trackColor} ${fillPercent}%, rgb(255 255 255 / 0.12) ${fillPercent}%, rgb(255 255 255 / 0.12) 100%)`,
           }}
           aria-valuemin={0}
           aria-valuemax={10}
@@ -106,7 +109,7 @@ export function DailyCheckinForm({
       </div>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="text-sm font-semibold text-[#0F4C5C]">Calitatea somnului</legend>
+        <legend className="text-sm font-semibold text-white">Calitatea somnului</legend>
         <div className="grid grid-cols-3 gap-2">
           {SLEEP_OPTIONS.map((option) => {
             const selected = sleep === option.value
@@ -116,10 +119,10 @@ export function DailyCheckinForm({
                 type="button"
                 onClick={() => onSleepChange(option.value)}
                 className={cn(
-                  "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-3 text-center transition-colors",
+                  "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-3 text-center backdrop-blur-md transition-colors",
                   selected
-                    ? "border-[#005F73] bg-[#005F73] text-white shadow-sm"
-                    : "border-slate-200 bg-slate-50 text-slate-700 hover:border-[#005F73]/40",
+                    ? "border-emerald-400/40 bg-emerald-500 text-emerald-950 shadow-sm"
+                    : "border-white/10 bg-white/5 text-slate-300 hover:border-teal-400/40",
                 )}
                 aria-pressed={selected}
               >
@@ -134,7 +137,7 @@ export function DailyCheckinForm({
       </fieldset>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="text-sm font-semibold text-[#0F4C5C]">Tipul durerii resimțite azi</legend>
+        <legend className="text-sm font-semibold text-white">Tipul durerii resimțite azi</legend>
         <div className="flex flex-wrap gap-2">
           {PAIN_KIND_OPTIONS.map((option) => {
             const selected = painKind === option.value
@@ -144,10 +147,10 @@ export function DailyCheckinForm({
                 type="button"
                 onClick={() => onPainKindChange(option.value)}
                 className={cn(
-                  "min-h-11 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
+                  "min-h-[48px] rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
                   selected
-                    ? "border-[#005F73] bg-[#005F73] text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-[#005F73]/40",
+                    ? "border-emerald-400/40 bg-emerald-500 text-emerald-950"
+                    : "border-white/10 bg-white/5 text-slate-300 hover:border-teal-400/40",
                 )}
                 aria-pressed={selected}
               >
@@ -159,8 +162,8 @@ export function DailyCheckinForm({
       </fieldset>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor={notesId} className="text-sm font-semibold text-[#0F4C5C]">
-          Observații <span className="font-normal text-slate-400">(opțional)</span>
+        <label htmlFor={notesId} className="text-sm font-semibold text-white">
+          Observații <span className="font-normal text-emerald-100/50">(opțional)</span>
         </label>
         <Textarea
           id={notesId}
@@ -168,13 +171,13 @@ export function DailyCheckinForm({
           value={notes}
           onChange={(event) => onNotesChange(event.target.value)}
           placeholder="Alte mențiuni pentru terapeut (opțional)..."
-          className="min-h-11 field-sizing-content resize-none px-3 py-2.5 text-base"
+          className="min-h-[48px] field-sizing-content resize-none rounded-xl px-3 py-2.5 text-base"
           maxLength={280}
         />
       </div>
 
       {error ? (
-        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+        <p className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-100" role="alert">
           {error}
         </p>
       ) : null}
@@ -183,7 +186,7 @@ export function DailyCheckinForm({
         type="button"
         onClick={onSubmit}
         disabled={pending}
-        className="h-14 w-full rounded-2xl bg-[#005F73] text-base font-semibold text-white hover:bg-[#0F4C5C]"
+        className="h-14 min-h-[48px] w-full rounded-2xl bg-emerald-500 text-base font-semibold text-emerald-950 hover:bg-emerald-400"
       >
         {pending ? "Se trimite…" : "Trimite evaluarea de azi"}
       </Button>
