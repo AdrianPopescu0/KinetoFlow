@@ -17,8 +17,9 @@ cp .env.example .env.local
 
 2. Completează în `.env.local`:
 
-- `NEXT_PUBLIC_SUPABASE_URL` — URL-ul proiectului Supabase
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — cheia anonimă (publică)
+- `NEXT_PUBLIC_SUPABASE_URL` — URL-ul proiectului (Settings → API)
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — cheia publicabilă (`sb_publishable_…`, sigură în browser)
+- `SUPABASE_SECRET_KEY` — cheia secretă (`sb_secret_…`), doar pe server, **fără** prefix `NEXT_PUBLIC_`
 - `NEXT_PUBLIC_SITE_URL` — originea aplicației (pentru linkurile de recuperare a parolei)
 
 În dashboard-ul Supabase, adaugă URL-urile de redirect:
