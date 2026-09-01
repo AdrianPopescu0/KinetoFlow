@@ -1,4 +1,4 @@
-import { youtubeIdFromUrl } from "@/lib/patients/from-database"
+import { youtubeIdFromUrl } from "@/lib/patients/youtube"
 
 export function VideoPreview({ url, title }: { url: string | null; title: string }) {
   if (!url) {
