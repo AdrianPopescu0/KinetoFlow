@@ -29,10 +29,7 @@ export function LoginForm() {
   return (
     <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
       {error ? (
-        <Alert
-          variant="destructive"
-          className="border-red-400/30 bg-red-500/10 text-red-100"
-        >
+        <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
           <AlertCircle />
           <AlertTitle>Autentificare eșuată</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -40,7 +37,9 @@ export function LoginForm() {
       ) : null}
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email" className="text-slate-900">
+          Email
+        </Label>
         <Input
           id="email"
           name="email"
@@ -50,17 +49,19 @@ export function LoginForm() {
           required
           disabled={isPending}
           placeholder="nume@clinica.ro"
-          className="h-12 min-h-12 px-3"
+          className="h-12 min-h-12 border-slate-300 px-3"
           aria-invalid={error ? true : undefined}
         />
       </div>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
-          <Label htmlFor="password">Parolă</Label>
+          <Label htmlFor="password" className="text-slate-900">
+            Parolă
+          </Label>
           <Link
             href="/recuperare-parola"
-            className="text-sm font-medium text-teal-300 underline-offset-4 hover:underline"
+            className="text-sm font-medium text-[#042f2e] underline-offset-4 hover:underline"
           >
             Ai uitat parola?
           </Link>
@@ -74,14 +75,14 @@ export function LoginForm() {
             required
             disabled={isPending}
             placeholder="••••••••"
-            className="h-12 min-h-12 px-3 pr-12"
+            className="h-12 min-h-12 border-slate-300 px-3 pr-12"
             aria-invalid={error ? true : undefined}
           />
           <button
             type="button"
             onClick={() => setShowPassword((visible) => !visible)}
             disabled={isPending}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-emerald-100/70 transition-colors hover:text-white disabled:opacity-50"
+            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500 transition-colors hover:text-slate-900 disabled:opacity-50"
             aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
             aria-pressed={showPassword}
           >

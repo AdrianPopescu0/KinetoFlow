@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { logout } from "@/app/dashboard/actions"
-import { AppAtmosphere, glassCardClassName } from "@/components/brand/app-atmosphere"
+import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
@@ -22,36 +22,38 @@ export default async function DashboardPage() {
   }
 
   return (
-    <AppAtmosphere>
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-5 py-8 sm:py-10">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <KinetoFlowMark className="mt-0.5 size-9 text-teal-300" />
-            <div>
-              <p className="text-sm font-semibold tracking-[0.16em] text-teal-100/80 uppercase">
-                KinetoFlow
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
-                Dashboard clinic
-              </h1>
-              <p className="mt-1 text-sm text-emerald-100/70">
-                Ești autentificat ca{" "}
-                <span className="font-medium text-white">{user.email}</span>
-              </p>
-            </div>
+    <AppShell>
+      <header className="bg-[#042f2e] text-white">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <KinetoFlowMark className="size-8 text-white" />
+            <p className="text-sm font-semibold tracking-[0.16em] uppercase">KinetoFlow</p>
           </div>
           <form action={logout}>
-            <Button type="submit" variant="outline" className="h-12 min-h-[48px] rounded-xl px-4">
+            <Button
+              type="submit"
+              variant="outline"
+              className="h-11 min-h-[44px] rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+            >
               Ieși din cont
             </Button>
           </form>
-        </header>
+        </div>
+      </header>
 
-        <section className={glassCardClassName("p-6")}>
-          <h2 className="text-base font-semibold text-white">Sesiune activă</h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-5 py-8">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-800">Dashboard clinic</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Ești autentificat ca <span className="font-medium text-slate-800">{user.email}</span>
+          </p>
+        </div>
+
+        <section className={surfaceCardClassName("p-6")}>
+          <h2 className="text-base font-semibold text-slate-800">Sesiune activă</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
             Middleware-ul reîmprospătează sesiunea la fiecare cerere. Rutele din{" "}
-            <code className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-xs text-teal-200">
+            <code className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs text-slate-800">
               /dashboard
             </code>{" "}
             sunt accesibile doar utilizatorilor autentificați.
@@ -59,26 +61,26 @@ export default async function DashboardPage() {
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2">
-          <article className={glassCardClassName("p-5")}>
-            <p className="text-xs font-semibold tracking-wide text-teal-300 uppercase">
+          <article className={surfaceCardClassName("p-5")}>
+            <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase">
               Program pacienți
             </p>
-            <p className="mt-2 text-lg font-semibold text-white">Linkuri personale</p>
-            <p className="mt-1 text-sm leading-relaxed text-slate-300">
+            <p className="mt-2 text-lg font-semibold text-slate-800">Linkuri personale</p>
+            <p className="mt-1 text-sm leading-relaxed text-slate-600">
               Pacienții își văd exercițiile și trimit check-in-ul din{" "}
-              <span className="text-emerald-100">/p/[token]</span>, pe aceeași identitate vizuală.
+              <span className="font-medium text-slate-800">/p/[token]</span>.
             </p>
           </article>
-          <article className={glassCardClassName("p-5")}>
-            <p className="text-xs font-semibold tracking-wide text-teal-300 uppercase">Securitate</p>
-            <p className="mt-2 text-lg font-semibold text-white">Acces clinic</p>
-            <p className="mt-1 text-sm leading-relaxed text-slate-300">
+          <article className={surfaceCardClassName("p-5")}>
+            <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase">Securitate</p>
+            <p className="mt-2 text-lg font-semibold text-slate-800">Acces clinic</p>
+            <p className="mt-1 text-sm leading-relaxed text-slate-600">
               Autentificarea rămâne pe Supabase Auth. Dashboard-ul nu este vizibil fără sesiune
               validă.
             </p>
           </article>
         </section>
       </main>
-    </AppAtmosphere>
+    </AppShell>
   )
 }

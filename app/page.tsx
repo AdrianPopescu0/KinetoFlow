@@ -1,25 +1,25 @@
 import Link from "next/link"
 
-import { AppAtmosphere, glassCardClassName } from "@/components/brand/app-atmosphere"
+import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export default function HomePage() {
   return (
-    <AppAtmosphere>
+    <AppShell>
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
-        <div className={glassCardClassName("max-w-xl px-6 py-10 text-center sm:px-10")}>
+        <div className={surfaceCardClassName("max-w-xl px-6 py-10 text-center sm:px-10")}>
           <div className="flex justify-center">
-            <KinetoFlowMark className="size-10 text-teal-300" />
+            <KinetoFlowMark className="size-10 text-[#042f2e]" />
           </div>
-          <p className="mt-4 text-sm font-semibold tracking-[0.18em] text-teal-100/80 uppercase">
+          <p className="mt-4 text-sm font-semibold tracking-[0.18em] text-[#042f2e] uppercase">
             KinetoFlow
           </p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-balance text-white sm:text-4xl">
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-balance text-slate-800 sm:text-4xl">
             Platforma clinică pentru kinetoterapie
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-emerald-100/70 sm:text-base">
+          <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
             Gestionează programele de recuperare, urmărește progresul pacienților și păstrează
             accesul clinic securizat.
           </p>
@@ -42,6 +42,6 @@ export default function HomePage() {
           </div>
         </div>
       </main>
-    </AppAtmosphere>
+    </AppShell>
   )
 }

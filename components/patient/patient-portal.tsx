@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore, useTransition } from "react"
 
-import { AppAtmosphere } from "@/components/brand/app-atmosphere"
+import { AppShell } from "@/components/brand/app-atmosphere"
 import { CheckinSuccess } from "@/components/patient/checkin-success"
 import { DailyCheckinForm } from "@/components/patient/daily-checkin-form"
 import { ExerciseCard } from "@/components/patient/exercise-card"
@@ -86,7 +86,7 @@ export function PatientPortal({ program }: PatientPortalProps) {
   }
 
   return (
-    <AppAtmosphere>
+    <AppShell>
       <PatientHeader
         firstName={program.firstName}
         dateLabel={dateLabel}
@@ -97,10 +97,10 @@ export function PatientPortal({ program }: PatientPortalProps) {
       <main className="mx-auto flex w-full max-w-lg flex-col gap-8 px-4 py-6 pb-16">
         <section className="flex flex-col gap-4">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-800">
               Exercițiile tale de azi
             </h2>
-            <p className="mt-1 text-sm text-emerald-100/70">
+            <p className="mt-1 text-sm text-slate-600">
               Urmărește demonstrația, apoi bifează ce ai terminat.
             </p>
           </div>
@@ -118,10 +118,7 @@ export function PatientPortal({ program }: PatientPortalProps) {
         </section>
 
         {!isClient ? (
-          <div
-            className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/5"
-            aria-hidden="true"
-          />
+          <div className="h-80 animate-pulse rounded-2xl border border-slate-200 bg-white" aria-hidden="true" />
         ) : storedCheckin ? (
           <CheckinSuccess checkin={storedCheckin} alreadySubmitted={!justSubmitted} />
         ) : (
@@ -140,6 +137,6 @@ export function PatientPortal({ program }: PatientPortalProps) {
           />
         )}
       </main>
-    </AppAtmosphere>
+    </AppShell>
   )
 }
