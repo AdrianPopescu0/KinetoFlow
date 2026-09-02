@@ -3,7 +3,6 @@ import Link from "next/link"
 import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
 import { buttonVariants } from "@/components/ui/button"
-import { loginHref } from "@/lib/auth/paths"
 import { cn } from "@/lib/utils"
 
 export default function HomePage() {
@@ -24,21 +23,12 @@ export default function HomePage() {
             Gestionează programele de recuperare, urmărește progresul pacienților și păstrează
             accesul clinic securizat.
           </p>
-          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <Link
-              href={loginHref("signin")}
+              href="/login"
               className={cn(buttonVariants(), "h-12 min-h-[48px] rounded-xl px-5")}
             >
-              Autentificare terapeut
-            </Link>
-            <Link
-              href={loginHref("signup")}
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "h-12 min-h-[48px] rounded-xl px-5",
-              )}
-            >
-              Creează cont clinică
+              Portal Clinică & Terapeut
             </Link>
             <Link
               href="/acces"
@@ -47,7 +37,7 @@ export default function HomePage() {
                 "h-12 min-h-[48px] rounded-xl px-5",
               )}
             >
-              Acces pacient
+              Acces Pacient
             </Link>
           </div>
         </div>
