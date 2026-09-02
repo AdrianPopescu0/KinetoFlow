@@ -1,3 +1,6 @@
+import { cache } from "react"
+
+import { getCachedUser } from "@/lib/auth/session"
 import { startOfTodayIso } from "@/lib/patients/display"
 import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
 import type {
@@ -7,12 +10,16 @@ import type {
   PatientListItem,
   PatientRecord,
 } from "@/lib/patients/types-db"
-import { createClient } from "@/utils/supabase/server"
 
+const PATIENT_LIST_COLUMNS =
+  "id, user_id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
+const PATIENT_LIST_COLUMNS_PLAIN =
+  "id, user_id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS =
   "id, user_id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at"
 const PATIENT_COLUMNS_FALLBACK =
   "id, therapist_id, full_name, email, phone, diagnosis, token, created_at"
+const PATIENT_PICKER_COLUMNS = "id, full_name, diagnosis"
 
 function isMissingRelation(error: { message: string; code?: string } | null): boolean {
   if (!error) {
@@ -47,19 +54,16 @@ function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
 }
 
 async function currentTherapistId() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { supabase, user } = await getCachedUser()
   return { supabase, userId: user?.id ?? null }
 }
 
-export async function listTherapistPatients(): Promise<{
+export const listTherapistPatients = cache(async (): Promise<{
   patients: PatientListItem[]
   stats: DashboardStats
   error: string | null
   needsMigration: boolean
-}> {
+}> => {
   const emptyStats: DashboardStats = {
     activePatients: 0,
     checkInsToday: 0,
@@ -72,49 +76,64 @@ export async function listTherapistPatients(): Promise<{
     return { patients: [], stats: emptyStats, error: "Sesiunea a expirat.", needsMigration: false }
   }
 
-  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_COLUMNS)
+  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS)
 
   if (error) {
-    const fallback = await selectOwnPatients(supabase, userId, PATIENT_COLUMNS_FALLBACK)
+    const fallback = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS_PLAIN)
 
     if (fallback.error) {
-      return {
-        patients: [],
-        stats: emptyStats,
-        error: isMissingRelation(fallback.error)
-          ? "Tabela patients nu există încă. Rulează supabase/migrations/001_patients.sql în SQL Editor."
-          : fallback.error.message,
-        needsMigration: isMissingRelation(fallback.error),
+      const legacy = await selectOwnPatients(supabase, userId, PATIENT_COLUMNS_FALLBACK)
+      if (legacy.error) {
+        return {
+          patients: [],
+          stats: emptyStats,
+          error: isMissingRelation(legacy.error)
+            ? "Tabela patients nu există încă. Rulează supabase/migrations/001_patients.sql în SQL Editor."
+            : legacy.error.message,
+          needsMigration: isMissingRelation(legacy.error),
+        }
       }
+      return assemblePatientList((legacy.data ?? []) as Record<string, unknown>[], supabase)
     }
 
-    return assemblePatientList((fallback.data ?? []) as Record<string, unknown>[])
+    return assemblePatientList((fallback.data ?? []) as Record<string, unknown>[], supabase)
   }
 
-  return assemblePatientList((data ?? []) as Record<string, unknown>[])
-}
+  return assemblePatientList((data ?? []) as Record<string, unknown>[], supabase)
+})
 
-async function assemblePatientList(rawPatients: Record<string, unknown>[]) {
+async function assemblePatientList(
+  rawPatients: Record<string, unknown>[],
+  supabase: Awaited<ReturnType<typeof currentTherapistId>>["supabase"],
+) {
   const patients = rawPatients.map(withClinicalNotes)
-  const supabase = await createClient()
-  const ids = patients.map((patient) => patient.id)
+  const hasEmbedded = rawPatients.some((row) => Array.isArray(row.check_ins))
+  let checkIns: Array<Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">> = []
 
-  let checkIns: CheckInRecord[] = []
-  if (ids.length > 0) {
-    const { data } = await supabase
-      .from("check_ins")
-      .select("id, patient_id, vas_score, sleep_quality, pain_type, notes, created_at")
-      .in("patient_id", ids)
-      .order("created_at", { ascending: false })
-    checkIns = (data ?? []) as CheckInRecord[]
+  if (hasEmbedded) {
+    checkIns = rawPatients.flatMap((row) => {
+      const nested = row.check_ins
+      return Array.isArray(nested) ? (nested as Array<Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>) : []
+    })
+  } else {
+    const ids = patients.map((patient) => patient.id)
+    if (ids.length > 0) {
+      const { data } = await supabase
+        .from("check_ins")
+        .select("patient_id, vas_score, created_at")
+        .in("patient_id", ids)
+        .order("created_at", { ascending: false })
+      checkIns = (data ?? []) as Array<Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>
+    }
   }
 
   const today = startOfTodayIso().slice(0, 10)
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-  const latestByPatient = new Map<string, CheckInRecord>()
+  const latestByPatient = new Map<string, Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>()
 
   for (const row of checkIns) {
-    if (!latestByPatient.has(row.patient_id)) {
+    const current = latestByPatient.get(row.patient_id)
+    if (!current || row.created_at > current.created_at) {
       latestByPatient.set(row.patient_id, row)
     }
   }
@@ -150,12 +169,12 @@ async function assemblePatientList(rawPatients: Record<string, unknown>[]) {
   }
 }
 
-export async function getTherapistPatient(id: string): Promise<{
+export const getTherapistPatient = cache(async (id: string): Promise<{
   patient: PatientRecord | null
   exercises: ExerciseRecord[]
   checkIns: CheckInRecord[]
   error: string | null
-}> {
+}> => {
   const { supabase, userId } = await currentTherapistId()
   if (!userId) {
     return { patient: null, exercises: [], checkIns: [], error: "Sesiunea a expirat." }
@@ -170,14 +189,16 @@ export async function getTherapistPatient(id: string): Promise<{
       return { patient: null, exercises: [], checkIns: [], error: "Pacientul nu a fost găsit." }
     }
 
-    return loadPatientRelations(withClinicalNotes(fallback.data as Record<string, unknown>))
+    return loadPatientRelations(supabase, withClinicalNotes(fallback.data as Record<string, unknown>))
   }
 
-  return loadPatientRelations(withClinicalNotes(patientRow as Record<string, unknown>))
-}
+  return loadPatientRelations(supabase, withClinicalNotes(patientRow as Record<string, unknown>))
+})
 
-async function loadPatientRelations(patient: PatientRecord) {
-  const supabase = await createClient()
+async function loadPatientRelations(
+  supabase: Awaited<ReturnType<typeof currentTherapistId>>["supabase"],
+  patient: PatientRecord,
+) {
   const [{ data: exercises }, { data: checkIns }] = await Promise.all([
     supabase
       .from("exercises")
@@ -198,3 +219,21 @@ async function loadPatientRelations(patient: PatientRecord) {
     error: null,
   }
 }
+
+export const listTherapistPatientSummaries = cache(async () => {
+  const { supabase, userId } = await currentTherapistId()
+  if (!userId) {
+    return [] as Array<{ id: string; fullName: string; diagnosis: string | null }>
+  }
+
+  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_PICKER_COLUMNS)
+  const rows = !error
+    ? data
+    : (await selectOwnPatients(supabase, userId, "id, full_name, diagnosis")).data
+
+  return ((rows ?? []) as Record<string, unknown>[]).map((row) => ({
+    id: String(row.id),
+    fullName: String(row.full_name),
+    diagnosis: typeof row.diagnosis === "string" ? row.diagnosis : null,
+  }))
+})

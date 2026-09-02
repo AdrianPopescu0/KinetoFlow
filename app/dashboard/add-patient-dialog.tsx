@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Check, Copy, Loader2, MessageCircle, Plus } from "lucide-react"
 
 import { createPatient } from "@/app/dashboard/patients/actions"
@@ -22,6 +23,7 @@ type CreatedPatient = {
 }
 
 export function AddPatientDialog() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [created, setCreated] = useState<CreatedPatient | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -56,6 +58,7 @@ export function AddPatientDialog() {
         whatsappMessage: result.whatsappMessage ?? "",
       }
       setCreated(payload)
+      router.refresh()
 
       if (payload.patientId) {
         void fetch("/api/patients/notify-whatsapp", {

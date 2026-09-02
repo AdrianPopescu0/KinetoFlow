@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-import { therapistHasClinicProfile } from "@/lib/clinics/profile"
+import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import { PATIENT_SESSION_COOKIE, patientTokenFromPath } from "@/lib/patients/session"
 import { getSupabasePublicEnv, isUnconfiguredSupabaseUrl } from "@/utils/supabase/env"
 
@@ -95,7 +95,9 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (authenticatedUser) {
-    const clinicReady = await therapistHasClinicProfile(supabase, authenticatedUser.id)
+    const clinicReady = clinicReadyFromUser(authenticatedUser)
+      ? true
+      : await therapistHasClinicProfile(supabase, authenticatedUser.id)
 
     if (isTherapistAuthPage(pathname)) {
       const redirectUrl = request.nextUrl.clone()

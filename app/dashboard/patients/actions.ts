@@ -14,6 +14,8 @@ import {
   patientWhatsAppWebHref,
 } from "@/lib/patients/whatsapp"
 
+import type { ExerciseRecord } from "@/lib/patients/types-db"
+
 export type MutationState = {
   error: string | null
   token: string | null
@@ -25,6 +27,7 @@ export type MutationState = {
   whatsappHref?: string | null
   whatsappWebHref?: string | null
   whatsappMessage?: string | null
+  exercise?: ExerciseRecord | null
 }
 
 function readOptional(formData: FormData, key: string): string | null {
@@ -265,21 +268,27 @@ export async function addExercise(patientId: string, formData: FormData): Promis
     return { error: "Pacientul nu aparține acestui cabinet.", token: null }
   }
 
-  const { error } = await supabase.from("exercises").insert({
+  const payload = {
     patient_id: patientId,
     title,
     video_url: readOptional(formData, "video_url"),
     sets: readNumber(formData, "sets"),
     reps: readNumber(formData, "reps"),
     notes: readOptional(formData, "instructions"),
-  })
+  }
 
-  if (error) {
-    return { error: "Nu am putut adăuga exercițiul.", token: null }
+  const { data, error } = await supabase
+    .from("exercises")
+    .insert(payload)
+    .select("id, patient_id, title, video_url, sets, reps, notes")
+    .single()
+
+  if (error || !data) {
+    return { error: error?.message ?? "Nu am putut adăuga exercițiul.", token: null }
   }
 
   revalidatePath(`/dashboard/patients/${patientId}`)
-  return { error: null, token: null }
+  return { error: null, token: null, exercise: data as ExerciseRecord }
 }
 
 export async function deleteExercise(patientId: string, exerciseId: string): Promise<void> {

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js"
+import type { SupabaseClient, User } from "@supabase/supabase-js"
 
 import type { ClinicProfile } from "@/lib/clinics/types"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
@@ -26,6 +26,11 @@ export async function fetchClinicProfile(
 
 export function clinicSetupIsComplete(result: { profile: ClinicProfile | null }): boolean {
   return Boolean(result.profile)
+}
+
+export function clinicReadyFromUser(user: User): boolean {
+  const clinicName = user.user_metadata?.clinic_name
+  return typeof clinicName === "string" && clinicName.trim().length > 0
 }
 
 export async function therapistHasClinicProfile(

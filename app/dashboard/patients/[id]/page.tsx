@@ -1,16 +1,14 @@
 import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
+import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 
-import { DashboardHeader } from "@/app/dashboard/dashboard-header"
 import { CopyAccessLink } from "@/app/dashboard/patients/copy-access-link"
 import { ExerciseManager } from "@/app/dashboard/patients/exercise-manager"
 import { PatientFileActions } from "@/app/dashboard/patients/patient-file-actions"
 import { VasChart } from "@/app/dashboard/patients/vas-chart"
-import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
+import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { sleepLabel } from "@/lib/patients/display"
 import { getTherapistPatient } from "@/lib/patients/queries"
-import { createClient } from "@/utils/supabase/server"
 
 type PatientFilePageProps = {
   params: Promise<{ id: string }>
@@ -18,28 +16,14 @@ type PatientFilePageProps = {
 
 export default async function PatientFilePage({ params }: PatientFilePageProps) {
   const { id } = await params
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/login")
-  }
-
   const { patient, exercises, checkIns, error } = await getTherapistPatient(id)
   if (!patient) {
     notFound()
   }
 
-  const metadataName =
-    typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : undefined
-
   return (
-    <AppShell>
-      <DashboardHeader email={user.email} metadataName={metadataName} />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-8">
-        <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm font-medium text-[#042f2e]">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-8">
+      <Link href="/dashboard" prefetch className="inline-flex items-center gap-1 text-sm font-medium text-[#042f2e]">
           <ArrowLeft className="size-4" />
           Înapoi la dashboard
         </Link>
@@ -119,6 +103,5 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
           </div>
         </section>
       </main>
-    </AppShell>
   )
 }

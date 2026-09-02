@@ -127,6 +127,7 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
                       </Button>
                       <Link
                         href={`/dashboard/patients/${patient.id}`}
+                        prefetch
                         className="inline-flex h-11 min-h-[44px] items-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white hover:bg-[#064e3b]"
                       >
                         <FolderOpen className="size-4" />

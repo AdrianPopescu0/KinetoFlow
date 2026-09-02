@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useOptimistic, useState, useTransition } from "react"
 import { Loader2, Trash2 } from "lucide-react"
 
 import { addExercise, deleteExercise } from "@/app/dashboard/patients/actions"
@@ -12,6 +12,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
 import type { ExerciseRecord } from "@/lib/patients/types-db"
 
+type OptimisticAction =
+  | { type: "add"; exercise: ExerciseRecord }
+  | { type: "remove"; id: string }
+
 export function ExerciseManager({
   patientId,
   exercises,
@@ -21,10 +25,28 @@ export function ExerciseManager({
 }) {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [optimisticExercises, applyOptimistic] = useOptimistic(exercises, (state, action: OptimisticAction) => {
+    if (action.type === "add") {
+      return [action.exercise, ...state.filter((item) => item.id !== action.exercise.id)]
+    }
+    return state.filter((item) => item.id !== action.id)
+  })
 
   function add(formData: FormData) {
     setError(null)
+    const title = String(formData.get("title") ?? "").trim()
+    const temp: ExerciseRecord = {
+      id: `tmp-${crypto.randomUUID()}`,
+      patient_id: patientId,
+      title,
+      video_url: String(formData.get("video_url") ?? "") || null,
+      sets: Number(formData.get("sets")) || null,
+      reps: Number(formData.get("reps")) || null,
+      notes: String(formData.get("instructions") ?? "") || null,
+    }
+
     startTransition(async () => {
+      applyOptimistic({ type: "add", exercise: temp })
       const result = await addExercise(patientId, formData)
       if (result.error) {
         setError(result.error)
@@ -36,6 +58,7 @@ export function ExerciseManager({
 
   function remove(exerciseId: string) {
     startTransition(async () => {
+      applyOptimistic({ type: "remove", id: exerciseId })
       await deleteExercise(patientId, exerciseId)
       toast("Exercițiul a fost șters.")
     })
@@ -72,16 +95,23 @@ export function ExerciseManager({
         {error ? <p className="sm:col-span-2 text-sm text-red-700">{error}</p> : null}
         <div className="sm:col-span-2">
           <Button type="submit" disabled={isPending} className="h-11 rounded-xl">
-            {isPending ? <Loader2 className="size-4 animate-spin" /> : "Adaugă exercițiu"}
+            {isPending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Se salvează…
+              </>
+            ) : (
+              "Adaugă exercițiu"
+            )}
           </Button>
         </div>
       </form>
 
-      {exercises.length === 0 ? (
+      {optimisticExercises.length === 0 ? (
         <p className="text-sm text-slate-600">Nu există încă exerciții prescrise.</p>
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
-          {exercises.map((exercise) => (
+          {optimisticExercises.map((exercise) => (
             <li key={exercise.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
               <VideoPreview url={exercise.video_url} title={exercise.title} />
               <div className="flex flex-col gap-2 p-4">
@@ -96,6 +126,7 @@ export function ExerciseManager({
                     type="button"
                     variant="outline"
                     onClick={() => remove(exercise.id)}
+                    disabled={isPending || exercise.id.startsWith("tmp-")}
                     className="h-10 rounded-xl border-red-200 text-red-700"
                   >
                     <Trash2 className="size-4" />

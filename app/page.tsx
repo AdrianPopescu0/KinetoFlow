@@ -26,12 +26,14 @@ export default function HomePage() {
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <Link
               href="/login"
+              prefetch
               className={cn(buttonVariants(), "h-12 min-h-[48px] rounded-xl px-5")}
             >
               Portal Clinică & Terapeut
             </Link>
             <Link
               href="/acces"
+              prefetch
               className={cn(
                 buttonVariants({ variant: "outline" }),
                 "h-12 min-h-[48px] rounded-xl px-5",

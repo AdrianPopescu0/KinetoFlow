@@ -28,6 +28,7 @@ export function PatientFileActions({ patient }: { patient: PatientRecord }) {
       }
       toast("Fișa pacientului a fost actualizată.")
       setOpen(false)
+      router.refresh()
     })
   }
 

@@ -4,9 +4,9 @@ import { redirect } from "next/navigation"
 import { OnboardingForm } from "@/app/onboarding/onboarding-form"
 import { logout } from "@/app/dashboard/actions"
 import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
-import { Button } from "@/components/ui/button"
+import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
+import { getCachedUser } from "@/lib/auth/session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
-import { createClient } from "@/utils/supabase/server"
 
 export const metadata: Metadata = {
   title: "Configurare clinică | KinetoFlow",
@@ -14,10 +14,7 @@ export const metadata: Metadata = {
 }
 
 export default async function OnboardingPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { supabase, user } = await getCachedUser()
 
   if (!user) {
     redirect("/login")
@@ -37,9 +34,9 @@ export default async function OnboardingPage() {
             <p className="text-sm font-semibold tracking-[0.16em] text-[#042f2e] uppercase">KinetoFlow</p>
           </div>
           <form action={logout}>
-            <Button type="submit" variant="outline" className="h-10 rounded-xl">
+            <PendingSubmitButton type="submit" variant="outline" pendingLabel="Ieșire…" className="h-10 rounded-xl">
               Ieșire
-            </Button>
+            </PendingSubmitButton>
           </form>
         </div>
       </header>
