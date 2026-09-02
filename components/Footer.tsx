@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import Link from "next/link"
 
 import { SupportModal } from "@/components/SupportModal"
@@ -12,6 +15,7 @@ function FooterSeparator() {
 
 export function Footer() {
   const year = new Date().getFullYear()
+  const [supportOpen, setSupportOpen] = useState(false)
 
   return (
     <footer className="mt-auto border-t border-slate-200 bg-slate-50 px-4 py-3.5">
@@ -32,8 +36,15 @@ export function Footer() {
           Politica de Confidențialitate
         </Link>
         <FooterSeparator />
-        <SupportModal />
+        <button
+          type="button"
+          onClick={() => setSupportOpen(true)}
+          className="cursor-pointer underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        >
+          Suport
+        </button>
       </nav>
+      <SupportModal open={supportOpen} onOpenChange={setSupportOpen} />
     </footer>
   )
 }

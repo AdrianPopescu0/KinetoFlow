@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react"
 import { Check, Copy, Loader2, X } from "lucide-react"
 
 import { submitSupportTicket } from "@/app/support/actions"
-import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,15 +13,19 @@ import { toast } from "@/components/ui/toaster"
 
 export const SUPPORT_EMAIL = "contact@kinetoflow.ro"
 
-export function SupportModal() {
+type SupportModalProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export function SupportModal({ open, onOpenChange }: SupportModalProps) {
   const formRef = useRef<HTMLFormElement>(null)
-  const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function handleOpenChange(next: boolean) {
-    setOpen(next)
+    onOpenChange(next)
     if (!next) {
       setError(null)
       setCopied(false)
@@ -37,7 +41,7 @@ export function SupportModal() {
         return
       }
       formRef.current?.reset()
-      setOpen(false)
+      onOpenChange(false)
       toast("Mesajul a fost trimis! Te vom contacta în curând.", 4200)
     })
   }
@@ -54,9 +58,6 @@ export function SupportModal() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger className="cursor-pointer underline-offset-4 transition-colors hover:text-foreground hover:underline">
-        Suport
-      </DialogTrigger>
       <DialogPopup>
         <DialogClose
           disabled={isPending}
@@ -135,14 +136,14 @@ export function SupportModal() {
         </form>
 
         <p className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-muted-foreground">
-          <span>Sau scrie-ne direct pe {SUPPORT_EMAIL}</span>
+          <span>Sau scrie-ne direct pe</span>
           <button
             type="button"
             onClick={copyEmail}
             className="inline-flex items-center gap-1 font-medium text-[#042f2e] underline-offset-4 hover:underline"
           >
             {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-            {copied ? "Copiat!" : "Copiază adresa"}
+            {copied ? "Copiat!" : SUPPORT_EMAIL}
           </button>
         </p>
       </DialogPopup>
