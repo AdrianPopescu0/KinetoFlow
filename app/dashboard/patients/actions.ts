@@ -190,14 +190,19 @@ export async function deletePatient(patientId: string): Promise<{ error: string 
     return { error: "Sesiunea a expirat. Autentifică-te din nou." }
   }
 
-  const { data, error } = await supabase.from("patients").delete().eq("id", patientId).select("id")
+  const { data, error } = await supabase
+    .from("patients")
+    .delete()
+    .eq("id", patientId)
+    .eq("therapist_id", user.id)
+    .select("id")
 
   if (error) {
     return { error: error.message }
   }
 
   if (!data || data.length === 0) {
-    return { error: "Pacientul nu a fost șters. Verifică dacă ești autentificat și dacă RLS permite DELETE." }
+    return { error: "Pacientul nu a fost șters. Verifică dacă ești autentificat și dacă politica DELETE este activă." }
   }
 
   revalidatePath("/dashboard")

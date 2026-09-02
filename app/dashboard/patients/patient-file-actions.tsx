@@ -39,14 +39,13 @@ export function PatientFileActions({ patient }: { patient: PatientRecord }) {
       try {
         const result = await deletePatient(patient.id)
         if (result.error) {
-          window.alert(result.error)
+          alert(result.error)
           return
         }
         router.push("/dashboard/patients")
         router.refresh()
-      } catch (caught) {
-        const message = caught instanceof Error ? caught.message : String(caught)
-        window.alert(message)
+      } catch (error) {
+        alert(error instanceof Error ? error.message : String(error))
       }
     })
   }
@@ -64,7 +63,7 @@ export function PatientFileActions({ patient }: { patient: PatientRecord }) {
         disabled={isPending}
         className="h-11 rounded-xl border-red-200 text-red-700 hover:bg-red-50"
       >
-        <Trash2 className="size-4" />
+        {isPending ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
         Șterge
       </Button>
 
