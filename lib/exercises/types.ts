@@ -1,4 +1,11 @@
-export type AnatomicalRegion = "cervical" | "lumbar" | "upper" | "lower" | "functional"
+export type AnatomicalRegion =
+  | "cervical"
+  | "thoracic"
+  | "lumbar"
+  | "pelvis"
+  | "upper"
+  | "lower"
+  | "functional"
 
 export type Difficulty = "usor" | "mediu" | "avansat"
 

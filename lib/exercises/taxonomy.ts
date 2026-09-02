@@ -20,8 +20,8 @@ export type RegionDef = {
 export const REGIONS: RegionDef[] = [
   {
     id: "cervical",
-    label: "Coloană Cervicală & Toracală",
-    shortLabel: "Cervicală & Toracală",
+    label: "Coloană Cervicală",
+    shortLabel: "Cervicală",
     subcategories: [
       { id: "mobility-retraction", label: "Mobilitate & Retracție" },
       { id: "tone-posture", label: "Tonifiere & Stabilizare posturală" },
@@ -29,18 +29,38 @@ export const REGIONS: RegionDef[] = [
     ],
   },
   {
+    id: "thoracic",
+    label: "Coloană Toracală",
+    shortLabel: "Toracală",
+    subcategories: [
+      { id: "mobility-extension", label: "Mobilitate & Extensie" },
+      { id: "tone-posture", label: "Tonifiere & Stabilizare posturală" },
+      { id: "stretch-relax", label: "Stretching & Relaxare" },
+    ],
+  },
+  {
     id: "lumbar",
-    label: "Coloană Lombară & Bazin",
-    shortLabel: "Lombară & Bazin",
+    label: "Coloană Lombară",
+    shortLabel: "Lombară",
     subcategories: [
       { id: "core-control", label: "Control motor & Core (abdomen/spate)" },
-      { id: "lumbopelvic-mob", label: "Mobilizare lombo-pelvină" },
+      { id: "lumbar-mob", label: "Mobilizare lombară" },
       { id: "decompression", label: "Decompresie & Elongare" },
     ],
   },
   {
+    id: "pelvis",
+    label: "Bazin & Pelvis",
+    shortLabel: "Bazin & Pelvis",
+    subcategories: [
+      { id: "pelvic-mobility", label: "Mobilizare pelvină" },
+      { id: "pelvic-stability", label: "Stabilizare lombo-pelvină" },
+      { id: "stretch-relax", label: "Stretching & Relaxare" },
+    ],
+  },
+  {
     id: "upper",
-    label: "Membru Superior (Umăr, Cot, Pumn)",
+    label: "Membru Superior",
     shortLabel: "Membru superior",
     subcategories: [
       { id: "rotator-cuff", label: "Coafa rotatorilor (Rotatori interni/externi)" },
@@ -50,7 +70,7 @@ export const REGIONS: RegionDef[] = [
   },
   {
     id: "lower",
-    label: "Membru Inferior (Șold, Genunchi, Gleznă)",
+    label: "Membru Inferior",
     shortLabel: "Membru inferior",
     subcategories: [
       { id: "knee-stability", label: "Stabilizare & Cadență genunchi" },
@@ -60,7 +80,7 @@ export const REGIONS: RegionDef[] = [
   },
   {
     id: "functional",
-    label: "Funcțional / Full-Body",
+    label: "Funcțional",
     shortLabel: "Funcțional",
     subcategories: [
       { id: "advanced-balance", label: "Echilibru & Propriocepție avansată" },

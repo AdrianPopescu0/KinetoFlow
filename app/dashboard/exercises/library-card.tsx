@@ -62,7 +62,7 @@ export function LibraryCard({
         </div>
         <div className="flex flex-wrap gap-1.5">
           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
-            {region.shortLabel}
+            {region.label}
           </span>
           <span className="rounded-full bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600">
             {subcategoryLabel(exercise.region, exercise.subcategory)}

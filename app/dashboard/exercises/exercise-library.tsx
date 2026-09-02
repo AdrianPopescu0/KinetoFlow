@@ -1,15 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, type ReactNode } from "react"
-import {
-  Activity,
-  Bone,
-  Footprints,
-  Hand,
-  PersonStanding,
-  Plus,
-  Search,
-} from "lucide-react"
+import { ChevronDown, Plus, Search, SlidersHorizontal } from "lucide-react"
 
 import { LibraryCard } from "@/app/dashboard/exercises/library-card"
 import {
@@ -22,22 +14,9 @@ import { Input } from "@/components/ui/input"
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
 import { loadCustomExercises, saveCustomExercises } from "@/lib/exercises/extras"
 import { EMPTY_FILTERS, filterLibrary, regionCounts, subcategoriesForRegion } from "@/lib/exercises/filter"
-import {
-  DIFFICULTIES,
-  EQUIPMENT,
-  POSITIONS,
-  REGIONS,
-} from "@/lib/exercises/taxonomy"
+import { DIFFICULTIES, EQUIPMENT, POSITIONS, REGIONS } from "@/lib/exercises/taxonomy"
 import type { AssignablePatient, LibraryExercise, LibraryFilters } from "@/lib/exercises/types"
 import { cn } from "@/lib/utils"
-
-const REGION_ICONS = {
-  cervical: Bone,
-  lumbar: PersonStanding,
-  upper: Hand,
-  lower: Footprints,
-  functional: Activity,
-} as const
 
 function Pill({
   active,
@@ -64,12 +43,22 @@ function Pill({
   )
 }
 
+function FilterRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+      <p className="w-28 shrink-0 pt-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <div className="flex min-w-0 flex-wrap gap-2">{children}</div>
+    </div>
+  )
+}
+
 export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] }) {
   const [custom, setCustom] = useState<LibraryExercise[]>([])
   const [filters, setFilters] = useState<LibraryFilters>(EMPTY_FILTERS)
   const [preview, setPreview] = useState<LibraryExercise | null>(null)
   const [assign, setAssign] = useState<LibraryExercise | null>(null)
   const [adding, setAdding] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
 
   useEffect(() => {
     setCustom(loadCustomExercises())
@@ -88,6 +77,8 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
     [catalog, filters.difficulty, filters.equipment, filters.position, filters.query],
   )
   const subcategories = subcategoriesForRegion(filters.region)
+  const advancedCount = [filters.difficulty, filters.equipment, filters.position].filter((value) => value !== "all")
+    .length
 
   function update<K extends keyof LibraryFilters>(key: K, value: LibraryFilters[K]) {
     setFilters((current) => ({
@@ -140,91 +131,102 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
         />
       </div>
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
-        <button
-          type="button"
-          onClick={() => update("region", "all")}
-          className={cn(
-            "flex h-12 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium",
-            filters.region === "all"
-              ? "border-[#042f2e] bg-[#042f2e] text-white"
-              : "border-slate-200 bg-white text-slate-700",
-          )}
+      <div className="flex flex-col gap-4">
+        <div
+          role="tablist"
+          aria-label="Regiune anatomică"
+          className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]"
         >
-          Toate
-          <span className={cn("rounded-full px-1.5 text-xs", filters.region === "all" ? "bg-white/15" : "bg-slate-100")}>
-            {counts.all}
-          </span>
-        </button>
-        {REGIONS.map((region) => {
-          const Icon = REGION_ICONS[region.id]
-          const active = filters.region === region.id
-          return (
-            <button
+          <Tab
+            active={filters.region === "all"}
+            onClick={() => update("region", "all")}
+            label={`Toate (${counts.all})`}
+          />
+          {REGIONS.map((region) => (
+            <Tab
               key={region.id}
-              type="button"
+              active={filters.region === region.id}
               onClick={() => update("region", region.id)}
-              className={cn(
-                "flex h-12 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-medium",
-                active ? "border-[#042f2e] bg-[#042f2e] text-white" : "border-slate-200 bg-white text-slate-700",
-              )}
-            >
-              <Icon className="size-4 opacity-80" />
-              <span className="whitespace-nowrap">{region.shortLabel}</span>
-              <span className={cn("rounded-full px-1.5 text-xs tabular-nums", active ? "bg-white/15" : "bg-slate-100")}>
-                {counts[region.id]}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+              label={`${region.label} (${counts[region.id]})`}
+            />
+          ))}
+        </div>
 
-      {subcategories.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Obiectiv terapeutic</p>
-          <div className="flex flex-wrap gap-2">
-            <Pill active={filters.subcategory === "all"} onClick={() => update("subcategory", "all")}>
-              Toate
-            </Pill>
-            {subcategories.map((item) => (
-              <Pill
-                key={item.id}
-                active={filters.subcategory === item.id}
-                onClick={() => update("subcategory", item.id)}
-              >
-                {item.label}
+        {subcategories.length > 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Obiectiv terapeutic</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Pill active={filters.subcategory === "all"} onClick={() => update("subcategory", "all")}>
+                Toate
               </Pill>
-            ))}
+              {subcategories.map((item) => (
+                <Pill
+                  key={item.id}
+                  active={filters.subcategory === item.id}
+                  onClick={() => update("subcategory", item.id)}
+                >
+                  {item.label}
+                </Pill>
+              ))}
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      <div className="flex flex-col gap-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Filtre rapide</p>
-        <div className="flex flex-wrap gap-2">
-          {DIFFICULTIES.map((item) => (
-            <Pill
-              key={item.id}
-              active={filters.difficulty === item.id}
-              onClick={() => toggle("difficulty", item.id)}
-            >
-              {item.label}
-            </Pill>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {EQUIPMENT.map((item) => (
-            <Pill key={item.id} active={filters.equipment === item.id} onClick={() => toggle("equipment", item.id)}>
-              {item.label}
-            </Pill>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {POSITIONS.map((item) => (
-            <Pill key={item.id} active={filters.position === item.id} onClick={() => toggle("position", item.id)}>
-              {item.label}
-            </Pill>
-          ))}
+        <div className="rounded-2xl border border-slate-200 bg-white">
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((open) => !open)}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+            aria-expanded={advancedOpen}
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+              <SlidersHorizontal className="size-4 text-slate-500" />
+              Filtre avansate
+              {advancedCount > 0 ? (
+                <span className="rounded-full bg-[#042f2e] px-2 py-0.5 text-[11px] font-medium text-white">
+                  {advancedCount}
+                </span>
+              ) : null}
+            </span>
+            <ChevronDown className={cn("size-4 text-slate-400 transition", advancedOpen && "rotate-180")} />
+          </button>
+          {advancedOpen ? (
+            <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4">
+              <FilterRow label="Nivel">
+                {DIFFICULTIES.map((item) => (
+                  <Pill
+                    key={item.id}
+                    active={filters.difficulty === item.id}
+                    onClick={() => toggle("difficulty", item.id)}
+                  >
+                    {item.label}
+                  </Pill>
+                ))}
+              </FilterRow>
+              <FilterRow label="Echipament">
+                {EQUIPMENT.map((item) => (
+                  <Pill
+                    key={item.id}
+                    active={filters.equipment === item.id}
+                    onClick={() => toggle("equipment", item.id)}
+                  >
+                    {item.label}
+                  </Pill>
+                ))}
+              </FilterRow>
+              <FilterRow label="Poziție">
+                {POSITIONS.map((item) => (
+                  <Pill
+                    key={item.id}
+                    active={filters.position === item.id}
+                    onClick={() => toggle("position", item.id)}
+                  >
+                    {item.label}
+                  </Pill>
+                ))}
+              </FilterRow>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -269,5 +271,22 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
       ) : null}
       {adding ? <AddExerciseDialog onClose={() => setAdding(false)} onCreated={addCustom} /> : null}
     </div>
+  )
+}
+
+function Tab({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "h-11 shrink-0 rounded-full px-4 text-sm font-medium whitespace-nowrap transition",
+        active ? "bg-[#042f2e] text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200",
+      )}
+    >
+      {label}
+    </button>
   )
 }

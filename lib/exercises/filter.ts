@@ -58,12 +58,8 @@ export function regionCounts(
   const matched = filterLibrary(exercises, withoutRegion)
   const counts = {
     all: matched.length,
-    cervical: 0,
-    lumbar: 0,
-    upper: 0,
-    lower: 0,
-    functional: 0,
-  } satisfies Record<AnatomicalRegion | "all", number>
+    ...Object.fromEntries(REGIONS.map((region) => [region.id, 0])),
+  } as Record<AnatomicalRegion | "all", number>
 
   for (const exercise of matched) {
     counts[exercise.region] += 1
