@@ -22,6 +22,8 @@ export type PatientProgram = {
   programLabel: string
   progressPercent: number
   exercises: Exercise[]
+  therapistName: string
+  therapistPhone: string | null
 }
 
 export type DailyCheckin = {

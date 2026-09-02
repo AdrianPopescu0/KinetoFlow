@@ -88,6 +88,8 @@ export function getPatientProgram(token: string): PatientProgram | null {
       programLabel: "Recuperare genunchi — săptămâna 3 din 6",
       progressPercent: 48,
       exercises: KNEE_EXERCISES,
+      therapistName: "Elena Ionescu",
+      therapistPhone: null,
     }
   }
 
@@ -98,6 +100,8 @@ export function getPatientProgram(token: string): PatientProgram | null {
       programLabel: "Recuperare umăr — săptămâna 4 din 6",
       progressPercent: 62,
       exercises: SHOULDER_EXERCISES,
+      therapistName: "Elena Ionescu",
+      therapistPhone: null,
     }
   }
 

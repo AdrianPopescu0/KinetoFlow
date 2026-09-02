@@ -39,7 +39,7 @@ export async function loadPatientProgramFromDatabase(
     const supabase = createServiceRoleClient()
     const { data: patient, error } = await supabase
       .from("patients")
-      .select("id, full_name, diagnosis, token")
+      .select("id, therapist_id, full_name, diagnosis, token")
       .eq("token", token)
       .maybeSingle()
 
@@ -47,13 +47,17 @@ export async function loadPatientProgramFromDatabase(
       return null
     }
 
-    const record = patient as Pick<PatientRecord, "id" | "full_name" | "diagnosis" | "token">
+    const record = patient as Pick<
+      PatientRecord,
+      "id" | "therapist_id" | "full_name" | "diagnosis" | "token"
+    >
     const { data: exerciseRows } = await supabase
       .from("exercises")
       .select("id, patient_id, title, video_url, sets, reps, notes")
       .eq("patient_id", record.id)
 
     const exercises = mapExercises((exerciseRows ?? []) as ExerciseRecord[])
+    const therapist = await loadTherapistProfile(supabase, record.therapist_id)
 
     return {
       token: record.token,
@@ -63,8 +67,35 @@ export async function loadPatientProgramFromDatabase(
       programLabel: record.diagnosis?.trim() || "Programul tău de recuperare",
       progressPercent: exercises.length > 0 ? 20 : 0,
       exercises,
+      therapistName: therapist.name,
+      therapistPhone: therapist.phone,
     }
   } catch {
     return null
+  }
+}
+
+async function loadTherapistProfile(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  therapistId: string,
+): Promise<{ name: string; phone: string | null }> {
+  try {
+    const { data, error } = await supabase.auth.admin.getUserById(therapistId)
+    if (error || !data.user) {
+      return { name: "Kinetoterapeutul tău", phone: null }
+    }
+
+    const meta = data.user.user_metadata ?? {}
+    const fromMeta =
+      (typeof meta.full_name === "string" && meta.full_name.trim()) ||
+      (typeof meta.name === "string" && meta.name.trim()) ||
+      ""
+    const name = fromMeta || data.user.email?.split("@")[0] || "Kinetoterapeutul tău"
+    const phoneRaw = typeof meta.phone === "string" ? meta.phone : data.user.phone
+    const digits = phoneRaw?.replace(/\D/g, "") ?? ""
+
+    return { name, phone: digits.length >= 8 ? digits : null }
+  } catch {
+    return { name: "Kinetoterapeutul tău", phone: null }
   }
 }
