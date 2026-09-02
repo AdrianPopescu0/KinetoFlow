@@ -65,6 +65,7 @@ Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.
 Reguli de securitate aplicate:
 
 - Validare pe server pentru email și parolă înainte de apelul Auth
+- La înregistrare, parola trebuie: 8+ caractere, o majusculă, o cifră, un caracter special
 - Mesaj generic la eșec: „Email sau parolă incorectă” (fără enumerarea utilizatorilor)
 - Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori și trimite la `/onboarding` dacă lipsește `clinic_profiles`
 - Verificare `getUser()` (nu `getSession()`) pentru autorizare

@@ -1,3 +1,5 @@
+import { evaluateRegisterPassword, REGISTER_PASSWORD_HINT } from "@/lib/auth/password"
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export const AUTH_ERROR_MESSAGE = "Email sau parolă incorectă"
@@ -42,8 +44,8 @@ export function parseRegisterCredentials(formData: FormData): AuthCredentials | 
     return { error: "Introdu o adresă de email validă." }
   }
 
-  if (password.length < 6) {
-    return { error: "Parola trebuie să aibă cel puțin 6 caractere." }
+  if (!evaluateRegisterPassword(password).isValid) {
+    return { error: REGISTER_PASSWORD_HINT }
   }
 
   return { email, password }
