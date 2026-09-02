@@ -1,5 +1,6 @@
 import { BookOpen } from "lucide-react"
 
+import { logoutPatient } from "@/app/acces/actions"
 import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
 
 type PatientHeaderProps = {
@@ -28,6 +29,14 @@ export function PatientHeader({ firstName, dateLabel, onOpenGuide }: PatientHead
                 Ghid recuperare
               </button>
             ) : null}
+            <form action={logoutPatient}>
+              <button
+                type="submit"
+                className="inline-flex h-10 items-center rounded-xl bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/15"
+              >
+                Ieșire
+              </button>
+            </form>
             <p className="hidden text-right text-xs text-teal-50/80 sm:block">{dateLabel}</p>
           </div>
         </div>

@@ -7,7 +7,7 @@ import { createClient } from "@/utils/supabase/server"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { isSleepQuality } from "@/lib/patients/types"
-import { patientPortalUrl, patientWhatsAppHref, patientWhatsAppMessage } from "@/lib/patients/whatsapp"
+import { patientAccessUrl, patientWhatsAppHref, patientWhatsAppMessage } from "@/lib/patients/whatsapp"
 
 export type MutationState = {
   error: string | null
@@ -116,7 +116,7 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     accessCode: code,
     phone,
     fullName,
-    portalUrl: patientPortalUrl(token),
+    portalUrl: patientAccessUrl(),
     whatsappHref: patientWhatsAppHref(phone, message),
   }
 }

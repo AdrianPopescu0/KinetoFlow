@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export function PatientAccessForm() {
+export function PatientAccessForm({ redirectTo }: { redirectTo?: string }) {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -26,6 +26,7 @@ export function PatientAccessForm() {
 
   return (
     <form action={handleSubmit} className="flex flex-col gap-5">
+      {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
       {error ? (
         <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
           <AlertCircle />
@@ -50,7 +51,7 @@ export function PatientAccessForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="access_code">Codul tău de 8 cifre</Label>
+        <Label htmlFor="access_code">Cod de acces (8 cifre)</Label>
         <Input
           id="access_code"
           name="access_code"
@@ -72,7 +73,7 @@ export function PatientAccessForm() {
             Se verifică…
           </>
         ) : (
-          "Intră în program"
+          "Intră în cont"
         )}
       </Button>
 

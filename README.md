@@ -45,8 +45,8 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
 | `/auth/callback` | Schimb PKCE pentru sesiune după email |
-| `/acces` | Login pacient: telefon + cod 8 cifre |
-| `/p/[patientToken]` | Programul pacientului (exerciții + check-in zilnic) |
+| `/acces` | Login pacient: telefon + cod 8 cifre (obligatoriu înainte de `/p/[token]`) |
+| `/p/[patientToken]` | Programul pacientului — doar cu sesiune după `/acces` |
 
 ## Schema pacienți
 

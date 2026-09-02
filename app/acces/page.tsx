@@ -9,7 +9,13 @@ export const metadata: Metadata = {
   description: "Intră în programul de recuperare cu telefonul și codul de 8 cifre primit de la terapeut.",
 }
 
-export default function PatientAccessPage() {
+type PatientAccessPageProps = {
+  searchParams: Promise<{ redirectTo?: string }>
+}
+
+export default async function PatientAccessPage({ searchParams }: PatientAccessPageProps) {
+  const { redirectTo } = await searchParams
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-slate-50">
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-12">
@@ -23,7 +29,7 @@ export default function PatientAccessPage() {
             Introdu numărul de telefon și codul de 8 cifre primit pe WhatsApp. Nu ai nevoie de parolă.
           </p>
           <div className="mt-6">
-            <PatientAccessForm />
+            <PatientAccessForm redirectTo={redirectTo} />
           </div>
         </div>
       </main>

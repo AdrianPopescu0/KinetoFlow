@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { createClient } from "@/utils/supabase/server"
-import { patientPortalUrl, patientWhatsAppHref, patientWhatsAppMessage } from "@/lib/patients/whatsapp"
+import { patientAccessUrl, patientWhatsAppHref, patientWhatsAppMessage } from "@/lib/patients/whatsapp"
 import { toWhatsAppNumber } from "@/lib/patients/phone"
 
 export async function POST(request: Request) {
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     sent,
     fallback: "click-to-chat",
-    portalUrl: patientPortalUrl(token),
+    portalUrl: patientAccessUrl(),
     whatsappHref,
   })
 }
