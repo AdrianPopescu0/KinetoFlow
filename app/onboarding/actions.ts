@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 
-import { fetchClinicProfile } from "@/lib/clinics/profile"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
+import { formatSupabaseError } from "@/lib/supabase/format-error"
 import { createClient } from "@/utils/supabase/server"
 
 export type OnboardingState = {
@@ -22,61 +22,60 @@ function readRequired(formData: FormData, key: string): string | null {
 
 export async function saveClinicProfile(formData: FormData): Promise<OnboardingState> {
   const clinicName = readRequired(formData, "clinic_name")
-  const therapistFullName = readRequired(formData, "therapist_full_name")
+  const therapistName = readRequired(formData, "therapist_full_name")
   const phoneRaw = readRequired(formData, "contact_phone")
 
   if (!clinicName) {
     return { error: "Introdu numele clinicii sau al cabinetului." }
   }
-  if (!therapistFullName) {
+  if (!therapistName) {
     return { error: "Introdu numele și prenumele terapeutului." }
   }
   if (!phoneRaw) {
     return { error: "Introdu telefonul / WhatsApp al clinicii." }
   }
 
-  const contactPhone = normalizeStoredPhone(phoneRaw)
-  if (!contactPhone) {
+  const phone = normalizeStoredPhone(phoneRaw)
+  if (!phone) {
     return { error: "Numărul de telefon nu este valid. Folosește un format românesc, de exemplu 07xx xxx xxx." }
   }
 
   const supabase = await createClient()
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
+
+  if (authError) {
+    return { error: formatSupabaseError(authError) }
+  }
 
   if (!user) {
     return { error: "Sesiunea a expirat. Autentifică-te din nou." }
   }
 
-  const existing = await fetchClinicProfile(supabase, user.id)
-  if (existing.tableMissing) {
-    return {
-      error:
-        "Tabela clinic_profiles lipsește. Rulează `supabase/migrations/004_clinic_profiles.sql` în SQL Editor.",
-    }
-  }
-
-  const fields = {
+  const row = {
+    user_id: user.id,
     clinic_name: clinicName,
-    therapist_full_name: therapistFullName,
-    contact_phone: contactPhone,
-    updated_at: new Date().toISOString(),
+    therapist_name: therapistName,
+    phone,
   }
 
-  const { error } = existing.profile
-    ? await supabase.from("clinic_profiles").update(fields).eq("id", user.id)
-    : await supabase.from("clinic_profiles").insert({ id: user.id, ...fields })
+  const { error: writeError } = await supabase
+    .from("clinic_profiles")
+    .upsert(row, { onConflict: "user_id" })
+    .select("user_id")
+    .maybeSingle()
 
-  if (error) {
-    return { error: error.message }
+  if (writeError) {
+    return { error: formatSupabaseError(writeError) }
   }
 
   await supabase.auth.updateUser({
     data: {
-      full_name: therapistFullName,
+      full_name: therapistName,
       clinic_name: clinicName,
-      phone: contactPhone,
+      phone,
     },
   })
 

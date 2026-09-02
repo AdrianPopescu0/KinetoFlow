@@ -23,7 +23,7 @@ export default async function OnboardingPage() {
     redirect("/login")
   }
 
-  const { profile, tableMissing } = await fetchClinicProfile(supabase, user.id)
+  const { profile, error: clinicLoadError } = await fetchClinicProfile(supabase, user.id)
   if (profile) {
     redirect("/dashboard")
   }
@@ -59,10 +59,9 @@ export default async function OnboardingPage() {
           ) : null}
         </p>
 
-        {tableMissing ? (
+        {clinicLoadError ? (
           <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Tabela `clinic_profiles` nu există încă. Rulează `supabase/migrations/004_clinic_profiles.sql`
-            în SQL Editor, apoi salvează formularul.
+            Nu am putut citi profilul clinicii: {clinicLoadError}
           </p>
         ) : null}
 

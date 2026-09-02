@@ -27,7 +27,7 @@ export async function DashboardHeader({
   const clinic = user ? await fetchClinicProfile(supabase, user.id) : { profile: null }
   const name = therapistDisplayName(
     email,
-    clinic.profile?.therapist_full_name ?? metadataName,
+    clinic.profile?.therapist_name ?? metadataName,
   )
 
   return (

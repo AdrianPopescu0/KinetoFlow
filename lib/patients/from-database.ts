@@ -82,14 +82,14 @@ async function loadTherapistProfile(
   try {
     const { data: clinic } = await supabase
       .from("clinic_profiles")
-      .select("therapist_full_name, contact_phone")
-      .eq("id", therapistId)
+      .select("therapist_name, phone")
+      .eq("user_id", therapistId)
       .maybeSingle()
 
-    if (clinic && typeof clinic.therapist_full_name === "string") {
-      const digits = String(clinic.contact_phone ?? "").replace(/\D/g, "")
+    if (clinic && typeof clinic.therapist_name === "string") {
+      const digits = String(clinic.phone ?? "").replace(/\D/g, "")
       return {
-        name: clinic.therapist_full_name.trim() || "Kinetoterapeutul tău",
+        name: clinic.therapist_name.trim() || "Kinetoterapeutul tău",
         phone: digits.length >= 8 ? digits : null,
       }
     }

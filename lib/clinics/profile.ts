@@ -1,45 +1,30 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import type { ClinicProfile } from "@/lib/clinics/types"
-
-function isMissingTableError(error: { code?: string; message?: string }): boolean {
-  const code = error.code ?? ""
-  const message = (error.message ?? "").toLowerCase()
-  return (
-    code === "PGRST205" ||
-    code === "42P01" ||
-    (message.includes("clinic_profiles") &&
-      (message.includes("does not exist") ||
-        message.includes("schema cache") ||
-        message.includes("could not find")))
-  )
-}
+import { formatSupabaseError } from "@/lib/supabase/format-error"
 
 export async function fetchClinicProfile(
   supabase: SupabaseClient,
   therapistId: string,
-): Promise<{ profile: ClinicProfile | null; tableMissing: boolean }> {
+): Promise<{ profile: ClinicProfile | null; error: string | null }> {
   const { data, error } = await supabase
     .from("clinic_profiles")
-    .select("id, clinic_name, therapist_full_name, contact_phone")
-    .eq("id", therapistId)
+    .select("user_id, clinic_name, therapist_name, phone")
+    .eq("user_id", therapistId)
     .maybeSingle()
 
   if (error) {
-    return { profile: null, tableMissing: isMissingTableError(error) }
+    return { profile: null, error: formatSupabaseError(error) }
   }
 
   if (!data) {
-    return { profile: null, tableMissing: false }
+    return { profile: null, error: null }
   }
 
-  return { profile: data as ClinicProfile, tableMissing: false }
+  return { profile: data as ClinicProfile, error: null }
 }
 
-export function clinicSetupIsComplete(result: {
-  profile: ClinicProfile | null
-  tableMissing: boolean
-}): boolean {
+export function clinicSetupIsComplete(result: { profile: ClinicProfile | null }): boolean {
   return Boolean(result.profile)
 }
 

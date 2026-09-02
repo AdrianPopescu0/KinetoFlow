@@ -1,6 +1,6 @@
 export type ClinicProfile = {
-  id: string
+  user_id: string
   clinic_name: string
-  therapist_full_name: string
-  contact_phone: string
+  therapist_name: string
+  phone: string
 }
