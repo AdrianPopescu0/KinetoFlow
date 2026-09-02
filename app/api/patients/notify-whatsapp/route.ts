@@ -35,16 +35,28 @@ export async function POST(request: Request) {
     .from("patients")
     .select("id, full_name, phone, token, access_code")
     .eq("id", patientId)
+    .eq("user_id", user.id)
     .maybeSingle()
 
-  if (error || !patient) {
+  const resolved =
+    error || !patient
+      ? await supabase
+          .from("patients")
+          .select("id, full_name, phone, token, access_code")
+          .eq("id", patientId)
+          .eq("therapist_id", user.id)
+          .maybeSingle()
+      : { data: patient, error: null }
+
+  if (resolved.error || !resolved.data) {
     return NextResponse.json({ error: "Pacientul nu a fost găsit.", sent: false }, { status: 404 })
   }
 
-  const accessCode = typeof patient.access_code === "string" ? patient.access_code : ""
-  const phone = typeof patient.phone === "string" ? patient.phone : ""
-  const token = String(patient.token)
-  const fullName = String(patient.full_name)
+  const found = resolved.data
+  const accessCode = typeof found.access_code === "string" ? found.access_code : ""
+  const phone = typeof found.phone === "string" ? found.phone : ""
+  const token = String(found.token)
+  const fullName = String(found.full_name)
   const message = patientWhatsAppMessage({ fullName, token, accessCode })
   const whatsappHref = phone ? patientWhatsAppHref(phone, message) : null
   const whatsappWebHref = phone ? patientWhatsAppWebHref(phone, message) : null

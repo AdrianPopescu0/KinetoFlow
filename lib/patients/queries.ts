@@ -1,4 +1,5 @@
 import { startOfTodayIso } from "@/lib/patients/display"
+import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
 import type {
   CheckInRecord,
   DashboardStats,
@@ -7,6 +8,11 @@ import type {
   PatientRecord,
 } from "@/lib/patients/types-db"
 import { createClient } from "@/utils/supabase/server"
+
+const PATIENT_COLUMNS =
+  "id, user_id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at"
+const PATIENT_COLUMNS_FALLBACK =
+  "id, therapist_id, full_name, email, phone, diagnosis, token, created_at"
 
 function isMissingRelation(error: { message: string; code?: string } | null): boolean {
   if (!error) {
@@ -21,9 +27,14 @@ function isMissingRelation(error: { message: string; code?: string } | null): bo
 }
 
 function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
+  const ownerId =
+    (typeof row.user_id === "string" && row.user_id) ||
+    (typeof row.therapist_id === "string" && row.therapist_id) ||
+    ""
   return {
     id: String(row.id),
-    therapist_id: String(row.therapist_id),
+    user_id: ownerId,
+    therapist_id: typeof row.therapist_id === "string" ? row.therapist_id : ownerId,
     full_name: String(row.full_name),
     email: typeof row.email === "string" ? row.email : null,
     phone: typeof row.phone === "string" ? row.phone : null,
@@ -33,6 +44,14 @@ function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
     access_code: typeof row.access_code === "string" ? row.access_code : null,
     created_at: String(row.created_at),
   }
+}
+
+async function currentTherapistId() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  return { supabase, userId: user?.id ?? null }
 }
 
 export async function listTherapistPatients(): Promise<{
@@ -48,17 +67,15 @@ export async function listTherapistPatients(): Promise<{
     compliancePercent: 0,
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("patients")
-    .select("id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at")
-    .order("created_at", { ascending: false })
+  const { supabase, userId } = await currentTherapistId()
+  if (!userId) {
+    return { patients: [], stats: emptyStats, error: "Sesiunea a expirat.", needsMigration: false }
+  }
+
+  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_COLUMNS)
 
   if (error) {
-    const fallback = await supabase
-      .from("patients")
-      .select("id, therapist_id, full_name, email, phone, diagnosis, token, created_at")
-      .order("created_at", { ascending: false })
+    const fallback = await selectOwnPatients(supabase, userId, PATIENT_COLUMNS_FALLBACK)
 
     if (fallback.error) {
       return {
@@ -66,7 +83,7 @@ export async function listTherapistPatients(): Promise<{
         stats: emptyStats,
         error: isMissingRelation(fallback.error)
           ? "Tabela patients nu există încă. Rulează supabase/migrations/001_patients.sql în SQL Editor."
-          : "Nu am putut încărca pacienții. Încearcă din nou.",
+          : fallback.error.message,
         needsMigration: isMissingRelation(fallback.error),
       }
     }
@@ -139,19 +156,15 @@ export async function getTherapistPatient(id: string): Promise<{
   checkIns: CheckInRecord[]
   error: string | null
 }> {
-  const supabase = await createClient()
-  const { data: patientRow, error } = await supabase
-    .from("patients")
-    .select("id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at")
-    .eq("id", id)
-    .maybeSingle()
+  const { supabase, userId } = await currentTherapistId()
+  if (!userId) {
+    return { patient: null, exercises: [], checkIns: [], error: "Sesiunea a expirat." }
+  }
+
+  const { data: patientRow, error } = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS)
 
   if (error || !patientRow) {
-    const fallback = await supabase
-      .from("patients")
-      .select("id, therapist_id, full_name, email, phone, diagnosis, token, created_at")
-      .eq("id", id)
-      .maybeSingle()
+    const fallback = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_FALLBACK)
 
     if (fallback.error || !fallback.data) {
       return { patient: null, exercises: [], checkIns: [], error: "Pacientul nu a fost găsit." }

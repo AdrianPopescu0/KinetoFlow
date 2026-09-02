@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/utils/supabase/server"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
+import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
 import { isSleepQuality } from "@/lib/patients/types"
 import {
   patientAccessUrl,
@@ -76,7 +77,7 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
 
   const accessCode = await allocateAccessCode(supabase)
   const basePayload = {
-    therapist_id: user.id,
+    ...patientTenantPayload(user.id),
     full_name: fullName,
     email,
     phone,
@@ -91,7 +92,7 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     const withoutNotes = await supabase
       .from("patients")
       .insert({
-        therapist_id: basePayload.therapist_id,
+        ...patientTenantPayload(user.id),
         full_name: basePayload.full_name,
         email: basePayload.email,
         phone: basePayload.phone,
@@ -102,12 +103,29 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
       .single()
 
     if (withoutNotes.error || !withoutNotes.data) {
-      return {
-        error: "Nu am putut salva pacientul. Rulează `supabase/migrations/003_access_code.sql` dacă lipsește coloana access_code.",
-        token: null,
+      const legacy = await supabase
+        .from("patients")
+        .insert({
+          therapist_id: user.id,
+          full_name: basePayload.full_name,
+          email: basePayload.email,
+          phone: basePayload.phone,
+          diagnosis: basePayload.diagnosis,
+          access_code: basePayload.access_code,
+        })
+        .select("id, token, access_code, phone, full_name")
+        .single()
+
+      if (legacy.error || !legacy.data) {
+        return {
+          error: legacy.error?.message ?? withoutNotes.error?.message ?? insert.error?.message ?? "Nu am putut salva pacientul.",
+          token: null,
+        }
       }
+      row = legacy.data
+    } else {
+      row = withoutNotes.data
     }
-    row = withoutNotes.data
   }
 
   const token = String(row.token)
@@ -175,6 +193,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
       clinical_notes: readOptional(formData, "clinical_notes"),
     })
     .eq("id", patientId)
+    .eq("user_id", user.id)
 
   if (error) {
     await supabase
@@ -186,6 +205,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
         diagnosis: readOptional(formData, "diagnosis"),
       })
       .eq("id", patientId)
+      .eq("therapist_id", user.id)
   }
 
   revalidatePath("/dashboard")
@@ -203,14 +223,23 @@ export async function deletePatient(patientId: string): Promise<{ error: string 
     .from("patients")
     .delete()
     .eq("id", patientId)
-    .eq("therapist_id", user.id)
+    .eq("user_id", user.id)
     .select("id")
 
   if (error) {
-    return { error: error.message }
-  }
-
-  if (!data || data.length === 0) {
+    const fallback = await supabase
+      .from("patients")
+      .delete()
+      .eq("id", patientId)
+      .eq("therapist_id", user.id)
+      .select("id")
+    if (fallback.error) {
+      return { error: fallback.error.message }
+    }
+    if (!fallback.data || fallback.data.length === 0) {
+      return { error: "Pacientul nu a fost șters. Nu aparține acestui cabinet." }
+    }
+  } else if (!data || data.length === 0) {
     return { error: "Pacientul nu a fost șters. Verifică dacă ești autentificat și dacă politica DELETE este activă." }
   }
 
@@ -229,6 +258,11 @@ export async function addExercise(patientId: string, formData: FormData): Promis
   const { supabase, user } = await requireUser()
   if (!user) {
     return { error: "Sesiunea a expirat.", token: null }
+  }
+
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id")
+  if (!owned.data) {
+    return { error: "Pacientul nu aparține acestui cabinet.", token: null }
   }
 
   const { error } = await supabase.from("exercises").insert({
@@ -254,7 +288,12 @@ export async function deleteExercise(patientId: string, exerciseId: string): Pro
     return
   }
 
-  await supabase.from("exercises").delete().eq("id", exerciseId)
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id")
+  if (!owned.data) {
+    return
+  }
+
+  await supabase.from("exercises").delete().eq("id", exerciseId).eq("patient_id", patientId)
   revalidatePath(`/dashboard/patients/${patientId}`)
 }
 
