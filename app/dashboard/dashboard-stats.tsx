@@ -34,7 +34,7 @@ export function DashboardStats({
         const Icon = card.icon
         const value =
           card.statKey === "compliancePercent" ? `${stats[card.statKey]}%` : String(stats[card.statKey])
-        const selected = filter === card.key
+        const selected = filter === card.key && card.key !== "all"
 
         return (
           <button

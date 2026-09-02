@@ -33,10 +33,10 @@ export function DashboardOverview({
         <div className="border-b border-slate-200 px-5 py-4">
           <h2 className="text-base font-semibold text-slate-800">Listă pacienți</h2>
           <p className="text-sm text-slate-600">
-            Caută, apasă un card de metrici sau filtrează după ultimul scor VAS.
+            Caută după pacient sau apasă un card de metrici pentru a filtra lista.
           </p>
         </div>
-        <PatientList patients={patients} filter={filter} onFilterChange={setFilter} />
+        <PatientList patients={patients} filter={filter} />
       </section>
     </>
   )

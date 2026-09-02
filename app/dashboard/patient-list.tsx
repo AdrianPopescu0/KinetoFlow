@@ -12,26 +12,15 @@ import { patientAccessUrl, vasBadgeClass } from "@/lib/patients/display"
 import type { PatientListItem } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
 
-const CHIPS: Array<{ value: PatientListFilter; label: string }> = [
-  { value: "all", label: "Toți" },
-  { value: "checkins", label: "Check-in azi" },
-  { value: "alert", label: "VAS ≥ 7" },
-  { value: "compliance", label: "Complianță scăzută" },
-  { value: "silent", label: "Fără check-in" },
-]
-
 export function PatientList({
   patients,
   filter,
-  onFilterChange,
 }: {
   patients: PatientListItem[]
   filter: PatientListFilter
-  onFilterChange: (filter: PatientListFilter) => void
 }) {
   const [query, setQuery] = useState("")
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const filterActive = filter !== "all"
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -55,43 +44,15 @@ export function PatientList({
 
   return (
     <div>
-      <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative w-full max-w-sm">
+      <div className="border-b border-slate-200 px-5 py-4">
+        <div className="relative w-full">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Caută după nume, diagnostic sau email"
-            className="h-11 border-slate-300 pl-9"
+            className="h-11 w-full border-slate-300 pl-9"
           />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {CHIPS.map((chip) => (
-            <button
-              key={chip.value}
-              type="button"
-              onClick={() =>
-                onFilterChange(filter === chip.value && chip.value !== "all" ? "all" : chip.value)
-              }
-              className={cn(
-                "h-10 rounded-full border px-3 text-sm font-medium",
-                filter === chip.value
-                  ? "border-[#042f2e] bg-[#042f2e] text-white"
-                  : "border-slate-300 bg-white text-slate-700",
-              )}
-            >
-              {chip.label}
-            </button>
-          ))}
-          {filterActive ? (
-            <button
-              type="button"
-              onClick={() => onFilterChange("all")}
-              className="h-10 rounded-full px-3 text-sm font-medium text-teal-800 underline-offset-4 hover:underline"
-            >
-              Resetează filtrele
-            </button>
-          ) : null}
         </div>
       </div>
 
