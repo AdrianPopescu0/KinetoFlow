@@ -62,7 +62,7 @@ export default async function OnboardingPage() {
         {tableMissing ? (
           <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
             Tabela `clinic_profiles` nu există încă. Rulează `supabase/migrations/004_clinic_profiles.sql`
-            și `005_clinic_profiles_auth_uid.sql` în SQL Editor, apoi salvează formularul.
+            în SQL Editor, apoi salvează formularul.
           </p>
         ) : null}
 

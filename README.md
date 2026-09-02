@@ -60,7 +60,7 @@ Tabele: `patients` (token UUID unic pentru `/p/[token]`), `exercises`, `check_in
 
 Fișa clinică: `/dashboard/patients/[id]`. Note clinice: rulează și `supabase/migrations/002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
-Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql` (și `005_clinic_profiles_auth_uid.sql` dacă ai rulat varianta veche cu `therapist_id`). Cheia primară `id` este `auth.uid()`. Fără rând în `clinic_profiles`, terapeutul e redirecționat la `/onboarding`.
+Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql` în SQL Editor. Cheia primară `id` este `auth.uid()`. Fără rând în `clinic_profiles`, terapeutul e redirecționat la `/onboarding`.
 
 Reguli de securitate aplicate:
 

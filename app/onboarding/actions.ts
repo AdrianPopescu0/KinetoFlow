@@ -53,7 +53,7 @@ export async function saveClinicProfile(formData: FormData): Promise<OnboardingS
   if (existing.tableMissing) {
     return {
       error:
-        "Tabela clinic_profiles lipsește. Rulează `supabase/migrations/004_clinic_profiles.sql` și `005_clinic_profiles_auth_uid.sql` în SQL Editor.",
+        "Tabela clinic_profiles lipsește. Rulează `supabase/migrations/004_clinic_profiles.sql` în SQL Editor.",
     }
   }
 
