@@ -31,10 +31,24 @@ export function patientWhatsAppMessage(input: {
   ].join("\n")
 }
 
+function encodedWhatsAppText(message: string): string {
+  return encodeURIComponent(message)
+}
+
+/** Click-to-chat for the native WhatsApp app (Windows/Mac/mobile). */
 export function patientWhatsAppHref(phone: string, message: string): string | null {
   const digits = toWhatsAppNumber(phone)
   if (!digits) {
     return null
   }
-  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
+  return `https://wa.me/${digits}?text=${encodedWhatsAppText(message)}`
+}
+
+/** Opens WhatsApp Web in a new tab — avoids OS “open in app?” dialogs on Linux/PC. */
+export function patientWhatsAppWebHref(phone: string, message: string): string | null {
+  const digits = toWhatsAppNumber(phone)
+  if (!digits) {
+    return null
+  }
+  return `https://web.whatsapp.com/send?phone=${digits}&text=${encodedWhatsAppText(message)}`
 }

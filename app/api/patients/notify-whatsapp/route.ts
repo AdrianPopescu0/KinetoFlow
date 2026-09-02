@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server"
 
 import { createClient } from "@/utils/supabase/server"
-import { patientAccessUrl, patientWhatsAppHref, patientWhatsAppMessage } from "@/lib/patients/whatsapp"
+import {
+  patientAccessUrl,
+  patientWhatsAppHref,
+  patientWhatsAppMessage,
+  patientWhatsAppWebHref,
+} from "@/lib/patients/whatsapp"
 import { toWhatsAppNumber } from "@/lib/patients/phone"
 
 export async function POST(request: Request) {
@@ -42,6 +47,7 @@ export async function POST(request: Request) {
   const fullName = String(patient.full_name)
   const message = patientWhatsAppMessage({ fullName, token, accessCode })
   const whatsappHref = phone ? patientWhatsAppHref(phone, message) : null
+  const whatsappWebHref = phone ? patientWhatsAppWebHref(phone, message) : null
 
   const sent = await sendViaProvider(phone, message)
 
@@ -50,6 +56,8 @@ export async function POST(request: Request) {
     fallback: "click-to-chat",
     portalUrl: patientAccessUrl(),
     whatsappHref,
+    whatsappWebHref,
+    whatsappMessage: message,
   })
 }
 

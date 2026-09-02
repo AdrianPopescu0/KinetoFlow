@@ -6,7 +6,12 @@ import { createClient } from "@/utils/supabase/server"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { isSleepQuality } from "@/lib/patients/types"
-import { patientAccessUrl, patientWhatsAppHref, patientWhatsAppMessage } from "@/lib/patients/whatsapp"
+import {
+  patientAccessUrl,
+  patientWhatsAppHref,
+  patientWhatsAppMessage,
+  patientWhatsAppWebHref,
+} from "@/lib/patients/whatsapp"
 
 export type MutationState = {
   error: string | null
@@ -17,6 +22,8 @@ export type MutationState = {
   fullName?: string | null
   portalUrl?: string | null
   whatsappHref?: string | null
+  whatsappWebHref?: string | null
+  whatsappMessage?: string | null
 }
 
 function readOptional(formData: FormData, key: string): string | null {
@@ -117,6 +124,8 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     fullName,
     portalUrl: patientAccessUrl(),
     whatsappHref: patientWhatsAppHref(phone, message),
+    whatsappWebHref: patientWhatsAppWebHref(phone, message),
+    whatsappMessage: message,
   }
 }
 
