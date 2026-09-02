@@ -7,8 +7,8 @@ import { getSupabaseServiceRoleKey } from "@/utils/supabase/env"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export const SUPPORT_SUBMIT_ERROR =
-  "Nu am putut trimite mesajul. Verifică datele și încearcă din nou."
+
+const SUPPORT_SUBMIT_ERROR = "Nu am putut trimite mesajul. Verifică datele și încearcă din nou."
 
 export type SupportTicketState = {
   error?: string
