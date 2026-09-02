@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+import { therapistHasClinicProfile } from "@/lib/clinics/profile"
 import { PATIENT_SESSION_COOKIE, patientTokenFromPath } from "@/lib/patients/session"
 import { getSupabasePublicEnv, isUnconfiguredSupabaseUrl } from "@/utils/supabase/env"
 
@@ -8,6 +9,14 @@ const PROTECTED_PREFIX = "/dashboard"
 
 function isProtectedPath(pathname: string): boolean {
   return pathname === PROTECTED_PREFIX || pathname.startsWith(`${PROTECTED_PREFIX}/`)
+}
+
+function isTherapistAuthPage(pathname: string): boolean {
+  return pathname === "/login" || pathname === "/register" || pathname === "/recuperare-parola"
+}
+
+function isOnboardingPath(pathname: string): boolean {
+  return pathname === "/onboarding" || pathname.startsWith("/onboarding/")
 }
 
 function patientPortalGuard(request: NextRequest): NextResponse | null {
@@ -42,7 +51,7 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   if (isUnconfiguredSupabaseUrl(url)) {
-    if (isProtectedPath(pathname)) {
+    if (isProtectedPath(pathname) || isOnboardingPath(pathname)) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/login"
       redirectUrl.searchParams.set("redirectTo", pathname)
@@ -78,18 +87,36 @@ export async function updateSession(request: NextRequest) {
 
   const authenticatedUser = userError ? null : user
 
-  if (!authenticatedUser && isProtectedPath(pathname)) {
+  if (!authenticatedUser && (isProtectedPath(pathname) || isOnboardingPath(pathname))) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = "/login"
     redirectUrl.searchParams.set("redirectTo", pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (authenticatedUser && (pathname === "/login" || pathname === "/recuperare-parola")) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/dashboard"
-    redirectUrl.search = ""
-    return NextResponse.redirect(redirectUrl)
+  if (authenticatedUser) {
+    const clinicReady = await therapistHasClinicProfile(supabase, authenticatedUser.id)
+
+    if (isTherapistAuthPage(pathname)) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = clinicReady ? "/dashboard" : "/onboarding"
+      redirectUrl.search = ""
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    if (isOnboardingPath(pathname) && clinicReady) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/dashboard"
+      redirectUrl.search = ""
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    if (isProtectedPath(pathname) && !clinicReady) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/onboarding"
+      redirectUrl.search = ""
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
   return supabaseResponse

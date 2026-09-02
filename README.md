@@ -22,9 +22,13 @@ cp .env.example .env.local
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
 - `NEXT_PUBLIC_SITE_URL` — originea aplicației (pentru linkurile de recuperare a parolei)
 
-În dashboard-ul Supabase, adaugă URL-urile de redirect:
+În dashboard-ul Supabase:
+
+1. **Authentication → Providers → Google**: activează providerul și pune Client ID / Secret din Google Cloud.
+2. **Authentication → URL Configuration**: adaugă redirect-urile:
 
 - `http://localhost:43123/auth/callback`
+- `http://127.0.0.1:43123/auth/callback`
 - domeniul de producție + `/auth/callback`
 
 3. Instalează dependențele și pornește serverul de dezvoltare:
@@ -40,7 +44,9 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 | Rută | Rol |
 | --- | --- |
-| `/login` | Formular de autentificare |
+| `/login` | Autentificare terapeut (Google sau email/parolă) |
+| `/register` | Creare cont clinică |
+| `/onboarding` | Prima configurare: clinică, terapeut, telefon WhatsApp |
 | `/recuperare-parola` | Cerere de resetare a parolei |
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
@@ -55,6 +61,8 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 Tabele: `patients` (token UUID unic pentru `/p/[token]`), `exercises`, `check_ins`. RLS: terapeutul vede doar pacienții lui.
 
 Fișa clinică: `/dashboard/patients/[id]`. Note clinice: rulează și `supabase/migrations/002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
+
+Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql`. Fără rând în `clinic_profiles`, terapeutul e redirecționat la `/onboarding`.
 
 Reguli de securitate aplicate:
 

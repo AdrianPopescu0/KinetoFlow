@@ -23,12 +23,21 @@ export default function HomePage() {
             Gestionează programele de recuperare, urmărește progresul pacienților și păstrează
             accesul clinic securizat.
           </p>
-          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <Link
               href="/login"
               className={cn(buttonVariants(), "h-12 min-h-[48px] rounded-xl px-5")}
             >
               Autentificare terapeut
+            </Link>
+            <Link
+              href="/register"
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "h-12 min-h-[48px] rounded-xl px-5",
+              )}
+            >
+              Creează cont clinică
             </Link>
             <Link
               href="/acces"

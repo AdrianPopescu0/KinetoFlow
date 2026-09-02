@@ -80,6 +80,20 @@ async function loadTherapistProfile(
   therapistId: string,
 ): Promise<{ name: string; phone: string | null }> {
   try {
+    const { data: clinic } = await supabase
+      .from("clinic_profiles")
+      .select("therapist_full_name, contact_phone")
+      .eq("therapist_id", therapistId)
+      .maybeSingle()
+
+    if (clinic && typeof clinic.therapist_full_name === "string") {
+      const digits = String(clinic.contact_phone ?? "").replace(/\D/g, "")
+      return {
+        name: clinic.therapist_full_name.trim() || "Kinetoterapeutul tău",
+        phone: digits.length >= 8 ? digits : null,
+      }
+    }
+
     const { data, error } = await supabase.auth.admin.getUserById(therapistId)
     if (error || !data.user) {
       return { name: "Kinetoterapeutul tău", phone: null }

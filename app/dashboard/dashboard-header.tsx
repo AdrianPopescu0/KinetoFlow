@@ -4,8 +4,10 @@ import Link from "next/link"
 import { logout } from "@/app/dashboard/actions"
 import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
 import { Button } from "@/components/ui/button"
+import { fetchClinicProfile } from "@/lib/clinics/profile"
 import { therapistDisplayName } from "@/lib/patients/display"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/utils/supabase/server"
 
 type DashboardHeaderProps = {
   email?: string
@@ -13,12 +15,20 @@ type DashboardHeaderProps = {
   current?: "dashboard" | "exercises"
 }
 
-export function DashboardHeader({
+export async function DashboardHeader({
   email,
   metadataName,
   current = "dashboard",
 }: DashboardHeaderProps) {
-  const name = therapistDisplayName(email, metadataName)
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const clinic = user ? await fetchClinicProfile(supabase, user.id) : { profile: null }
+  const name = therapistDisplayName(
+    email,
+    clinic.profile?.therapist_full_name ?? metadataName,
+  )
 
   return (
     <header className="bg-[#042f2e] text-white">

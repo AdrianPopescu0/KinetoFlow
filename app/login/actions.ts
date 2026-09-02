@@ -1,8 +1,9 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
+import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
 import { AUTH_ERROR_MESSAGE, parseLoginCredentials } from "@/lib/auth/validation"
 import { createClient } from "@/utils/supabase/server"
 
@@ -27,6 +28,23 @@ export async function login(formData: FormData): Promise<LoginActionState> {
     return { error: AUTH_ERROR_MESSAGE }
   }
 
-  revalidatePath("/", "layout")
-  redirect("/dashboard")
+  await redirectAfterTherapistAuth()
+  return null
+}
+
+export async function signInWithGoogle(): Promise<LoginActionState> {
+  const supabase = await createClient()
+  const origin = await appOrigin()
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: oauthCallbackUrl(origin, "/onboarding"),
+    },
+  })
+
+  if (error || !data.url) {
+    return { error: "Nu am putut deschide autentificarea Google. Activează providerul Google în Supabase Auth." }
+  }
+
+  redirect(data.url)
 }

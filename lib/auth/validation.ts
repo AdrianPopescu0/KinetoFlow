@@ -25,6 +25,35 @@ export function parseLoginCredentials(formData: FormData): AuthCredentials | nul
   return { email, password }
 }
 
+export const REGISTER_ERROR_MESSAGE = "Nu am putut crea contul. Verifică datele și încearcă din nou."
+
+export function parseRegisterCredentials(formData: FormData): AuthCredentials | { error: string } {
+  const emailRaw = formData.get("email")
+  const passwordRaw = formData.get("password")
+  const confirmRaw = formData.get("confirm_password")
+
+  if (typeof emailRaw !== "string" || typeof passwordRaw !== "string" || typeof confirmRaw !== "string") {
+    return { error: REGISTER_ERROR_MESSAGE }
+  }
+
+  const email = emailRaw.trim().toLowerCase()
+  const password = passwordRaw
+
+  if (!EMAIL_PATTERN.test(email)) {
+    return { error: "Introdu o adresă de email validă." }
+  }
+
+  if (password.length < 8) {
+    return { error: "Parola trebuie să aibă cel puțin 8 caractere." }
+  }
+
+  if (password !== confirmRaw) {
+    return { error: "Parolele nu coincid." }
+  }
+
+  return { email, password }
+}
+
 export function parseRecoveryEmail(formData: FormData): string | null {
   const emailRaw = formData.get("email")
 
