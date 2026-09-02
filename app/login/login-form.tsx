@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { loginHref } from "@/lib/auth/paths"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
+import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
 
 type AuthTab = "login" | "register"
@@ -23,9 +24,10 @@ export function LoginForm({ initialTab }: { initialTab: AuthTab }) {
   const [info, setInfo] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [password, setPassword] = useState("")
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [isPending, startTransition] = useTransition()
   const passwordChecks = evaluateRegisterPassword(password)
-  const canSubmitRegister = passwordChecks.isValid
+  const canSubmitRegister = passwordChecks.isValid && acceptedTerms
 
   useEffect(() => {
     setTab(initialTab)
@@ -36,6 +38,7 @@ export function LoginForm({ initialTab }: { initialTab: AuthTab }) {
     setError(null)
     setInfo(null)
     setPassword("")
+    setAcceptedTerms(false)
     router.replace(loginHref(next === "register" ? "signup" : "signin"), { scroll: false })
   }
 
@@ -44,9 +47,15 @@ export function LoginForm({ initialTab }: { initialTab: AuthTab }) {
     setInfo(null)
 
     startTransition(async () => {
-      if (tab === "register" && !evaluateRegisterPassword(String(formData.get("password") ?? "")).isValid) {
-        setError("Parola trebuie să aibă minim 8 caractere, o majusculă, o cifră și un caracter special.")
-        return
+      if (tab === "register") {
+        if (!evaluateRegisterPassword(String(formData.get("password") ?? "")).isValid) {
+          setError("Parola trebuie să aibă minim 8 caractere, o majusculă, o cifră și un caracter special.")
+          return
+        }
+        if (formData.get(LEGAL_ACCEPT_FIELD) !== "on") {
+          setError(LEGAL_ACCEPT_ERROR)
+          return
+        }
       }
       const result = tab === "register" ? await register(formData) : await login(formData)
       if (result?.error) {
@@ -169,6 +178,47 @@ export function LoginForm({ initialTab }: { initialTab: AuthTab }) {
             </ul>
           ) : null}
         </div>
+
+        {tab === "register" ? (
+          <label
+            htmlFor={LEGAL_ACCEPT_FIELD}
+            className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed text-slate-700"
+          >
+            <input
+              id={LEGAL_ACCEPT_FIELD}
+              name={LEGAL_ACCEPT_FIELD}
+              type="checkbox"
+              required
+              checked={acceptedTerms}
+              onChange={(event) => setAcceptedTerms(event.target.checked)}
+              disabled={isPending}
+              className="mt-1 size-4 shrink-0 rounded border-slate-300 accent-[#042f2e]"
+            />
+            <span>
+              Sunt de acord cu{" "}
+              <Link
+                href="/termeni"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[#042f2e] underline underline-offset-4"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Termenii și Condițiile
+              </Link>{" "}
+              și{" "}
+              <Link
+                href="/confidentialitate"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[#042f2e] underline underline-offset-4"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Politica de Confidențialitate
+              </Link>
+              .
+            </span>
+          </label>
+        ) : null}
 
         <Button
           type="submit"

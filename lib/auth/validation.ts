@@ -29,6 +29,15 @@ export function parseLoginCredentials(formData: FormData): AuthCredentials | nul
 
 export const REGISTER_ERROR_MESSAGE = "Nu am putut crea contul. Verifică datele și încearcă din nou."
 
+export const LEGAL_ACCEPT_FIELD = "legal_accept"
+
+export const LEGAL_ACCEPT_ERROR =
+  "Pentru a crea contul trebuie să accepți Termenii și Condițiile și Politica de Confidențialitate."
+
+export function hasAcceptedLegalTerms(formData: FormData): boolean {
+  return formData.get(LEGAL_ACCEPT_FIELD) === "on"
+}
+
 export function parseRegisterCredentials(formData: FormData): AuthCredentials | { error: string } {
   const emailRaw = formData.get("email")
   const passwordRaw = formData.get("password")
@@ -46,6 +55,10 @@ export function parseRegisterCredentials(formData: FormData): AuthCredentials | 
 
   if (!evaluateRegisterPassword(password).isValid) {
     return { error: REGISTER_PASSWORD_HINT }
+  }
+
+  if (!hasAcceptedLegalTerms(formData)) {
+    return { error: LEGAL_ACCEPT_ERROR }
   }
 
   return { email, password }
