@@ -28,7 +28,7 @@ export default async function ExercisesPage() {
   return (
     <AppShell>
       <DashboardHeader email={user.email} metadataName={metadataName} current="exercises" />
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-5 py-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col overflow-x-hidden px-5 py-8">
         <ExerciseLibrary
           patients={patients.map((patient) => ({
             id: patient.id,

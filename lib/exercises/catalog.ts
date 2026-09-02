@@ -1,3 +1,4 @@
+import { assertCatalogMatchesTaxonomy } from "@/lib/exercises/taxonomy"
 import type { LibraryExercise } from "@/lib/exercises/types"
 
 function video(youtubeId: string): Pick<LibraryExercise, "youtubeId" | "videoUrl"> {
@@ -534,3 +535,5 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     ...video("1Q4h6pY9x2k"),
   },
 ]
+
+assertCatalogMatchesTaxonomy(LIBRARY_EXERCISES)

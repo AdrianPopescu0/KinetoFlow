@@ -9,7 +9,7 @@ type AppShellProps = {
 
 export function AppShell({ children, className }: AppShellProps) {
   return (
-    <div className={cn("flex min-h-full flex-1 flex-col bg-slate-50 text-slate-800", className)}>
+    <div className={cn("flex min-h-full max-w-full flex-1 flex-col overflow-x-hidden bg-slate-50 text-slate-800", className)}>
       {children}
     </div>
   )

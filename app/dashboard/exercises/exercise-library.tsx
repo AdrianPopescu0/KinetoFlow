@@ -105,7 +105,7 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-full flex-col gap-6 overflow-x-hidden">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Bibliotecă Exerciții</h1>
@@ -135,8 +135,9 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
         <div
           role="tablist"
           aria-label="Regiune anatomică"
-          className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]"
+          className="max-w-full overflow-x-auto whitespace-nowrap scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
+          <div className="flex w-max gap-1">
           <Tab
             active={filters.region === "all"}
             onClick={() => update("region", "all")}
@@ -150,12 +151,13 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
               label={`${region.label} (${counts[region.id]})`}
             />
           ))}
+          </div>
         </div>
 
         {subcategories.length > 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Obiectiv terapeutic</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex max-w-full flex-wrap gap-2">
               <Pill active={filters.subcategory === "all"} onClick={() => update("subcategory", "all")}>
                 Toate
               </Pill>

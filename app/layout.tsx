@@ -24,9 +24,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ro"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full max-w-full overflow-x-hidden antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-slate-50 text-slate-800">
+      <body className="flex min-h-full max-w-full flex-col overflow-x-hidden bg-slate-50 text-slate-800">
         {children}
         <Toaster />
       </body>

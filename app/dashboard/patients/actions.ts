@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { createClient } from "@/utils/supabase/server"
+import { isSleepQuality } from "@/lib/patients/types"
 
 export type MutationState = {
   error: string | null
@@ -175,13 +176,21 @@ export async function deleteExercise(patientId: string, exerciseId: string): Pro
 
 export async function submitPatientCheckin(formData: FormData): Promise<{ error: string | null }> {
   const token = readOptional(formData, "token")
-  const sleep = readOptional(formData, "sleep")
   const notes = readOptional(formData, "notes")
-  const vas = readNumber(formData, "vas")
+  const sleepRaw = readOptional(formData, "sleep")
+  const vasScore = Number.parseInt(String(formData.get("vas") ?? ""), 10)
 
-  if (!token || sleep === null || vas === null || vas < 0 || vas > 10) {
+  if (
+    !token ||
+    !isSleepQuality(sleepRaw) ||
+    !Number.isInteger(vasScore) ||
+    vasScore < 0 ||
+    vasScore > 10
+  ) {
     return { error: "Completează durerea și calitatea somnului." }
   }
+
+  const sleepQuality: "odihnitor" | "moderat" | "intrerupt" = sleepRaw
 
   const { createServiceRoleClient } = await import("@/utils/supabase/admin")
   const admin = createServiceRoleClient()
@@ -213,12 +222,16 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     return { error: null }
   }
 
-  await admin.from("check_ins").insert({
+  const { error: insertError } = await admin.from("check_ins").insert({
     patient_id: patient.id,
-    vas_score: vas,
-    sleep_quality: sleep,
+    vas_score: vasScore,
+    sleep_quality: sleepQuality,
     notes,
   })
+
+  if (insertError) {
+    return { error: "Nu am putut salva check-in-ul. Încearcă din nou." }
+  }
 
   return { error: null }
 }

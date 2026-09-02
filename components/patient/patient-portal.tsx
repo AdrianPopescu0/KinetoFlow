@@ -66,10 +66,16 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
     }
 
     startTransition(async () => {
+      const vasScore = Number.parseInt(String(pain), 10)
+      if (!Number.isInteger(vasScore) || vasScore < 0 || vasScore > 10) {
+        setError("Alege un scor de durere între 0 și 10.")
+        return
+      }
+
       const payload: DailyCheckin = {
         submittedAt: new Date().toISOString(),
         localDate,
-        pain,
+        pain: vasScore,
         sleep,
         painKind: null,
         notes: notes.trim(),
@@ -78,10 +84,14 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
 
       const formData = new FormData()
       formData.set("token", program.token)
-      formData.set("vas", String(pain))
+      formData.set("vas", String(vasScore))
       formData.set("sleep", sleep)
       formData.set("notes", notes.trim())
-      await submitPatientCheckin(formData)
+      const result = await submitPatientCheckin(formData)
+      if (result.error) {
+        setError(result.error)
+        return
+      }
 
       saveTodaysCheckin(program.token, payload)
       setJustSubmitted(true)
@@ -92,7 +102,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
     <AppShell>
       <PatientHeader firstName={program.firstName} dateLabel={dateLabel} onOpenGuide={() => setGuideOpen(true)} />
 
-      <main className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6 pb-16 lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(260px,320px)] lg:items-start lg:px-6">
+      <main className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 overflow-x-hidden px-4 py-6 pb-16 lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(260px,320px)] lg:items-start lg:px-6">
         <aside className="hidden lg:sticky lg:top-24 lg:block">
           <TherapistSupportColumn therapistName={program.therapistName} therapistPhone={program.therapistPhone} />
         </aside>

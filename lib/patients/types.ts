@@ -1,5 +1,11 @@
 export type SleepQuality = "odihnitor" | "moderat" | "intrerupt"
 
+export const SLEEP_QUALITY_VALUES = ["odihnitor", "moderat", "intrerupt"] as const
+
+export function isSleepQuality(value: string | null): value is SleepQuality {
+  return value === "odihnitor" || value === "moderat" || value === "intrerupt"
+}
+
 export type PainKind = "efort" | "continua" | "rigiditate" | "fara"
 
 export type Exercise = {

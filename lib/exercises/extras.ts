@@ -1,4 +1,5 @@
-import type { LibraryExercise } from "@/lib/exercises/types"
+import { objectiveBelongsToRegion } from "@/lib/exercises/taxonomy"
+import type { AnatomicalRegion, LibraryExercise, TherapeuticObjective } from "@/lib/exercises/types"
 
 const STORAGE_KEY = "kinetoflow.exercise-library.extra.v1"
 
@@ -30,5 +31,11 @@ function isLibraryExercise(value: unknown): value is LibraryExercise {
     return false
   }
   const item = value as Partial<LibraryExercise>
-  return typeof item.id === "string" && typeof item.title === "string" && typeof item.region === "string"
+  if (typeof item.id !== "string" || typeof item.title !== "string") {
+    return false
+  }
+  if (typeof item.region !== "string" || typeof item.subcategory !== "string") {
+    return false
+  }
+  return objectiveBelongsToRegion(item.region as AnatomicalRegion, item.subcategory as TherapeuticObjective)
 }

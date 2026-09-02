@@ -119,6 +119,45 @@ export function subcategoryLabel(region: AnatomicalRegion, subcategoryId: string
   return regionById(region).subcategories.find((item) => item.id === subcategoryId)?.label ?? subcategoryId
 }
 
+export function objectiveBelongsToRegion(
+  region: AnatomicalRegion,
+  subcategory: TherapeuticObjective,
+): boolean {
+  return regionById(region).subcategories.some((item) => item.id === subcategory)
+}
+
+export function assertCatalogMatchesTaxonomy(
+  exercises: { region: AnatomicalRegion; subcategory: TherapeuticObjective }[],
+): void {
+  const counts: Record<AnatomicalRegion, number> = {
+    cervical: 0,
+    thoracic: 0,
+    lumbar: 0,
+    pelvis: 0,
+    upper: 0,
+    lower: 0,
+    functional: 0,
+  }
+
+  for (const exercise of exercises) {
+    if (!REGIONS.some((region) => region.id === exercise.region)) {
+      throw new Error(`Catalog: regiune necunoscută "${exercise.region}"`)
+    }
+    if (!objectiveBelongsToRegion(exercise.region, exercise.subcategory)) {
+      throw new Error(
+        `Catalog: obiectivul "${exercise.subcategory}" nu aparține regiunii "${exercise.region}"`,
+      )
+    }
+    counts[exercise.region] += 1
+  }
+
+  for (const region of REGIONS) {
+    if (counts[region.id] < 2) {
+      throw new Error(`Catalog: regiunea "${region.id}" are mai puțin de 2 exerciții`)
+    }
+  }
+}
+
 export function difficultyLabel(id: Difficulty): string {
   return DIFFICULTIES.find((item) => item.id === id)?.label ?? id
 }

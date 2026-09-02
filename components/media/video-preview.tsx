@@ -1,4 +1,4 @@
-import { youtubeIdFromUrl } from "@/lib/patients/youtube"
+import { youtubeEmbedSrc, youtubeIdFromUrl } from "@/lib/patients/youtube"
 
 export function VideoPreview({ url, title }: { url: string | null; title: string }) {
   if (!url) {
@@ -12,7 +12,13 @@ export function VideoPreview({ url, title }: { url: string | null; title: string
   const lower = url.toLowerCase()
   if (lower.includes(".mp4") || lower.startsWith("blob:") || lower.startsWith("data:video")) {
     return (
-      <video controls preload="metadata" className="aspect-video h-full w-full bg-black" title={title}>
+      <video
+        controls
+        playsInline
+        preload="metadata"
+        className="aspect-video h-full w-full bg-black"
+        title={title}
+      >
         <source src={url} />
       </video>
     )
@@ -22,12 +28,13 @@ export function VideoPreview({ url, title }: { url: string | null; title: string
   if (youtubeId) {
     return (
       <iframe
-        src={`https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0&modestbranding=1`}
+        src={youtubeEmbedSrc(youtubeId)}
         title={title}
         loading="lazy"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
         allowFullScreen
         className="aspect-video h-full w-full"
+        {...{ playsInline: true, playsinline: "1" }}
       />
     )
   }

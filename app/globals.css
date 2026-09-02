@@ -122,10 +122,10 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-slate-50 font-sans text-slate-800;
+    @apply max-w-full overflow-x-hidden bg-slate-50 font-sans text-slate-800;
   }
   html {
-    @apply font-sans;
+    @apply max-w-full overflow-x-hidden font-sans;
   }
 }
 
