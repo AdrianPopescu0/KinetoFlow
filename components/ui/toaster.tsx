@@ -12,14 +12,14 @@ function emit() {
   listeners.forEach((listener) => listener())
 }
 
-export function toast(message: string) {
+export function toast(message: string, durationMs = 2400) {
   const id = nextId++
   toasts = [...toasts, { id, message }]
   emit()
   window.setTimeout(() => {
     toasts = toasts.filter((item) => item.id !== id)
     emit()
-  }, 2400)
+  }, durationMs)
 }
 
 function subscribe(onStoreChange: () => void) {

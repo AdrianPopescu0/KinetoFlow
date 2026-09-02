@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-const SUPPORT_EMAIL = "contact@kinetoflow.ro"
+import { SupportModal } from "@/components/SupportModal"
 
 function FooterSeparator() {
   return (
@@ -32,12 +32,7 @@ export function Footer() {
           Politica de Confidențialitate
         </Link>
         <FooterSeparator />
-        <a
-          href={`mailto:${SUPPORT_EMAIL}`}
-          className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
-        >
-          Suport: {SUPPORT_EMAIL}
-        </a>
+        <SupportModal />
       </nav>
     </footer>
   )

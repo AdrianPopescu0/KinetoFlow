@@ -64,6 +64,8 @@ Fișa clinică: `/dashboard/patients/[id]`. Note clinice: rulează și `supabase
 
 Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql` în SQL Editor. Coloane: `user_id` (= `auth.uid()`), `clinic_name`, `therapist_name`, `phone`. Fără rând în `clinic_profiles`, terapeutul e redirecționat la `/onboarding`.
 
+Formularul de suport din footer: rulează `supabase/migrations/007_support_tickets.sql`. Tabela `support_tickets` (id, name, contact, message, created_at, status) primește inserări publice; citirea nu e permisă din aplicație.
+
 Reguli de securitate aplicate:
 
 - Validare pe server pentru email și parolă înainte de apelul Auth
