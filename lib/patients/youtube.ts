@@ -1,5 +1,12 @@
 /** Client-safe YouTube URL helpers. Do not import server modules from here. */
 
+export function youtubeThumbnailUrl(youtubeId: string | null): string | null {
+  if (!youtubeId) {
+    return null
+  }
+  return `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`
+}
+
 export function youtubeIdFromUrl(url: string | null): string | null {
   if (!url) {
     return null

@@ -43,6 +43,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 | `/login` | Formular de autentificare |
 | `/recuperare-parola` | Cerere de resetare a parolei |
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
+| `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
 | `/auth/callback` | Schimb PKCE pentru sesiune după email |
 | `/p/[patientToken]` | Programul pacientului (exerciții + check-in zilnic) |
 
