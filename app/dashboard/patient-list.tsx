@@ -7,16 +7,31 @@ import { Check, Copy, FolderOpen, Search } from "lucide-react"
 import { toast } from "@/components/ui/toaster"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { emptyFilterMessage, patientMatchesListFilter, type PatientListFilter } from "@/lib/patients/dashboard-filter"
 import { patientAccessUrl, vasBadgeClass } from "@/lib/patients/display"
 import type { PatientListItem } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
 
-type Filter = "all" | "alert" | "silent"
+const CHIPS: Array<{ value: PatientListFilter; label: string }> = [
+  { value: "all", label: "Toți" },
+  { value: "checkins", label: "Check-in azi" },
+  { value: "alert", label: "VAS ≥ 7" },
+  { value: "compliance", label: "Complianță scăzută" },
+  { value: "silent", label: "Fără check-in" },
+]
 
-export function PatientList({ patients }: { patients: PatientListItem[] }) {
+export function PatientList({
+  patients,
+  filter,
+  onFilterChange,
+}: {
+  patients: PatientListItem[]
+  filter: PatientListFilter
+  onFilterChange: (filter: PatientListFilter) => void
+}) {
   const [query, setQuery] = useState("")
-  const [filter, setFilter] = useState<Filter>("all")
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const filterActive = filter !== "all"
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -25,13 +40,7 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
       if (needle && !haystack.includes(needle)) {
         return false
       }
-      if (filter === "alert") {
-        return (patient.lastVas ?? 0) >= 7
-      }
-      if (filter === "silent") {
-        return patient.lastVas === null
-      }
-      return true
+      return patientMatchesListFilter(patient, filter)
     })
   }, [filter, patients, query])
 
@@ -56,34 +65,39 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
             className="h-11 border-slate-300 pl-9"
           />
         </div>
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["all", "Toți"],
-              ["alert", "VAS ≥ 7"],
-              ["silent", "Fără check-in"],
-            ] as const
-          ).map(([value, label]) => (
+        <div className="flex flex-wrap items-center gap-2">
+          {CHIPS.map((chip) => (
             <button
-              key={value}
+              key={chip.value}
               type="button"
-              onClick={() => setFilter(value)}
+              onClick={() =>
+                onFilterChange(filter === chip.value && chip.value !== "all" ? "all" : chip.value)
+              }
               className={cn(
                 "h-10 rounded-full border px-3 text-sm font-medium",
-                filter === value
+                filter === chip.value
                   ? "border-[#042f2e] bg-[#042f2e] text-white"
                   : "border-slate-300 bg-white text-slate-700",
               )}
             >
-              {label}
+              {chip.label}
             </button>
           ))}
+          {filterActive ? (
+            <button
+              type="button"
+              onClick={() => onFilterChange("all")}
+              className="h-10 rounded-full px-3 text-sm font-medium text-teal-800 underline-offset-4 hover:underline"
+            >
+              Resetează filtrele
+            </button>
+          ) : null}
         </div>
       </div>
 
       {filtered.length === 0 ? (
         <p className="px-5 py-8 text-center text-sm text-slate-600">
-          Nu am găsit pacienți pentru filtrul selectat.
+          {query.trim() ? "Nu am găsit pacienți pentru filtrul selectat." : emptyFilterMessage(filter)}
         </p>
       ) : (
         <div className="overflow-x-auto">

@@ -1,9 +1,7 @@
 import type { Metadata } from "next"
 
 import { AddPatientDialog } from "@/app/dashboard/add-patient-dialog"
-import { DashboardStats } from "@/app/dashboard/dashboard-stats"
-import { PatientList } from "@/app/dashboard/patient-list"
-import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
+import { DashboardOverview } from "@/app/dashboard/dashboard-overview"
 import { listTherapistPatients } from "@/lib/patients/queries"
 
 export const metadata: Metadata = {
@@ -25,28 +23,18 @@ export default async function DashboardPage() {
         <AddPatientDialog />
       </div>
 
-      <DashboardStats stats={stats} />
-
-      <section className={surfaceCardClassName("overflow-hidden")}>
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-800">Listă pacienți</h2>
-          <p className="text-sm text-slate-600">
-            Caută, filtrează după ultimul scor VAS și deschide fișa clinică.
-          </p>
-        </div>
-        {error ? (
-          <p className="px-5 py-6 text-sm text-red-800" role="alert">
-            {error}
-            {needsMigration ? (
-              <span className="mt-2 block text-slate-600">
-                Rulează `supabase/migrations/001_patients.sql` în SQL Editor.
-              </span>
-            ) : null}
-          </p>
-        ) : (
-          <PatientList patients={patients} />
-        )}
-      </section>
+      {error ? (
+        <section className="rounded-2xl border border-red-200 bg-red-50 px-5 py-6 text-sm text-red-800" role="alert">
+          {error}
+          {needsMigration ? (
+            <span className="mt-2 block text-slate-600">
+              Rulează `supabase/migrations/001_patients.sql` în SQL Editor.
+            </span>
+          ) : null}
+        </section>
+      ) : (
+        <DashboardOverview patients={patients} stats={stats} />
+      )}
     </main>
   )
 }
