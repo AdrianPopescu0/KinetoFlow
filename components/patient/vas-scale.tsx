@@ -100,11 +100,9 @@ export function VasScale({ value, onChange }: VasScaleProps) {
         aria-valuemax={10}
         aria-valuenow={value}
         aria-valuetext={`${value} din 10, ${band}. ${description}`}
-        className="relative"
+        className="overflow-visible"
       >
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-5 bg-gradient-to-r from-white to-transparent sm:hidden" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-5 bg-gradient-to-l from-white to-transparent sm:hidden" />
-        <div className="-mx-1 flex gap-2 overflow-x-auto overscroll-x-contain scroll-smooth px-1 pb-1 [scrollbar-width:none] snap-x snap-mandatory [-ms-overflow-style:none] sm:mx-0 sm:grid sm:grid-cols-11 sm:gap-1.5 sm:overflow-visible sm:px-0 sm:pb-0 sm:snap-none [&::-webkit-scrollbar]:hidden">
+        <div className="flex flex-wrap justify-center gap-1.5 py-0.5 sm:grid sm:grid-cols-11 sm:gap-1.5">
           {VAS_SCORES.map((score) => {
             const selected = score === value
             const tone = vasPalette(score)
@@ -135,8 +133,8 @@ export function VasScale({ value, onChange }: VasScaleProps) {
                   }
                 }}
                 className={cn(
-                  "flex h-12 w-12 shrink-0 snap-center items-center justify-center rounded-full text-sm font-semibold tabular-nums transition-[transform,box-shadow,background-color,color] duration-200 sm:h-auto sm:w-full sm:min-h-11 sm:aspect-square",
-                  selected ? "z-[1] scale-110" : "hover:scale-[1.05] active:scale-95",
+                  "flex aspect-square min-h-10 w-[calc((100%-0.375rem*5)/6)] min-w-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums transition-[transform,box-shadow,background-color,color] duration-200 sm:h-auto sm:min-h-11 sm:w-full",
+                  selected ? "z-[1] scale-105" : "active:scale-95 sm:hover:scale-[1.04]",
                 )}
                 style={
                   selected
