@@ -1,7 +1,7 @@
 import Link from "next/link"
 
 import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
-import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
+import { Logo } from "@/components/Logo"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -11,12 +11,9 @@ export default function HomePage() {
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
         <div className={surfaceCardClassName("max-w-xl px-6 py-10 text-center sm:px-10")}>
           <div className="flex justify-center">
-            <KinetoFlowMark className="size-10 text-[#042f2e]" />
+            <Logo size="lg" />
           </div>
-          <p className="mt-4 text-sm font-semibold tracking-[0.18em] text-[#042f2e] uppercase">
-            KinetoFlow
-          </p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-balance text-slate-800 sm:text-4xl">
+          <h1 className="mt-6 text-3xl font-semibold tracking-tight text-balance text-slate-800 sm:text-4xl">
             Platforma clinică pentru kinetoterapie
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">

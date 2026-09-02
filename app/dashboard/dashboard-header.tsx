@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { logout } from "@/app/dashboard/actions"
-import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
+import { Logo } from "@/components/Logo"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { cn } from "@/lib/utils"
 
@@ -25,9 +25,8 @@ export function DashboardHeader({ email, displayName, clinicName }: DashboardHea
     <header className="bg-[#042f2e] text-white">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-4">
         <div className="flex min-w-0 items-center gap-4">
-          <Link href="/dashboard" prefetch className="flex items-center gap-2">
-            <KinetoFlowMark className="size-8 text-white" />
-            <span className="text-sm font-semibold tracking-[0.16em] uppercase">KinetoFlow</span>
+          <Link href="/dashboard" prefetch className="flex items-center">
+            <Logo size="md" variant="onDark" />
           </Link>
           <nav className="hidden items-center gap-1 sm:flex">
             <NavLink href="/dashboard" active={patientsActive}>

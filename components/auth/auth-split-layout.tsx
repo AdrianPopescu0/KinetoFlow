@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 
-import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
+import { Logo } from "@/components/Logo"
 
 export function AuthSplitLayout({
   title,
@@ -21,9 +21,8 @@ export function AuthSplitLayout({
         <div className="pointer-events-none absolute right-0 bottom-0 size-80 rounded-full bg-cyan-400/10 blur-3xl" />
 
         <div className="relative">
-          <Link href="/" className="flex items-center gap-2">
-            <KinetoFlowMark className="size-8 text-white" />
-            <p className="text-sm font-medium tracking-[0.18em] text-white uppercase">KinetoFlow</p>
+          <Link href="/" className="inline-flex items-center">
+            <Logo size="md" variant="onDark" />
           </Link>
           <h1 className="mt-8 max-w-md text-4xl font-semibold tracking-tight text-balance">
             Continuă tratamentele, fără întreruperi.
@@ -52,9 +51,8 @@ export function AuthSplitLayout({
 
       <main className="flex flex-col justify-center bg-white px-5 py-10 sm:px-10 lg:px-16">
         <div className="mx-auto w-full max-w-md bg-white">
-          <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <KinetoFlowMark className="size-8 text-[#042f2e]" />
-            <p className="text-sm font-semibold tracking-[0.16em] text-[#042f2e] uppercase">KinetoFlow</p>
+          <div className="mb-8 lg:hidden">
+            <Logo size="md" />
           </div>
 
           <div className="mb-8">

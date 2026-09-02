@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 
 import { OnboardingForm } from "@/app/onboarding/onboarding-form"
 import { logout } from "@/app/dashboard/actions"
-import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
+import { Logo } from "@/components/Logo"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { getCachedUser } from "@/lib/auth/session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
@@ -29,10 +29,7 @@ export default async function OnboardingPage() {
     <div className="flex min-h-full flex-1 flex-col bg-slate-50">
       <header className="border-b border-slate-200 bg-white px-5 py-4">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between">
-          <div className="flex items-center gap-2">
-            <KinetoFlowMark className="size-8 text-[#042f2e]" />
-            <p className="text-sm font-semibold tracking-[0.16em] text-[#042f2e] uppercase">KinetoFlow</p>
-          </div>
+          <Logo size="md" />
           <form action={logout}>
             <PendingSubmitButton type="submit" variant="outline" pendingLabel="Ieșire…" className="h-10 rounded-xl">
               Ieșire

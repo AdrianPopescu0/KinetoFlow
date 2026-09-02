@@ -1,7 +1,7 @@
 import Link from "next/link"
 
 import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
-import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
+import { Logo } from "@/components/Logo"
 
 export default function PatientNotFound() {
   return (
@@ -9,12 +9,9 @@ export default function PatientNotFound() {
       <main className="mx-auto flex min-h-full max-w-md flex-1 flex-col items-center justify-center px-6 py-16 text-center">
         <div className={surfaceCardClassName("px-6 py-10")}>
           <div className="flex justify-center">
-            <KinetoFlowMark className="size-10 text-[#042f2e]" />
+            <Logo size="lg" />
           </div>
-          <p className="mt-4 text-sm font-semibold tracking-[0.16em] text-[#042f2e] uppercase">
-            KinetoFlow
-          </p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-800">
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-800">
             Linkul programului nu este valid
           </h1>
           <p className="mt-2 text-sm text-slate-600">

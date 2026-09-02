@@ -1,7 +1,7 @@
 import { BookOpen } from "lucide-react"
 
 import { logoutPatient } from "@/app/acces/actions"
-import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
+import { Logo } from "@/components/Logo"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 
 type PatientHeaderProps = {
@@ -15,10 +15,7 @@ export function PatientHeader({ firstName, dateLabel, onOpenGuide }: PatientHead
     <header className="sticky top-0 z-20 bg-[#042f2e] text-white">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-4 lg:px-6">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <KinetoFlowMark className="size-8 text-white" />
-            <span className="text-sm font-semibold tracking-[0.16em] uppercase">KinetoFlow</span>
-          </div>
+          <Logo size="md" variant="onDark" />
           <div className="flex items-center gap-2">
             {onOpenGuide ? (
               <button
