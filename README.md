@@ -43,7 +43,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 | Rută | Rol |
 | --- | --- |
-| `/login` | Intră în cont / Înregistrează clinică nouă (email + parolă) |
+| `/login` | Intră în cont (`?mode=signin`) sau înregistrează clinică (`?mode=signup`) |
 | `/onboarding` | Configurare clinică (obligatorie înainte de dashboard) |
 | `/recuperare-parola` | Cerere de resetare a parolei |
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |

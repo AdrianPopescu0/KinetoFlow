@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react"
@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { loginHref } from "@/lib/auth/paths"
 import { cn } from "@/lib/utils"
 
 type AuthTab = "login" | "register"
@@ -22,11 +23,15 @@ export function LoginForm({ initialTab }: { initialTab: AuthTab }) {
   const [showPassword, setShowPassword] = useState(false)
   const [isPending, startTransition] = useTransition()
 
+  useEffect(() => {
+    setTab(initialTab)
+  }, [initialTab])
+
   function switchTab(next: AuthTab) {
     setTab(next)
     setError(null)
     setInfo(null)
-    router.replace(next === "register" ? "/login?tab=register" : "/login", { scroll: false })
+    router.replace(loginHref(next === "register" ? "signup" : "signin"), { scroll: false })
   }
 
   function handleSubmit(formData: FormData) {
@@ -146,12 +151,36 @@ export function LoginForm({ initialTab }: { initialTab: AuthTab }) {
               {tab === "register" ? "Se creează contul…" : "Se autentifică…"}
             </>
           ) : tab === "register" ? (
-            "Creează contul clinicii"
+            "Creează cont"
           ) : (
             "Intră în cont"
           )}
         </Button>
       </form>
+
+      {tab === "register" ? (
+        <p className="text-center text-sm text-slate-600">
+          Ai deja cont?{" "}
+          <button
+            type="button"
+            onClick={() => switchTab("login")}
+            className="font-medium text-[#042f2e] underline-offset-4 hover:underline"
+          >
+            Conectează-te
+          </button>
+        </p>
+      ) : (
+        <p className="text-center text-sm text-slate-600">
+          Nu ai cont?{" "}
+          <button
+            type="button"
+            onClick={() => switchTab("register")}
+            className="font-medium text-[#042f2e] underline-offset-4 hover:underline"
+          >
+            Creează clinică nouă
+          </button>
+        </p>
+      )}
     </div>
   )
 }

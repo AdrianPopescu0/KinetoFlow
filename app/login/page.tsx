@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import { LoginForm } from "@/app/login/login-form"
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout"
+import { isSignupAuthMode } from "@/lib/auth/paths"
 
 export const metadata: Metadata = {
   title: "Autentificare | KinetoFlow",
@@ -10,17 +11,21 @@ export const metadata: Metadata = {
 }
 
 type LoginPageProps = {
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ mode?: string; tab?: string }>
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { tab } = await searchParams
-  const initialTab = tab === "register" ? "register" : "login"
+  const params = await searchParams
+  const signup = isSignupAuthMode(params)
 
   return (
     <AuthSplitLayout
-      title="Cont clinică"
-      description="Intră în contul existent sau înregistrează un cabinet nou. După înregistrare configurezi clinica în un minut."
+      title={signup ? "Înregistrează clinică nouă" : "Autentificare"}
+      description={
+        signup
+          ? "Creează contul cabinetului cu email și parolă. Apoi configurezi clinica în un minut."
+          : "Intră în contul de terapeut pentru a deschide dashboard-ul clinicii."
+      }
       footer={
         <>
           <p className="mt-6 text-center text-sm text-slate-600">
@@ -36,7 +41,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </>
       }
     >
-      <LoginForm initialTab={initialTab} />
+      <LoginForm initialTab={signup ? "register" : "login"} />
     </AuthSplitLayout>
   )
 }
