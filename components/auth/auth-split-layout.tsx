@@ -15,7 +15,7 @@ export function AuthSplitLayout({
   footer?: ReactNode
 }) {
   return (
-    <div className="grid min-h-full flex-1 bg-white lg:grid-cols-2">
+    <div className="grid min-h-0 flex-1 bg-white lg:grid-cols-2">
       <aside className="relative hidden overflow-hidden bg-[#042f2e] px-12 py-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute -top-24 -left-16 size-72 rounded-full bg-teal-300/20 blur-3xl" />
         <div className="pointer-events-none absolute right-0 bottom-0 size-80 rounded-full bg-cyan-400/10 blur-3xl" />

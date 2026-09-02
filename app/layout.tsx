@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
@@ -24,10 +25,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ro"
-      className={`${geistSans.variable} ${geistMono.variable} h-full max-w-full overflow-x-hidden antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} min-h-screen max-w-full overflow-x-hidden antialiased`}
     >
-      <body className="flex min-h-full max-w-full flex-col overflow-x-hidden bg-slate-50 text-slate-800">
-        {children}
+      <body className="flex min-h-screen max-w-full flex-col justify-between overflow-x-hidden bg-slate-50 text-slate-800">
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <Footer />
         <Toaster />
       </body>
     </html>

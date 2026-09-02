@@ -42,18 +42,6 @@ export default function HomePage() {
               Acces Pacient
             </Link>
           </div>
-          <p className="mt-8 text-xs leading-relaxed text-slate-500">
-            <Link href="/termeni" className="font-medium text-[#042f2e] underline-offset-4 hover:underline">
-              Termeni și Condiții
-            </Link>
-            {" · "}
-            <Link
-              href="/confidentialitate"
-              className="font-medium text-[#042f2e] underline-offset-4 hover:underline"
-            >
-              Politica de Confidențialitate
-            </Link>
-          </p>
         </div>
       </main>
     </AppShell>

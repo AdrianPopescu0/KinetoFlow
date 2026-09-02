@@ -38,15 +38,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Accesul este rezervat terapeuților și administratorilor KinetoFlow. Nu partaja
             parola și închide sesiunea pe dispozitive partajate.
           </p>
-          <p className="mt-3 text-center text-xs text-slate-500">
-            <Link href="/termeni" className="underline-offset-4 hover:underline">
-              Termeni
-            </Link>
-            {" · "}
-            <Link href="/confidentialitate" className="underline-offset-4 hover:underline">
-              Confidențialitate
-            </Link>
-          </p>
         </>
       }
     >
