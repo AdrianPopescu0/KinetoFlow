@@ -5,7 +5,8 @@ import { useId } from "react"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { SLEEP_OPTIONS, painIntensityCopy } from "@/lib/patients/program"
+import { VasScale } from "@/components/patient/vas-scale"
+import { SLEEP_OPTIONS } from "@/lib/patients/program"
 import type { SleepQuality } from "@/lib/patients/types"
 import { cn } from "@/lib/utils"
 
@@ -21,28 +22,6 @@ type DailyCheckinFormProps = {
   onSubmit: () => void
 }
 
-const TONE_CLASS = {
-  green: "text-emerald-700",
-  orange: "text-amber-700",
-  red: "text-red-700",
-} as const
-
-const TONE_TRACK = {
-  green: "#059669",
-  orange: "#d97706",
-  red: "#dc2626",
-} as const
-
-function vasFace(pain: number): string {
-  if (pain <= 3) {
-    return "😊"
-  }
-  if (pain <= 6) {
-    return "😐"
-  }
-  return "😫"
-}
-
 export function DailyCheckinForm({
   pain,
   sleep,
@@ -54,11 +33,7 @@ export function DailyCheckinForm({
   onNotesChange,
   onSubmit,
 }: DailyCheckinFormProps) {
-  const sliderId = useId()
   const notesId = useId()
-  const intensity = painIntensityCopy(pain)
-  const trackColor = TONE_TRACK[intensity.tone]
-  const fillPercent = (pain / 10) * 100
 
   return (
     <section className={surfaceCardClassName("flex flex-col gap-6 p-4 sm:p-5")}>
@@ -67,33 +42,7 @@ export function DailyCheckinForm({
         <p className="mt-1 text-sm text-slate-600">Spune-i terapeutului cum te simți azi.</p>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex items-end justify-between gap-3">
-          <label htmlFor={sliderId} className="text-sm font-semibold text-slate-800">
-            Durere VAS 0–10
-          </label>
-          <span className={cn("text-2xl font-semibold tabular-nums", TONE_CLASS[intensity.tone])}>
-            {vasFace(pain)} {pain}
-          </span>
-        </div>
-        <input
-          id={sliderId}
-          type="range"
-          min={0}
-          max={10}
-          step={1}
-          value={pain}
-          onChange={(event) => onPainChange(Number(event.target.value))}
-          className="kf-vas"
-          style={{
-            color: trackColor,
-            background: `linear-gradient(to right, ${trackColor} 0%, ${trackColor} ${fillPercent}%, #e2e8f0 ${fillPercent}%, #e2e8f0 100%)`,
-          }}
-        />
-        <p className={cn("text-center text-sm font-medium", TONE_CLASS[intensity.tone])}>
-          {intensity.label}
-        </p>
-      </div>
+      <VasScale value={pain} onChange={onPainChange} />
 
       <fieldset className="flex flex-col gap-3">
         <legend className="text-sm font-semibold text-slate-800">Calitatea somnului</legend>
