@@ -11,6 +11,7 @@ create table if not exists public.patients (
   phone text,
   diagnosis text,
   token uuid not null unique default gen_random_uuid(),
+  access_code varchar(8) unique,
   created_at timestamptz not null default now()
 );
 
