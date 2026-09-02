@@ -30,6 +30,7 @@ function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
     diagnosis: typeof row.diagnosis === "string" ? row.diagnosis : null,
     clinical_notes: typeof row.clinical_notes === "string" ? row.clinical_notes : null,
     token: String(row.token),
+    access_code: typeof row.access_code === "string" ? row.access_code : null,
     created_at: String(row.created_at),
   }
 }
@@ -50,7 +51,7 @@ export async function listTherapistPatients(): Promise<{
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("patients")
-    .select("id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, created_at")
+    .select("id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at")
     .order("created_at", { ascending: false })
 
   if (error) {
@@ -141,7 +142,7 @@ export async function getTherapistPatient(id: string): Promise<{
   const supabase = await createClient()
   const { data: patientRow, error } = await supabase
     .from("patients")
-    .select("id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, created_at")
+    .select("id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at")
     .eq("id", id)
     .maybeSingle()
 

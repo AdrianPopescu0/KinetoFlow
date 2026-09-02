@@ -45,6 +45,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
 | `/auth/callback` | Schimb PKCE pentru sesiune după email |
+| `/acces` | Login pacient: telefon + cod 8 cifre |
 | `/p/[patientToken]` | Programul pacientului (exerciții + check-in zilnic) |
 
 ## Schema pacienți
@@ -53,7 +54,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 Tabele: `patients` (token UUID unic pentru `/p/[token]`), `exercises`, `check_ins`. RLS: terapeutul vede doar pacienții lui.
 
-Fișa clinică: `/dashboard/patients/[id]`. Note clinice: rulează și `supabase/migrations/002_clinical_notes.sql`.
+Fișa clinică: `/dashboard/patients/[id]`. Note clinice: rulează și `supabase/migrations/002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
 Reguli de securitate aplicate:
 

@@ -4,11 +4,20 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { createClient } from "@/utils/supabase/server"
+import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
+import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { isSleepQuality } from "@/lib/patients/types"
+import { patientPortalUrl, patientWhatsAppHref, patientWhatsAppMessage } from "@/lib/patients/whatsapp"
 
 export type MutationState = {
   error: string | null
   token: string | null
+  patientId?: string | null
+  accessCode?: string | null
+  phone?: string | null
+  fullName?: string | null
+  portalUrl?: string | null
+  whatsappHref?: string | null
 }
 
 function readOptional(formData: FormData, key: string): string | null {
@@ -43,53 +52,104 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     return { error: "Numele complet este obligatoriu.", token: null }
   }
 
+  const phoneRaw = readOptional(formData, "phone")
+  const phone = phoneRaw ? normalizeStoredPhone(phoneRaw) : null
+  if (!phone) {
+    return { error: "Numărul de telefon este obligatoriu (format 07xx sau +40).", token: null }
+  }
+
+  const email = readOptional(formData, "email")
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Email-ul nu pare valid. Lasă câmpul gol dacă nu îl folosești.", token: null }
+  }
+
   const { supabase, user } = await requireUser()
   if (!user) {
     return { error: "Sesiunea a expirat. Autentifică-te din nou.", token: null }
   }
 
-  const payload = {
+  const accessCode = await allocateAccessCode(supabase)
+  const basePayload = {
     therapist_id: user.id,
     full_name: fullName,
-    email: readOptional(formData, "email"),
-    phone: readOptional(formData, "phone"),
+    email,
+    phone,
     diagnosis: readOptional(formData, "diagnosis"),
     clinical_notes: readOptional(formData, "clinical_notes"),
+    access_code: accessCode,
   }
 
-  const insert = await supabase.from("patients").insert(payload).select("token").single()
-  if (insert.error) {
+  const insert = await supabase.from("patients").insert(basePayload).select("id, token, access_code, phone, full_name").single()
+  let row = insert.data
+  if (insert.error || !row) {
     const withoutNotes = await supabase
       .from("patients")
       .insert({
-        therapist_id: payload.therapist_id,
-        full_name: payload.full_name,
-        email: payload.email,
-        phone: payload.phone,
-        diagnosis: payload.diagnosis,
+        therapist_id: basePayload.therapist_id,
+        full_name: basePayload.full_name,
+        email: basePayload.email,
+        phone: basePayload.phone,
+        diagnosis: basePayload.diagnosis,
+        access_code: basePayload.access_code,
       })
-      .select("token")
+      .select("id, token, access_code, phone, full_name")
       .single()
 
     if (withoutNotes.error || !withoutNotes.data) {
       return {
-        error: "Nu am putut salva pacientul. Verifică datele sau rulează migrarea SQL.",
+        error: "Nu am putut salva pacientul. Rulează `supabase/migrations/003_access_code.sql` dacă lipsește coloana access_code.",
         token: null,
       }
     }
-
-    revalidatePath("/dashboard")
-    return { error: null, token: withoutNotes.data.token as string }
+    row = withoutNotes.data
   }
 
+  const token = String(row.token)
+  const code = typeof row.access_code === "string" ? row.access_code : accessCode
+  const message = patientWhatsAppMessage({ fullName, token, accessCode: code })
+
   revalidatePath("/dashboard")
-  return { error: null, token: insert.data?.token as string }
+  return {
+    error: null,
+    token,
+    patientId: String(row.id),
+    accessCode: code,
+    phone,
+    fullName,
+    portalUrl: patientPortalUrl(token),
+    whatsappHref: patientWhatsAppHref(phone, message),
+  }
+}
+
+async function allocateAccessCode(supabase: Awaited<ReturnType<typeof requireUser>>["supabase"]): Promise<string> {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const code = generateAccessCode()
+    if (!isAccessCode(code)) {
+      continue
+    }
+    const { data } = await supabase.from("patients").select("id").eq("access_code", code).maybeSingle()
+    if (!data) {
+      return code
+    }
+  }
+  return generateAccessCode()
 }
 
 export async function updatePatient(patientId: string, formData: FormData): Promise<MutationState> {
   const fullName = readOptional(formData, "full_name")
   if (!fullName) {
     return { error: "Numele complet este obligatoriu.", token: null }
+  }
+
+  const phoneRaw = readOptional(formData, "phone")
+  const phone = phoneRaw ? normalizeStoredPhone(phoneRaw) : null
+  if (!phone) {
+    return { error: "Numărul de telefon este obligatoriu (format 07xx sau +40).", token: null }
+  }
+
+  const email = readOptional(formData, "email")
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Email-ul nu pare valid. Lasă câmpul gol dacă nu îl folosești.", token: null }
   }
 
   const { supabase, user } = await requireUser()
@@ -101,8 +161,8 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
     .from("patients")
     .update({
       full_name: fullName,
-      email: readOptional(formData, "email"),
-      phone: readOptional(formData, "phone"),
+      email,
+      phone,
       diagnosis: readOptional(formData, "diagnosis"),
       clinical_notes: readOptional(formData, "clinical_notes"),
     })
@@ -113,8 +173,8 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
       .from("patients")
       .update({
         full_name: fullName,
-        email: readOptional(formData, "email"),
-        phone: readOptional(formData, "phone"),
+        email,
+        phone,
         diagnosis: readOptional(formData, "diagnosis"),
       })
       .eq("id", patientId)

@@ -76,10 +76,10 @@ export function PatientFileActions({ patient }: { patient: PatientRecord }) {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="edit-phone">Telefon</Label>
-                  <Input id="edit-phone" name="phone" defaultValue={patient.phone ?? ""} className="h-11" />
+                  <Input id="edit-phone" name="phone" defaultValue={patient.phone ?? ""} required className="h-11" />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="edit-email">Email</Label>
+                  <Label htmlFor="edit-email">Email (opțional)</Label>
                   <Input id="edit-email" name="email" type="email" defaultValue={patient.email ?? ""} className="h-11" />
                 </div>
               </div>

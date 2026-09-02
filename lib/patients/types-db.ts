@@ -7,6 +7,7 @@ export type PatientRecord = {
   diagnosis: string | null
   clinical_notes: string | null
   token: string
+  access_code: string | null
   created_at: string
 }
 

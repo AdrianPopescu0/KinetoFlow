@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 
 import { LoginForm } from "@/app/login/login-form"
 import { KinetoFlowMark } from "@/components/patient/kinetoflow-mark"
@@ -64,6 +65,13 @@ export default function LoginPage() {
           </div>
 
           <LoginForm />
+
+          <p className="mt-6 text-center text-sm text-slate-600">
+            Ești pacient?{" "}
+            <Link href="/acces" className="font-medium text-[#042f2e] underline-offset-4 hover:underline">
+              Intră cu telefonul și codul de 8 cifre
+            </Link>
+          </p>
 
           <p className="mt-8 text-center text-xs leading-relaxed text-slate-500">
             Accesul este rezervat terapeuților și administratorilor KinetoFlow. Nu partaja

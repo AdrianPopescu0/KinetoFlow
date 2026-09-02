@@ -21,7 +21,7 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return patients.filter((patient) => {
-      const haystack = `${patient.full_name} ${patient.diagnosis ?? ""} ${patient.email ?? ""}`.toLowerCase()
+      const haystack = `${patient.full_name} ${patient.diagnosis ?? ""} ${patient.email ?? ""} ${patient.phone ?? ""} ${patient.access_code ?? ""}`.toLowerCase()
       if (needle && !haystack.includes(needle)) {
         return false
       }

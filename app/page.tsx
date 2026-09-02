@@ -28,16 +28,16 @@ export default function HomePage() {
               href="/login"
               className={cn(buttonVariants(), "h-12 min-h-[48px] rounded-xl px-5")}
             >
-              Autentificare
+              Autentificare terapeut
             </Link>
             <Link
-              href="/p/demo"
+              href="/acces"
               className={cn(
                 buttonVariants({ variant: "outline" }),
                 "h-12 min-h-[48px] rounded-xl px-5",
               )}
             >
-              Program pacient (demo)
+              Acces pacient
             </Link>
           </div>
         </div>

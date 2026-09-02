@@ -55,8 +55,13 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
                 <span className="font-medium text-slate-800">Diagnostic:</span> {patient.diagnosis || "—"}
               </p>
               <p className="mt-1 text-sm text-slate-600">
-                {patient.email || "—"} · {patient.phone || "—"}
+                {patient.email || "Fără email"} · {patient.phone || "Fără telefon"}
               </p>
+              {patient.access_code ? (
+                <p className="mt-2 font-mono text-lg font-semibold tracking-[0.18em] text-slate-900">
+                  Cod acces: {patient.access_code}
+                </p>
+              ) : null}
               {patient.clinical_notes ? (
                 <p className="mt-3 max-w-2xl text-sm text-slate-700">{patient.clinical_notes}</p>
               ) : null}
