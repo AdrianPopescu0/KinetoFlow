@@ -1,7 +1,6 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 
 import { createClient } from "@/utils/supabase/server"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
@@ -185,15 +184,26 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
   return { error: null, token: null }
 }
 
-export async function deletePatient(patientId: string): Promise<void> {
+export async function deletePatient(patientId: string): Promise<{ error: string | null }> {
   const { supabase, user } = await requireUser()
   if (!user) {
-    redirect("/login")
+    return { error: "Sesiunea a expirat. Autentifică-te din nou." }
   }
 
-  await supabase.from("patients").delete().eq("id", patientId)
+  const { data, error } = await supabase.from("patients").delete().eq("id", patientId).select("id")
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (!data || data.length === 0) {
+    return { error: "Pacientul nu a fost șters. Verifică dacă ești autentificat și dacă RLS permite DELETE." }
+  }
+
   revalidatePath("/dashboard")
-  redirect("/dashboard")
+  revalidatePath("/dashboard/patients")
+  revalidatePath(`/dashboard/patients/${patientId}`)
+  return { error: null }
 }
 
 export async function addExercise(patientId: string, formData: FormData): Promise<MutationState> {

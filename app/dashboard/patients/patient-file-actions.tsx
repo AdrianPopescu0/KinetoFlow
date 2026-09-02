@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Loader2, Pencil, Trash2 } from "lucide-react"
 
 import { deletePatient, updatePatient } from "@/app/dashboard/patients/actions"
@@ -12,6 +13,7 @@ import { toast } from "@/components/ui/toaster"
 import type { PatientRecord } from "@/lib/patients/types-db"
 
 export function PatientFileActions({ patient }: { patient: PatientRecord }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -34,7 +36,18 @@ export function PatientFileActions({ patient }: { patient: PatientRecord }) {
       return
     }
     startTransition(async () => {
-      await deletePatient(patient.id)
+      try {
+        const result = await deletePatient(patient.id)
+        if (result.error) {
+          window.alert(result.error)
+          return
+        }
+        router.push("/dashboard/patients")
+        router.refresh()
+      } catch (caught) {
+        const message = caught instanceof Error ? caught.message : String(caught)
+        window.alert(message)
+      }
     })
   }
 
