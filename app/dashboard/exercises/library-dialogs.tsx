@@ -21,7 +21,7 @@ import {
   positionLabel,
   subcategoryLabel,
 } from "@/lib/exercises/taxonomy"
-import type { AssignablePatient, LibraryExercise } from "@/lib/exercises/types"
+import type { AssignablePatient, LibraryExercise, TherapeuticObjective } from "@/lib/exercises/types"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
 
 function Overlay({
@@ -203,7 +203,7 @@ export function AddExerciseDialog({
       title,
       description,
       region,
-      subcategory: String(formData.get("subcategory") || subcategories[0]?.id || ""),
+      subcategory: (String(formData.get("subcategory") || subcategories[0]?.id || "shoulder") as TherapeuticObjective),
       difficulty: (formData.get("difficulty") as LibraryExercise["difficulty"]) || "usor",
       equipment: (formData.get("equipment") as LibraryExercise["equipment"]) || "none",
       position: (formData.get("position") as LibraryExercise["position"]) || "sitting",

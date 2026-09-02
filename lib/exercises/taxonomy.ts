@@ -3,10 +3,11 @@ import type {
   Difficulty,
   Equipment,
   ExercisePosition,
+  TherapeuticObjective,
 } from "@/lib/exercises/types"
 
 export type SubcategoryDef = {
-  id: string
+  id: TherapeuticObjective
   label: string
 }
 
@@ -23,9 +24,9 @@ export const REGIONS: RegionDef[] = [
     label: "Coloană Cervicală",
     shortLabel: "Cervicală",
     subcategories: [
-      { id: "mobility-retraction", label: "Mobilitate & Retracție" },
-      { id: "tone-posture", label: "Tonifiere & Stabilizare posturală" },
-      { id: "stretch-relax", label: "Stretching & Relaxare" },
+      { id: "neck-mobility", label: "Mobilitate gât" },
+      { id: "head-posture", label: "Postură cap & ceafă" },
+      { id: "trap-stretch", label: "Întindere trapez" },
     ],
   },
   {
@@ -33,9 +34,9 @@ export const REGIONS: RegionDef[] = [
     label: "Coloană Toracală",
     shortLabel: "Toracală",
     subcategories: [
-      { id: "mobility-extension", label: "Mobilitate & Extensie" },
-      { id: "tone-posture", label: "Tonifiere & Stabilizare posturală" },
-      { id: "stretch-relax", label: "Stretching & Relaxare" },
+      { id: "chest-open", label: "Deschidere piept" },
+      { id: "trunk-rotation", label: "Rotații trunchi" },
+      { id: "midback-relax", label: "Relaxare spate mijloc" },
     ],
   },
   {
@@ -43,9 +44,9 @@ export const REGIONS: RegionDef[] = [
     label: "Coloană Lombară",
     shortLabel: "Lombară",
     subcategories: [
-      { id: "core-control", label: "Control motor & Core (abdomen/spate)" },
-      { id: "lumbar-mob", label: "Mobilizare lombară" },
-      { id: "decompression", label: "Decompresie & Elongare" },
+      { id: "lumbar-relax", label: "Relaxare / Decompresie" },
+      { id: "core", label: "Abdomen & Spate (Core)" },
+      { id: "lumbar-stretch", label: "Întindere lombară" },
     ],
   },
   {
@@ -53,9 +54,9 @@ export const REGIONS: RegionDef[] = [
     label: "Bazin & Pelvis",
     shortLabel: "Bazin & Pelvis",
     subcategories: [
-      { id: "pelvic-mobility", label: "Mobilizare pelvină" },
-      { id: "pelvic-stability", label: "Stabilizare lombo-pelvină" },
-      { id: "stretch-relax", label: "Stretching & Relaxare" },
+      { id: "pelvic-tilt", label: "Basculare bazin" },
+      { id: "glute-hip", label: "Fesieri & Șold" },
+      { id: "pelvic-relax", label: "Relaxare bazin" },
     ],
   },
   {
@@ -63,9 +64,9 @@ export const REGIONS: RegionDef[] = [
     label: "Membru Superior",
     shortLabel: "Membru superior",
     subcategories: [
-      { id: "rotator-cuff", label: "Coafa rotatorilor (Rotatori interni/externi)" },
-      { id: "scapulo-humeral", label: "Mobilitate scapulo-humerală" },
-      { id: "wrist-forearm", label: "Pumn & Antebraț (Epicondilite / Tendoane)" },
+      { id: "shoulder", label: "Umăr" },
+      { id: "elbow", label: "Cot" },
+      { id: "wrist-fingers", label: "Pumn & Degete" },
     ],
   },
   {
@@ -73,9 +74,9 @@ export const REGIONS: RegionDef[] = [
     label: "Membru Inferior",
     shortLabel: "Membru inferior",
     subcategories: [
-      { id: "knee-stability", label: "Stabilizare & Cadență genunchi" },
-      { id: "hip-mobility", label: "Mobilitate & Forță șold" },
-      { id: "ankle-proprio", label: "Propriocepție & Echilibru gleznă" },
+      { id: "hip", label: "Șold" },
+      { id: "knee", label: "Genunchi" },
+      { id: "ankle-heel", label: "Gleznă & Călcâi" },
     ],
   },
   {
@@ -83,9 +84,9 @@ export const REGIONS: RegionDef[] = [
     label: "Funcțional",
     shortLabel: "Funcțional",
     subcategories: [
-      { id: "advanced-balance", label: "Echilibru & Propriocepție avansată" },
-      { id: "gait-transfers", label: "Reeducarea mersului & Transferuri" },
-      { id: "breathing", label: "Respirație & Relaxare" },
+      { id: "balance", label: "Echilibru" },
+      { id: "gait", label: "Mers" },
+      { id: "breathing", label: "Respirație" },
     ],
   },
 ]
