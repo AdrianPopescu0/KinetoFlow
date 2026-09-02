@@ -4,11 +4,17 @@ import { redirect } from "next/navigation"
 
 import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
 import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
-import { AUTH_ERROR_MESSAGE, parseLoginCredentials } from "@/lib/auth/validation"
+import {
+  AUTH_ERROR_MESSAGE,
+  parseLoginCredentials,
+  parseRegisterCredentials,
+  REGISTER_ERROR_MESSAGE,
+} from "@/lib/auth/validation"
 import { createClient } from "@/utils/supabase/server"
 
 export type LoginActionState = {
-  error: string
+  error?: string
+  info?: string
 } | null
 
 export async function login(formData: FormData): Promise<LoginActionState> {
@@ -32,19 +38,51 @@ export async function login(formData: FormData): Promise<LoginActionState> {
   return null
 }
 
-export async function signInWithGoogle(): Promise<LoginActionState> {
+export async function register(formData: FormData): Promise<LoginActionState> {
+  const parsed = parseRegisterCredentials(formData)
+  if ("error" in parsed) {
+    return { error: parsed.error }
+  }
+
   const supabase = await createClient()
   const origin = await appOrigin()
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
+  const { data, error } = await supabase.auth.signUp({
+    email: parsed.email,
+    password: parsed.password,
     options: {
-      redirectTo: oauthCallbackUrl(origin, "/onboarding"),
+      emailRedirectTo: oauthCallbackUrl(origin, "/onboarding"),
     },
   })
 
-  if (error || !data.url) {
-    return { error: "Nu am putut deschide autentificarea Google. Activează providerul Google în Supabase Auth." }
+  if (error) {
+    return { error: REGISTER_ERROR_MESSAGE }
   }
 
-  redirect(data.url)
+  if (data.user?.identities && data.user.identities.length === 0) {
+    return { error: "Există deja un cont cu acest email. Intră în cont din tabul de autentificare." }
+  }
+
+  if (!data.session) {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: parsed.email,
+      password: parsed.password,
+    })
+    if (signInError) {
+      return {
+        info: "Contul a fost creat. Confirmă emailul, apoi revino la Intră în cont pentru a configura clinica.",
+      }
+    }
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return {
+      info: "Contul a fost creat. Confirmă emailul, apoi revino la Intră în cont pentru a configura clinica.",
+    }
+  }
+
+  redirect("/onboarding")
 }

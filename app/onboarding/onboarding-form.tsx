@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { AlertCircle, Loader2 } from "lucide-react"
 
 import { saveClinicProfile } from "@/app/onboarding/actions"
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 export function OnboardingForm() {
+  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -19,6 +21,11 @@ export function OnboardingForm() {
       const result = await saveClinicProfile(formData)
       if (result?.error) {
         setError(result.error)
+        return
+      }
+      if (result?.ok) {
+        router.push("/dashboard")
+        router.refresh()
       }
     })
   }
@@ -40,26 +47,26 @@ export function OnboardingForm() {
           name="clinic_name"
           required
           disabled={isPending}
-          placeholder="Cabinet Kineto Ana Popescu"
+          placeholder="KinetoCare"
           className="h-12 border-slate-300"
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="therapist_full_name">Numele complet al kinetoterapeutului</Label>
+        <Label htmlFor="therapist_full_name">Numele și prenumele terapeutului</Label>
         <Input
           id="therapist_full_name"
           name="therapist_full_name"
           required
           disabled={isPending}
-          placeholder="Ana Popescu"
+          placeholder="Adrian Popescu"
           autoComplete="name"
           className="h-12 border-slate-300"
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="contact_phone">Telefon / WhatsApp de contact al clinicii</Label>
+        <Label htmlFor="contact_phone">Număr de telefon / WhatsApp al clinicii</Label>
         <Input
           id="contact_phone"
           name="contact_phone"

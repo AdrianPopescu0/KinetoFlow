@@ -30,9 +30,8 @@ export const REGISTER_ERROR_MESSAGE = "Nu am putut crea contul. Verifică datele
 export function parseRegisterCredentials(formData: FormData): AuthCredentials | { error: string } {
   const emailRaw = formData.get("email")
   const passwordRaw = formData.get("password")
-  const confirmRaw = formData.get("confirm_password")
 
-  if (typeof emailRaw !== "string" || typeof passwordRaw !== "string" || typeof confirmRaw !== "string") {
+  if (typeof emailRaw !== "string" || typeof passwordRaw !== "string") {
     return { error: REGISTER_ERROR_MESSAGE }
   }
 
@@ -43,12 +42,8 @@ export function parseRegisterCredentials(formData: FormData): AuthCredentials | 
     return { error: "Introdu o adresă de email validă." }
   }
 
-  if (password.length < 8) {
-    return { error: "Parola trebuie să aibă cel puțin 8 caractere." }
-  }
-
-  if (password !== confirmRaw) {
-    return { error: "Parolele nu coincid." }
+  if (password.length < 6) {
+    return { error: "Parola trebuie să aibă cel puțin 6 caractere." }
   }
 
   return { email, password }

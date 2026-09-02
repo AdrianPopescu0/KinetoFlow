@@ -31,7 +31,7 @@ export default function HomePage() {
               Autentificare terapeut
             </Link>
             <Link
-              href="/register"
+              href="/login?tab=register"
               className={cn(
                 buttonVariants({ variant: "outline" }),
                 "h-12 min-h-[48px] rounded-xl px-5",

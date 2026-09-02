@@ -22,10 +22,9 @@ cp .env.example .env.local
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
 - `NEXT_PUBLIC_SITE_URL` — originea aplicației (pentru linkurile de recuperare a parolei)
 
-În dashboard-ul Supabase:
+În dashboard-ul Supabase, **Authentication → Providers → Email** trebuie să fie activ. Pentru fluxul de onboarding imediat după înregistrare, dezactivează „Confirm email” (sau lasă-l activ — utilizatorul confirmă din email și apoi intră în cont).
 
-1. **Authentication → Providers → Google**: activează providerul și pune Client ID / Secret din Google Cloud.
-2. **Authentication → URL Configuration**: adaugă redirect-urile:
+Adaugă URL-urile de redirect pentru recuperarea parolei:
 
 - `http://localhost:43123/auth/callback`
 - `http://127.0.0.1:43123/auth/callback`
@@ -44,9 +43,8 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 | Rută | Rol |
 | --- | --- |
-| `/login` | Autentificare terapeut (Google sau email/parolă) |
-| `/register` | Creare cont clinică |
-| `/onboarding` | Prima configurare: clinică, terapeut, telefon WhatsApp |
+| `/login` | Intră în cont / Înregistrează clinică nouă (email + parolă) |
+| `/onboarding` | Configurare clinică (obligatorie înainte de dashboard) |
 | `/recuperare-parola` | Cerere de resetare a parolei |
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
@@ -62,13 +60,13 @@ Tabele: `patients` (token UUID unic pentru `/p/[token]`), `exercises`, `check_in
 
 Fișa clinică: `/dashboard/patients/[id]`. Note clinice: rulează și `supabase/migrations/002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
-Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql`. Fără rând în `clinic_profiles`, terapeutul e redirecționat la `/onboarding`.
+Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql` (și `005_clinic_profiles_auth_uid.sql` dacă ai rulat varianta veche cu `therapist_id`). Cheia primară `id` este `auth.uid()`. Fără rând în `clinic_profiles`, terapeutul e redirecționat la `/onboarding`.
 
 Reguli de securitate aplicate:
 
 - Validare pe server pentru email și parolă înainte de apelul Auth
 - Mesaj generic la eșec: „Email sau parolă incorectă” (fără enumerarea utilizatorilor)
-- Middleware care reîmprospătează sesiunea și blochează `/dashboard/*` pentru vizitatori
+- Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori și trimite la `/onboarding` dacă lipsește `clinic_profiles`
 - Verificare `getUser()` (nu `getSession()`) pentru autorizare
 
 ## Structură relevantă

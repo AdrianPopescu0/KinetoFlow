@@ -37,7 +37,7 @@ export function AuthSplitLayout({
         <ul className="relative space-y-3 text-sm text-teal-50/90">
           <li className="flex items-start gap-3">
             <span className="mt-1 size-1.5 shrink-0 rounded-full bg-teal-300" />
-            Conectare cu Google sau email de serviciu
+            Autentificare cu email și parolă (Supabase Auth)
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-1 size-1.5 shrink-0 rounded-full bg-teal-300" />

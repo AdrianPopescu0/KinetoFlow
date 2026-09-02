@@ -21,8 +21,8 @@ export async function fetchClinicProfile(
 ): Promise<{ profile: ClinicProfile | null; tableMissing: boolean }> {
   const { data, error } = await supabase
     .from("clinic_profiles")
-    .select("id, therapist_id, clinic_name, therapist_full_name, contact_phone")
-    .eq("therapist_id", therapistId)
+    .select("id, clinic_name, therapist_full_name, contact_phone")
+    .eq("id", therapistId)
     .maybeSingle()
 
   if (error) {

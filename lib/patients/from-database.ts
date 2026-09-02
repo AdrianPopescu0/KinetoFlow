@@ -83,7 +83,7 @@ async function loadTherapistProfile(
     const { data: clinic } = await supabase
       .from("clinic_profiles")
       .select("therapist_full_name, contact_phone")
-      .eq("therapist_id", therapistId)
+      .eq("id", therapistId)
       .maybeSingle()
 
     if (clinic && typeof clinic.therapist_full_name === "string") {
