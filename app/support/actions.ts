@@ -1,6 +1,7 @@
 "use server"
 
 import { formatSupabaseError } from "@/lib/supabase/format-error"
+import { sendSupportTicketNotification } from "@/lib/support/notify-email"
 import { createClient } from "@/utils/supabase/server"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 import { getSupabaseServiceRoleKey } from "@/utils/supabase/env"
@@ -66,6 +67,12 @@ export async function submitSupportTicket(formData: FormData): Promise<SupportTi
         }
       }
       return { error: SUPPORT_SUBMIT_ERROR }
+    }
+
+    try {
+      await sendSupportTicketNotification({ name, contact, message })
+    } catch {
+      // Tichetul rămâne salvat; utilizatorul primește oricum confirmarea.
     }
 
     return { ok: true }
