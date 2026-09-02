@@ -44,8 +44,12 @@ export function Logo({
       />
       {showText ? (
         <span className="leading-none">
-          <span className="font-medium">Kineto</span>
-          <span className="font-bold">Flow</span>
+          <span className="font-normal" style={{ fontWeight: 400 }}>
+            Kineto
+          </span>
+          <span className="font-bold" style={{ fontWeight: 700 }}>
+            Flow
+          </span>
         </span>
       ) : null}
     </span>
