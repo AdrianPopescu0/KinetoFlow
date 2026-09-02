@@ -1,15 +1,15 @@
 export const VAS_DESCRIPTIONS: Record<number, string> = {
-  0: "Corpul este relaxat, nu simți nimic.",
-  1: "Ca o etichetă de la tricou care te zgârie pe ceafă sau o înțepătură mică de țânțar. Uiți complet de ea dacă vorbești cu cineva.",
-  2: "Ca o tăietură fină de hârtie pe deget sau o zgârietură mică. Știi că e acolo, dar îți vezi de treabă fără probleme.",
-  3: "Ca febra musculară după o zi grea de sală sau o lovitură ușoară cu degetul mic de piciorul mesei. Deranjează, dar mergi înainte.",
-  4: "Ca o durere sâcâitoare de dinte sau o durere de cap după o zi lungă la birou. Îți vine să iei o pastilă sau să faci o pauză scurtă.",
-  5: "Ca atunci când te prinde spatele la volan sau când calci strâmb pe trotuar. Nu mai poți ignora locul; te foiești pe scaun sau șchiopătezi ușor.",
-  6: "Ca o arsură pe mână când atingi tava încinsă sau o măsea umflată bine. Nu te mai poți concentra la lucru sau la un film; ești irascibil.",
-  7: "Ca o entorsă urâtă de gleznă unde nu mai poți călca pe picior, sau un lumbago acut unde nu te mai poți apleca să-ți legi șireturile. Nu poți dormi noaptea de durere.",
-  8: "Ca o coastă fisurată când tragi aer în piept sau o migrenă severă cu greață și lumină care te orbește. Abia poți lega două cuvinte la telefon.",
-  9: "Ca o piatră la rinichi care pleacă sau o fractură deschisă de os. Nu poți sta locului, transpiri rece, plângi fără să vrei.",
-  10: "Durerea la care cedează corpul și îți pierzi cunoștința; e nivelul de salvare și morfină.",
+  0: "Corpul este complet relaxat; nu simți absolut nicio jenă.",
+  1: "O mică zgârietură sau o ciupitură ușoară; uiți complet de ea dacă ai treabă.",
+  2: "O tăietură fină de hârtie pe deget; e acolo, dar îți vezi de zi fără probleme.",
+  3: "O febră musculară obișnuită sau o lovitură ușoară la degetul mic; deranjează, dar mergi mai departe.",
+  4: "O durere surdă de cap spre seară sau o măsea care pulsează ușor; simți nevoia de o pauză.",
+  5: "O durere de spate care te obligă să te miști cu grijă și să schimbi des poziția pe scaun.",
+  6: "O arsură pe mână când atingi tava din cuptor; nu te mai poți concentra pe nimic altceva.",
+  7: "O entorsă urâtă de gleznă unde nu poți pune piciorul jos și nu poți dormi noaptea.",
+  8: "O migrenă violentă cu greață și sensibilitate la lumină; abia poți vorbi cu cineva.",
+  9: "Durerea aceea extremă care te face să transpiri rece și să nu-ți găsești locul nici măcar o secundă.",
+  10: "Durerea maximă pe care ți-o poți imagina; corpul cedează și pur și simplu nu mai poți reacționa la nimic din jur.",
 }
 
 export const VAS_SCORES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const
