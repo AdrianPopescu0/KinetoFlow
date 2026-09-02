@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
-import { ChevronDown, Plus, Search, X } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Plus, Search, X } from "lucide-react"
 
 import { LibraryCard } from "@/app/dashboard/exercises/library-card"
 import {
@@ -25,7 +25,16 @@ import {
   regionById,
   subcategoryLabel,
 } from "@/lib/exercises/taxonomy"
-import type { AssignablePatient, LibraryExercise, LibraryFilters } from "@/lib/exercises/types"
+import type {
+  AnatomicalRegion,
+  AssignablePatient,
+  Difficulty,
+  Equipment,
+  ExercisePosition,
+  LibraryExercise,
+  LibraryFilters,
+  TherapeuticObjective,
+} from "@/lib/exercises/types"
 import { cn } from "@/lib/utils"
 
 export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] }) {
@@ -34,7 +43,6 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
   const [preview, setPreview] = useState<LibraryExercise | null>(null)
   const [assign, setAssign] = useState<LibraryExercise | null>(null)
   const [adding, setAdding] = useState(false)
-  const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
     setCustom(loadCustomExercises())
@@ -53,25 +61,12 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
     [catalog, filters.difficulty, filters.equipment, filters.position, filters.query],
   )
   const subcategories = subcategoriesForRegion(filters.region)
-  const extraFilterCount = [
-    filters.subcategory,
-    filters.difficulty,
-    filters.equipment,
-    filters.position,
-  ].filter((value) => value !== "all").length
 
   function update<K extends keyof LibraryFilters>(key: K, value: LibraryFilters[K]) {
     setFilters((current) => ({
       ...current,
       [key]: value,
       ...(key === "region" ? { subcategory: "all" as const } : {}),
-    }))
-  }
-
-  function toggle<T extends string>(key: "difficulty" | "equipment" | "position", value: T) {
-    setFilters((current) => ({
-      ...current,
-      [key]: current[key] === value ? "all" : value,
     }))
   }
 
@@ -122,8 +117,8 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
   }
 
   return (
-    <div className="flex max-w-full flex-col gap-6 overflow-x-hidden">
-      <div>
+    <div className="flex w-full max-w-full flex-1 flex-col overflow-x-hidden">
+      <div className="shrink-0">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Bibliotecă Exerciții</h1>
         <p className="mt-1 max-w-xl text-sm text-slate-600">
           Catalog clinic după regiune anatomică și obiectiv terapeutic. Caută, filtrează și asignează direct pe fișa
@@ -131,184 +126,140 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
         </p>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-        <aside className="w-full shrink-0 lg:sticky lg:top-4 lg:w-[260px]">
-          <div className="rounded-2xl border border-slate-200 bg-white p-3">
-            <p className="px-2 pt-1 text-xs font-semibold tracking-wide text-slate-400 uppercase">
-              Regiuni anatomice
-            </p>
-            <nav aria-label="Regiuni anatomice" className="mt-2 flex flex-col">
-              <RegionLink
-                active={filters.region === "all"}
-                label="Toate"
-                count={counts.all}
-                onClick={() => update("region", "all")}
-              />
-              {REGIONS.map((region) => (
-                <RegionLink
-                  key={region.id}
-                  active={filters.region === region.id}
-                  label={region.label}
-                  count={counts[region.id]}
-                  onClick={() => update("region", region.id)}
-                />
-              ))}
-            </nav>
+      <div className="mt-6 flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-slate-400" />
+          <Input
+            value={filters.query}
+            onChange={(event) => update("query", event.target.value)}
+            placeholder="Caută după titlu sau descriere…"
+            className="h-12 w-full rounded-xl pl-11 text-base"
+            aria-label="Caută exerciții"
+          />
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:shrink-0">
+          <FilterSelect
+            label="Regiuni"
+            value={filters.region}
+            onChange={(value) => update("region", value as AnatomicalRegion | "all")}
+            options={[
+              { id: "all", label: "Toate regiunile" },
+              ...REGIONS.map((region) => ({ id: region.id, label: region.label })),
+            ]}
+          />
+          <FilterSelect
+            label="Obiectiv"
+            value={filters.subcategory}
+            disabled={filters.region === "all"}
+            onChange={(value) => update("subcategory", value as TherapeuticObjective | "all")}
+            options={[
+              { id: "all", label: "Toate obiectivele" },
+              ...subcategories.map((item) => ({ id: item.id, label: item.label })),
+            ]}
+          />
+          <FilterSelect
+            label="Nivel"
+            value={filters.difficulty}
+            onChange={(value) => update("difficulty", value as Difficulty | "all")}
+            options={[{ id: "all", label: "Orice nivel" }, ...DIFFICULTIES]}
+          />
+          <FilterSelect
+            label="Echipament"
+            value={filters.equipment}
+            onChange={(value) => update("equipment", value as Equipment | "all")}
+            options={[{ id: "all", label: "Orice echipament" }, ...EQUIPMENT]}
+          />
+          <FilterSelect
+            label="Poziție"
+            value={filters.position}
+            onChange={(value) => update("position", value as ExercisePosition | "all")}
+            options={[{ id: "all", label: "Orice poziție" }, ...POSITIONS]}
+          />
+        </div>
+        <Button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="h-12 min-h-[48px] shrink-0 rounded-xl px-4 sm:ml-auto"
+        >
+          <Plus className="size-4" />
+          Adaugă Exercițiu
+        </Button>
+      </div>
 
-            <div className="mt-3 border-t border-slate-100 pt-2">
-              <button
-                type="button"
-                onClick={() => setFiltersOpen((open) => !open)}
-                className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-xs font-semibold tracking-wide text-slate-400 uppercase"
-                aria-expanded={filtersOpen}
-              >
-                <span>
-                  Filtre rapide
-                  {extraFilterCount > 0 ? (
-                    <span className="ml-2 rounded-full bg-[#042f2e] px-1.5 py-0.5 text-[10px] font-medium text-white normal-case">
-                      {extraFilterCount}
-                    </span>
-                  ) : null}
-                </span>
-                <ChevronDown className={cn("size-4 text-slate-400 transition", filtersOpen && "rotate-180")} />
-              </button>
-
-              {filtersOpen ? (
-                <div className="flex flex-col gap-4 px-1 pb-2">
-                  {subcategories.length > 0 ? (
-                    <SidebarGroup label="Obiectiv terapeutic">
-                      <SidebarOption
-                        active={filters.subcategory === "all"}
-                        onClick={() => update("subcategory", "all")}
-                      >
-                        Toate
-                      </SidebarOption>
-                      {subcategories.map((item) => (
-                        <SidebarOption
-                          key={item.id}
-                          active={filters.subcategory === item.id}
-                          onClick={() => update("subcategory", item.id)}
-                        >
-                          {item.label}
-                        </SidebarOption>
-                      ))}
-                    </SidebarGroup>
-                  ) : (
-                    <p className="px-1 text-xs leading-relaxed text-slate-400">
-                      Alege o regiune pentru obiectivele terapeutice.
-                    </p>
-                  )}
-                  <SidebarGroup label="Nivel">
-                    {DIFFICULTIES.map((item) => (
-                      <SidebarOption
-                        key={item.id}
-                        active={filters.difficulty === item.id}
-                        onClick={() => toggle("difficulty", item.id)}
-                      >
-                        {item.label}
-                      </SidebarOption>
-                    ))}
-                  </SidebarGroup>
-                  <SidebarGroup label="Echipament">
-                    {EQUIPMENT.map((item) => (
-                      <SidebarOption
-                        key={item.id}
-                        active={filters.equipment === item.id}
-                        onClick={() => toggle("equipment", item.id)}
-                      >
-                        {item.label}
-                      </SidebarOption>
-                    ))}
-                  </SidebarGroup>
-                  <SidebarGroup label="Poziție">
-                    {POSITIONS.map((item) => (
-                      <SidebarOption
-                        key={item.id}
-                        active={filters.position === item.id}
-                        onClick={() => toggle("position", item.id)}
-                      >
-                        {item.label}
-                      </SidebarOption>
-                    ))}
-                  </SidebarGroup>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </aside>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-slate-400" />
-              <Input
-                value={filters.query}
-                onChange={(event) => update("query", event.target.value)}
-                placeholder="Caută după titlu sau descriere…"
-                className="h-12 rounded-xl pl-11 text-base"
-                aria-label="Caută exerciții"
-              />
-            </div>
-            <Button
-              type="button"
-              onClick={() => setAdding(true)}
-              className="h-12 min-h-[48px] shrink-0 rounded-xl px-4"
-            >
-              <Plus className="size-4" />
-              Adaugă Exercițiu
-            </Button>
-          </div>
-
-          {tags.length > 0 ? (
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              {tags.map((tag) => (
-                <button
-                  key={tag.key}
-                  type="button"
-                  onClick={tag.onClear}
-                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-white"
-                >
-                  {tag.label}
-                  <X className="size-3 text-slate-400" />
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setFilters(EMPTY_FILTERS)}
-                className="px-1.5 text-xs font-medium text-teal-800 underline-offset-4 hover:underline"
-              >
-                Resetează
-              </button>
-            </div>
-          ) : null}
-
-          {visible.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center">
-              <p className="font-medium text-slate-800">Niciun exercițiu nu corespunde filtrelor.</p>
-              <p className="mt-1 text-sm text-slate-600">Șterge un filtru sau caută alt termen.</p>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-4 h-11 rounded-xl"
-                onClick={() => setFilters(EMPTY_FILTERS)}
-              >
-                Resetează filtrele
-              </Button>
-            </div>
-          ) : (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {visible.map((exercise) => (
-                <LibraryCard
-                  key={exercise.id}
-                  exercise={exercise}
-                  onPreview={() => setPreview(exercise)}
-                  onAssign={() => setAssign(exercise)}
-                />
-              ))}
-            </div>
-          )}
+      <div
+        role="tablist"
+        aria-label="Regiune anatomică"
+        className="mt-4 w-full overflow-x-auto pb-1 [scrollbar-width:thin]"
+      >
+        <div className="flex w-max min-w-full gap-2">
+          <RegionPill
+            active={filters.region === "all"}
+            onClick={() => update("region", "all")}
+            label="Toate"
+            count={counts.all}
+          />
+          {REGIONS.map((region) => (
+            <RegionPill
+              key={region.id}
+              active={filters.region === region.id}
+              onClick={() => update("region", region.id)}
+              label={region.label}
+              count={counts[region.id]}
+            />
+          ))}
         </div>
       </div>
+
+      {tags.length > 0 ? (
+        <div className="mt-3 flex w-full flex-wrap items-center gap-1.5">
+          {tags.map((tag) => (
+            <button
+              key={tag.key}
+              type="button"
+              onClick={tag.onClear}
+              className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-white"
+            >
+              {tag.label}
+              <X className="size-3 text-slate-400" />
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setFilters(EMPTY_FILTERS)}
+            className="px-1.5 text-xs font-medium text-teal-800 underline-offset-4 hover:underline"
+          >
+            Resetează
+          </button>
+        </div>
+      ) : null}
+
+      {visible.length === 0 ? (
+        <div className="mt-4 flex min-h-[min(28rem,55vh)] w-full flex-1 items-center justify-center">
+          <div className="w-full max-w-md rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center">
+            <p className="font-medium text-slate-800">Niciun exercițiu nu corespunde filtrelor.</p>
+            <p className="mt-1 text-sm text-slate-600">Șterge un filtru sau caută alt termen.</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 h-11 rounded-xl"
+              onClick={() => setFilters(EMPTY_FILTERS)}
+            >
+              Resetează filtrele
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {visible.map((exercise) => (
+            <LibraryCard
+              key={exercise.id}
+              exercise={exercise}
+              onPreview={() => setPreview(exercise)}
+              onAssign={() => setAssign(exercise)}
+            />
+          ))}
+        </div>
+      )}
 
       {preview ? (
         <PreviewDialog
@@ -328,63 +279,65 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
   )
 }
 
-function RegionLink({
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+  disabled,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  options: Array<{ id: string; label: string }>
+  disabled?: boolean
+}) {
+  return (
+    <label className="flex min-w-0 flex-col">
+      <span className="sr-only">{label}</span>
+      <select
+        value={value}
+        disabled={disabled}
+        aria-label={label}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-12 max-w-[11.5rem] min-w-[8.5rem] rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none focus-visible:border-[#042f2e] focus-visible:ring-3 focus-visible:ring-[#042f2e]/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+      >
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+function RegionPill({
   active,
+  onClick,
   label,
   count,
-  onClick,
 }: {
   active: boolean
+  onClick: () => void
   label: string
   count: number
-  onClick: () => void
 }) {
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
-      aria-current={active ? "true" : undefined}
       className={cn(
-        "flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left text-sm transition",
+        "h-10 shrink-0 rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition",
         active
-          ? "bg-teal-50 font-medium text-[#042f2e]"
-          : "font-normal text-slate-700 hover:bg-slate-50 hover:text-slate-900",
+          ? "border-[#042f2e] bg-[#042f2e] text-white"
+          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
       )}
     >
-      <span className="min-w-0 leading-snug">{label}</span>
-      <span className={cn("tabular-nums text-xs", active ? "text-teal-800" : "text-slate-400")}>{count}</span>
-    </button>
-  )
-}
-
-function SidebarGroup({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <p className="px-1 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">{label}</p>
-      <div className="mt-1 flex flex-col">{children}</div>
-    </div>
-  )
-}
-
-function SidebarOption({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-md px-1 py-1.5 text-left text-sm leading-snug",
-        active ? "font-medium text-[#042f2e]" : "text-slate-600 hover:text-slate-900",
-      )}
-    >
-      {children}
+      {label}
+      <span className={cn("ml-1.5 tabular-nums text-xs", active ? "text-white/75" : "text-slate-400")}>{count}</span>
     </button>
   )
 }
