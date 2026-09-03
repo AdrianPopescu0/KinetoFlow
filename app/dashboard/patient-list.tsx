@@ -1,13 +1,23 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { Check, Copy, FolderOpen, Search } from "lucide-react"
 
+import { AssignedTherapistSelect } from "@/app/dashboard/assigned-therapist-select"
 import { toast } from "@/components/ui/toaster"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { emptyFilterMessage, patientMatchesListFilter, type PatientListFilter } from "@/lib/patients/dashboard-filter"
+import type { ClinicTherapistOption } from "@/lib/clinics/types"
+import {
+  emptyAssignmentScopeMessage,
+  emptyFilterMessage,
+  PATIENT_SCOPE_STORAGE_KEY,
+  patientMatchesAssignmentScope,
+  patientMatchesListFilter,
+  type PatientAssignmentScope,
+  type PatientListFilter,
+} from "@/lib/patients/dashboard-filter"
 import { patientAccessUrl, vasBadgeClass } from "@/lib/patients/display"
 import type { PatientListItem } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
@@ -15,23 +25,51 @@ import { cn } from "@/lib/utils"
 export function PatientList({
   patients,
   filter,
+  currentTherapistId,
+  therapists,
 }: {
   patients: PatientListItem[]
   filter: PatientListFilter
+  currentTherapistId: string
+  therapists: ClinicTherapistOption[]
 }) {
   const [query, setQuery] = useState("")
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [scope, setScope] = useState<PatientAssignmentScope>("mine")
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(PATIENT_SCOPE_STORAGE_KEY)
+      if (stored === "mine" || stored === "clinic") {
+        setScope(stored)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  function selectScope(next: PatientAssignmentScope) {
+    setScope(next)
+    try {
+      window.localStorage.setItem(PATIENT_SCOPE_STORAGE_KEY, next)
+    } catch {
+      // ignore
+    }
+  }
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return patients.filter((patient) => {
+      if (!patientMatchesAssignmentScope(patient, scope, currentTherapistId)) {
+        return false
+      }
       const haystack = `${patient.full_name} ${patient.diagnosis ?? ""} ${patient.email ?? ""} ${patient.phone ?? ""} ${patient.access_code ?? ""}`.toLowerCase()
       if (needle && !haystack.includes(needle)) {
         return false
       }
       return patientMatchesListFilter(patient, filter)
     })
-  }, [filter, patients, query])
+  }, [currentTherapistId, filter, patients, query, scope])
 
   async function copyLink(patient: PatientListItem) {
     await navigator.clipboard.writeText(patientAccessUrl(patient.token))
@@ -45,6 +83,36 @@ export function PatientList({
   return (
     <div>
       <div className="border-b border-slate-200 px-5 py-4">
+        <div
+          className="mb-3 inline-flex w-full rounded-xl border border-slate-200 bg-slate-50 p-1 sm:w-auto"
+          role="tablist"
+          aria-label="Vizualizare pacienți"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={scope === "mine"}
+            onClick={() => selectScope("mine")}
+            className={cn(
+              "flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:flex-none",
+              scope === "mine" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900",
+            )}
+          >
+            Pacienții mei
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={scope === "clinic"}
+            onClick={() => selectScope("clinic")}
+            className={cn(
+              "flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:flex-none",
+              scope === "clinic" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900",
+            )}
+          >
+            Toți pacienții cabinetului
+          </button>
+        </div>
         <div className="relative w-full">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
           <Input
@@ -58,16 +126,21 @@ export function PatientList({
 
       {filtered.length === 0 ? (
         <p className="px-5 py-8 text-center text-sm text-slate-600">
-          {query.trim() ? "Nu am găsit pacienți pentru filtrul selectat." : emptyFilterMessage(filter)}
+          {query.trim()
+            ? "Nu am găsit pacienți pentru filtrul selectat."
+            : filter !== "all"
+              ? emptyFilterMessage(filter)
+              : emptyAssignmentScopeMessage(scope)}
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[44rem] text-left text-sm">
+          <table className="w-full min-w-[52rem] text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
               <tr>
                 <th className="px-5 py-3">Pacient</th>
                 <th className="px-5 py-3">Diagnostic</th>
                 <th className="px-5 py-3">Ultimul VAS</th>
+                <th className="px-5 py-3">Terapeut responsabil</th>
                 <th className="px-5 py-3 text-right">Acțiuni</th>
               </tr>
             </thead>
@@ -88,6 +161,13 @@ export function PatientList({
                     >
                       {patient.lastVas === null ? "Fără scor" : `VAS ${patient.lastVas}`}
                     </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <AssignedTherapistSelect
+                      patientId={patient.id}
+                      assignedTherapistId={patient.assigned_therapist_id}
+                      therapists={therapists}
+                    />
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap justify-end gap-2">

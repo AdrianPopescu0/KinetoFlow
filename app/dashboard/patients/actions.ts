@@ -273,6 +273,47 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
   return { error: null, token: null, updatedAt: stamp }
 }
 
+export async function assignPatientTherapist(
+  patientId: string,
+  therapistId: string | null,
+): Promise<{ error: string | null }> {
+  const { supabase, user } = await requireUser()
+  if (!user) {
+    return { error: "Sesiunea a expirat. Autentifică-te din nou." }
+  }
+
+  if (therapistId && therapistId !== user.id) {
+    const { data: profile } = await supabase
+      .from("clinic_profiles")
+      .select("user_id")
+      .eq("user_id", therapistId)
+      .maybeSingle()
+    if (!profile) {
+      return { error: "Terapeutul ales nu este disponibil în acest cabinet." }
+    }
+  }
+
+  const clinicId = clinicIdFromUser(user)
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id", clinicId)
+  if (!owned.data) {
+    return { error: "Pacientul nu a fost găsit." }
+  }
+
+  const { error } = await supabase
+    .from("patients")
+    .update({ assigned_therapist_id: therapistId })
+    .eq("id", patientId)
+    .eq("clinic_id", clinicId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/dashboard")
+  revalidatePath(`/dashboard/patients/${patientId}`)
+  return { error: null }
+}
+
 export async function deletePatient(patientId: string): Promise<{ error: string | null }> {
   const { supabase, user } = await requireUser()
   if (!user) {

@@ -1,6 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js"
 
-import type { ClinicProfile } from "@/lib/clinics/types"
+import type { ClinicProfile, ClinicTherapistOption } from "@/lib/clinics/types"
+import { therapistDisplayName } from "@/lib/patients/display"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 
 export async function fetchClinicProfile(
@@ -44,6 +45,33 @@ export function clinicIdFromUser(user: User): string {
     return userClaim
   }
   return user.id
+}
+
+export async function listClinicTherapists(
+  supabase: SupabaseClient,
+  user: User,
+): Promise<ClinicTherapistOption[]> {
+  const selfName =
+    typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim().length > 0
+      ? user.user_metadata.full_name.trim()
+      : therapistDisplayName(user.email)
+
+  const { data } = await supabase.from("clinic_profiles").select("user_id, therapist_name")
+  const fromProfiles = (data ?? [])
+    .filter((row) => typeof row.user_id === "string")
+    .map((row) => ({
+      id: String(row.user_id),
+      name:
+        typeof row.therapist_name === "string" && row.therapist_name.trim().length > 0
+          ? row.therapist_name.trim()
+          : selfName,
+    }))
+
+  if (fromProfiles.some((row) => row.id === user.id)) {
+    return fromProfiles
+  }
+
+  return [{ id: user.id, name: selfName }, ...fromProfiles]
 }
 
 export async function therapistHasClinicProfile(

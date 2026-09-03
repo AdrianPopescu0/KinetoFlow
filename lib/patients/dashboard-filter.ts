@@ -3,6 +3,10 @@ import { bucharestDateKey, isBucharestToday } from "@/lib/time/bucharest"
 
 export type PatientListFilter = "all" | "checkins" | "alert" | "compliance" | "silent"
 
+export type PatientAssignmentScope = "mine" | "clinic"
+
+export const PATIENT_SCOPE_STORAGE_KEY = "kinetoflow:dashboard-patient-scope"
+
 export const COMPLIANCE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
 export { bucharestDateKey }
@@ -12,6 +16,17 @@ export function isLowCompliance(patient: PatientListItem, now = Date.now()): boo
     return true
   }
   return new Date(patient.lastCheckInAt).getTime() < now - COMPLIANCE_WINDOW_MS
+}
+
+export function patientMatchesAssignmentScope(
+  patient: PatientListItem,
+  scope: PatientAssignmentScope,
+  therapistId: string,
+): boolean {
+  if (scope === "clinic") {
+    return true
+  }
+  return patient.assigned_therapist_id === therapistId
 }
 
 export function patientMatchesListFilter(
@@ -53,4 +68,11 @@ export function emptyFilterMessage(filter: PatientListFilter): string {
     default:
       return "Nu am găsit pacienți pentru filtrul selectat."
   }
+}
+
+export function emptyAssignmentScopeMessage(scope: PatientAssignmentScope): string {
+  if (scope === "mine") {
+    return "Nu ai pacienți asignați. Comută pe „Toți pacienții cabinetului” sau adaugă un pacient nou."
+  }
+  return "Nu există pacienți în acest cabinet."
 }

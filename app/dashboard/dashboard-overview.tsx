@@ -5,15 +5,20 @@ import { useState } from "react"
 import { DashboardStats } from "@/app/dashboard/dashboard-stats"
 import { PatientList } from "@/app/dashboard/patient-list"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
+import type { ClinicTherapistOption } from "@/lib/clinics/types"
 import type { PatientListFilter } from "@/lib/patients/dashboard-filter"
 import type { DashboardStats as DashboardStatsData, PatientListItem } from "@/lib/patients/types-db"
 
 export function DashboardOverview({
   patients,
   stats,
+  currentTherapistId,
+  therapists,
 }: {
   patients: PatientListItem[]
   stats: DashboardStatsData
+  currentTherapistId: string
+  therapists: ClinicTherapistOption[]
 }) {
   const [filter, setFilter] = useState<PatientListFilter>("all")
 
@@ -36,7 +41,12 @@ export function DashboardOverview({
             Caută după pacient sau apasă un card de metrici pentru a filtra lista.
           </p>
         </div>
-        <PatientList patients={patients} filter={filter} />
+        <PatientList
+          patients={patients}
+          filter={filter}
+          currentTherapistId={currentTherapistId}
+          therapists={therapists}
+        />
       </section>
     </>
   )

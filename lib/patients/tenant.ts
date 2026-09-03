@@ -105,5 +105,6 @@ export function patientTenantPayload(userId: string, clinicId: string = userId) 
     user_id: userId,
     therapist_id: userId,
     clinic_id: clinicId,
+    assigned_therapist_id: userId,
   }
 }

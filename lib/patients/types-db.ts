@@ -11,6 +11,7 @@ export type PatientRecord = {
   access_code: string | null
   created_at: string
   updated_at: string | null
+  assigned_therapist_id: string | null
 }
 
 export type ExerciseRecord = {

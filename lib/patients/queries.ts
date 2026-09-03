@@ -14,13 +14,17 @@ import type {
 } from "@/lib/patients/types-db"
 
 const PATIENT_LIST_COLUMNS =
-  "id, user_id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
+  "id, user_id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
 const PATIENT_LIST_COLUMNS_PLAIN =
-  "id, user_id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
+  "id, user_id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS_STAMPED =
-  "id, user_id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, updated_at"
+  "id, user_id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, updated_at"
 const PATIENT_COLUMNS =
-  "id, user_id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at"
+  "id, user_id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at"
+const PATIENT_LIST_COLUMNS_NO_ASSIGN =
+  "id, user_id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
+const PATIENT_LIST_COLUMNS_PLAIN_NO_ASSIGN =
+  "id, user_id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS_FALLBACK =
   "id, therapist_id, full_name, email, phone, diagnosis, token, created_at"
 const PATIENT_PICKER_COLUMNS = "id, full_name, diagnosis"
@@ -55,6 +59,8 @@ function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
     access_code: typeof row.access_code === "string" ? row.access_code : null,
     created_at: String(row.created_at),
     updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
+    assigned_therapist_id:
+      typeof row.assigned_therapist_id === "string" ? row.assigned_therapist_id : null,
   }
 }
 
@@ -88,9 +94,24 @@ export const listTherapistPatients = cache(async (): Promise<{
   const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS, clinicId)
 
   if (error) {
+    const withoutAssign = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS_NO_ASSIGN, clinicId)
+    if (!withoutAssign.error) {
+      return assemblePatientList((withoutAssign.data ?? []) as Record<string, unknown>[], supabase)
+    }
+
     const fallback = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS_PLAIN, clinicId)
 
     if (fallback.error) {
+      const plainNoAssign = await selectOwnPatients(
+        supabase,
+        userId,
+        PATIENT_LIST_COLUMNS_PLAIN_NO_ASSIGN,
+        clinicId,
+      )
+      if (!plainNoAssign.error) {
+        return assemblePatientList((plainNoAssign.data ?? []) as Record<string, unknown>[], supabase)
+      }
+
       const legacy = await selectOwnPatients(supabase, userId, PATIENT_COLUMNS_FALLBACK, clinicId)
       if (legacy.error) {
         return {
