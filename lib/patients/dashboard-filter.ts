@@ -26,7 +26,7 @@ export function patientMatchesAssignmentScope(
   if (scope === "clinic") {
     return true
   }
-  return patient.therapist_id === therapistId || patient.assigned_therapist_id === therapistId
+  return patient.assigned_therapist_id === therapistId
 }
 
 export function patientMatchesListFilter(

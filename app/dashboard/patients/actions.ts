@@ -305,7 +305,7 @@ export async function assignPatientTherapist(
   }
 
   const client = await privilegedClinicClient(supabase)
-  const payload = targetUserId
+  const payload: { assigned_therapist_id: string | null; therapist_id?: string } = targetUserId
     ? { assigned_therapist_id: targetUserId, therapist_id: targetUserId }
     : { assigned_therapist_id: null }
 

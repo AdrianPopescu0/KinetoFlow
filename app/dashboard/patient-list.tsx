@@ -177,7 +177,6 @@ export function PatientList({
                     <AssignedTherapistSelect
                       patientId={patient.id}
                       assignedTherapistId={patient.assigned_therapist_id}
-                      therapistId={patient.therapist_id}
                       therapists={therapists}
                     />
                   </td>

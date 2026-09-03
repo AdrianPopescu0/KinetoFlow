@@ -11,23 +11,22 @@ const UNASSIGNED = ""
 export function AssignedTherapistSelect({
   patientId,
   assignedTherapistId,
-  therapistId,
   therapists,
 }: {
   patientId: string
   assignedTherapistId: string | null
-  therapistId: string | null
   therapists: Array<{ user_id: string; therapist_name: string }>
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
-  const [selected, setSelected] = useState(assignedTherapistId ?? therapistId ?? UNASSIGNED)
+  const [selected, setSelected] = useState(assignedTherapistId ?? UNASSIGNED)
 
   useEffect(() => {
-    setSelected(assignedTherapistId ?? therapistId ?? UNASSIGNED)
-  }, [assignedTherapistId, therapistId])
+    setSelected(assignedTherapistId ?? UNASSIGNED)
+  }, [assignedTherapistId])
 
-  const known = selected !== UNASSIGNED && therapists.some((therapist) => therapist.user_id === selected)
+  const isAssigned = selected !== UNASSIGNED
+  const known = isAssigned && therapists.some((therapist) => therapist.user_id === selected)
 
   function onChange(value: string) {
     const targetUserId = value === UNASSIGNED ? null : value
@@ -61,7 +60,7 @@ export function AssignedTherapistSelect({
           {therapist.therapist_name}
         </option>
       ))}
-      {selected !== UNASSIGNED && !known ? <option value={selected}>Terapeut din alt cabinet</option> : null}
+      {isAssigned && !known ? <option value={selected}>Terapeut din alt cabinet</option> : null}
     </select>
   )
 }
