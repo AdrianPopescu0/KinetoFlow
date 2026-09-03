@@ -131,14 +131,7 @@ export function painIntensityCopy(pain: number): { label: string; tone: "green" 
   return { label: "Durere severă", tone: "red" }
 }
 
-export function todayInBucharest(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Bucharest",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date())
-}
+export { bucharestDateKey as todayInBucharest } from "@/lib/time/bucharest"
 
 export function formatRomanianDate(date = new Date()): string {
   const formatted = new Intl.DateTimeFormat("ro-RO", {

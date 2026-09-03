@@ -8,6 +8,7 @@ import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
 import { isSleepQuality } from "@/lib/patients/types"
+import { startOfTodayIso, startOfTomorrowIso } from "@/lib/time/bucharest"
 import {
   patientAccessUrl,
   patientWhatsAppHref,
@@ -340,18 +341,12 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     return { error: null }
   }
 
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Bucharest",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date())
-
   const { data: existing } = await admin
     .from("check_ins")
     .select("id, created_at")
     .eq("patient_id", patient.id)
-    .gte("created_at", `${today}T00:00:00.000+03:00`)
+    .gte("created_at", startOfTodayIso())
+    .lt("created_at", startOfTomorrowIso())
     .limit(1)
 
   if (existing && existing.length > 0) {

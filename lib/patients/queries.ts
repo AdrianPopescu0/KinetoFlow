@@ -3,7 +3,7 @@ import { cache } from "react"
 import { getCachedUser } from "@/lib/auth/session"
 import { clinicIdFromUser } from "@/lib/clinics/profile"
 import { sevenDayCompliancePercent } from "@/lib/patients/compliance"
-import { startOfTodayIso } from "@/lib/patients/display"
+import { isBucharestToday } from "@/lib/time/bucharest"
 import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
 import type {
   CheckInRecord,
@@ -133,7 +133,6 @@ async function assemblePatientList(
     }
   }
 
-  const today = startOfTodayIso().slice(0, 10)
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
   const latestByPatient = new Map<string, Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>()
 
@@ -153,7 +152,7 @@ async function assemblePatientList(
     }
   })
 
-  const checkInsToday = checkIns.filter((row) => row.created_at.slice(0, 10) === today).length
+  const checkInsToday = checkIns.filter((row) => isBucharestToday(row.created_at)).length
   const painAlerts = list.filter((patient) => (patient.lastVas ?? 0) >= 7).length
   const compliant = list.filter((patient) => {
     if (!patient.lastCheckInAt) {

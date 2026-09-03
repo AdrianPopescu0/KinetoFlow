@@ -89,7 +89,7 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
                   {checkIns.map((row) => (
                     <tr key={row.id} className="border-t border-slate-100">
                       <td className="px-5 py-3 text-slate-700">
-                        {new Date(row.created_at).toLocaleString("ro-RO")}
+                        {new Date(row.created_at).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" })}
                       </td>
                       <td className="px-5 py-3 font-semibold text-slate-800">{row.vas_score}/10</td>
                       <td className="px-5 py-3">{sleepLabel(row.sleep_quality)}</td>

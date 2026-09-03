@@ -60,12 +60,4 @@ export function therapistDisplayName(email: string | undefined, metadataName?: s
   return local.replace(/[._-]+/g, " ")
 }
 
-export function startOfTodayIso(): string {
-  const stamp = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Bucharest",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date())
-  return `${stamp}T00:00:00.000+03:00`
-}
+export { bucharestDateKey, startOfTodayIso } from "@/lib/time/bucharest"

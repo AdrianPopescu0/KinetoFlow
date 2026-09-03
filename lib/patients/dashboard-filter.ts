@@ -1,18 +1,11 @@
-import { startOfTodayIso } from "@/lib/patients/display"
 import type { PatientListItem } from "@/lib/patients/types-db"
+import { bucharestDateKey, isBucharestToday } from "@/lib/time/bucharest"
 
 export type PatientListFilter = "all" | "checkins" | "alert" | "compliance" | "silent"
 
 export const COMPLIANCE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
-export function bucharestDateKey(iso: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Bucharest",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(iso))
-}
+export { bucharestDateKey }
 
 export function isLowCompliance(patient: PatientListItem, now = Date.now()): boolean {
   if (!patient.lastCheckInAt) {
@@ -39,7 +32,7 @@ export function patientMatchesListFilter(
     if (!patient.lastCheckInAt) {
       return false
     }
-    return bucharestDateKey(patient.lastCheckInAt) === startOfTodayIso().slice(0, 10)
+    return isBucharestToday(patient.lastCheckInAt, new Date(now))
   }
   if (filter === "compliance") {
     return isLowCompliance(patient, now)
