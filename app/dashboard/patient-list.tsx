@@ -170,79 +170,146 @@ export function PatientList({
               : emptyAssignmentScopeMessage(scope)}
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[52rem] text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-              <tr>
-                <th className="px-5 py-3">Pacient</th>
-                <th className="px-5 py-3">Diagnostic</th>
-                <th className="px-5 py-3">Ultimul VAS</th>
-                <th className="px-5 py-3">Terapeut responsabil</th>
-                <th className="px-5 py-3 text-right">Acțiuni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((patient) => (
-                <tr key={patient.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-5 py-4">
-                    <p className="font-medium text-slate-800">{patient.full_name}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">{patient.email || patient.phone || "—"}</p>
-                  </td>
-                  <td className="px-5 py-4 text-slate-700">{patient.diagnosis || "—"}</td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
-                        vasBadgeClass(patient.lastVas),
-                      )}
-                    >
-                      {patient.lastVas === null ? "Fără scor" : `VAS ${patient.lastVas}`}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <AssignedTherapistSelect
-                      assignedTherapistId={patient.assigned_therapist_id}
-                      therapists={therapists}
-                      onSelect={(next) =>
-                        assignTherapist(patient.id, patient.assigned_therapist_id, next)
-                      }
-                    />
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => copyLink(patient)}
-                        className="h-11 min-h-[44px] rounded-xl"
-                      >
-                        {copiedId === patient.id ? <Check className="size-4" /> : <Copy className="size-4" />}
-                        Copiază Link Acces
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setExerciseTarget({ id: patient.id, name: patient.full_name })}
-                        className="h-11 min-h-[44px] rounded-xl"
-                      >
-                        <Plus className="size-4" />
-                        Exerciții
-                      </Button>
-                      <Link
-                        href={`/dashboard/patients/${patient.id}`}
-                        prefetch
-                        className="inline-flex h-11 min-h-[44px] items-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white hover:bg-[#064e3b]"
-                      >
-                        <FolderOpen className="size-4" />
-                        Deschide Fișa
-                      </Link>
-                    </div>
-                  </td>
+        <>
+          <ul className="divide-y divide-slate-100 md:hidden">
+            {filtered.map((patient) => (
+              <li key={patient.id} className="px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-800">{patient.full_name}</p>
+                    <p className="mt-0.5 truncate text-xs text-slate-500">
+                      {patient.phone || patient.email || "—"}
+                    </p>
+                    {patient.diagnosis ? (
+                      <p className="mt-1 truncate text-xs text-slate-600">{patient.diagnosis}</p>
+                    ) : null}
+                  </div>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+                      vasBadgeClass(patient.lastVas),
+                    )}
+                  >
+                    {patient.lastVas === null ? "Fără scor" : `VAS ${patient.lastVas}`}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex flex-col gap-1.5">
+                  <span className="text-xs font-medium text-slate-500">Terapeut responsabil</span>
+                  <AssignedTherapistSelect
+                    assignedTherapistId={patient.assigned_therapist_id}
+                    therapists={therapists}
+                    onSelect={(next) => assignTherapist(patient.id, patient.assigned_therapist_id, next)}
+                    className="h-11 w-full max-w-none text-sm"
+                  />
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => copyLink(patient)}
+                    className="h-11 min-h-[44px] w-full rounded-xl"
+                  >
+                    {copiedId === patient.id ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    Copiază Link
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setExerciseTarget({ id: patient.id, name: patient.full_name })}
+                    className="h-11 min-h-[44px] w-full rounded-xl"
+                  >
+                    <Plus className="size-4" />
+                    Exerciții
+                  </Button>
+                  <Link
+                    href={`/dashboard/patients/${patient.id}`}
+                    prefetch
+                    className="col-span-2 inline-flex h-11 min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
+                  >
+                    <FolderOpen className="size-4" />
+                    Deschide Fișa
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[52rem] text-left text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                <tr>
+                  <th className="px-5 py-3">Pacient</th>
+                  <th className="px-5 py-3">Diagnostic</th>
+                  <th className="px-5 py-3">Ultimul VAS</th>
+                  <th className="px-5 py-3">Terapeut responsabil</th>
+                  <th className="px-5 py-3 text-right">Acțiuni</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((patient) => (
+                  <tr key={patient.id} className="border-b border-slate-100 last:border-0">
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-slate-800">{patient.full_name}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{patient.email || patient.phone || "—"}</p>
+                    </td>
+                    <td className="px-5 py-4 text-slate-700">{patient.diagnosis || "—"}</td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+                          vasBadgeClass(patient.lastVas),
+                        )}
+                      >
+                        {patient.lastVas === null ? "Fără scor" : `VAS ${patient.lastVas}`}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <AssignedTherapistSelect
+                        assignedTherapistId={patient.assigned_therapist_id}
+                        therapists={therapists}
+                        onSelect={(next) =>
+                          assignTherapist(patient.id, patient.assigned_therapist_id, next)
+                        }
+                      />
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => copyLink(patient)}
+                          className="h-11 min-h-[44px] rounded-xl"
+                        >
+                          {copiedId === patient.id ? <Check className="size-4" /> : <Copy className="size-4" />}
+                          Copiază Link Acces
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setExerciseTarget({ id: patient.id, name: patient.full_name })}
+                          className="h-11 min-h-[44px] rounded-xl"
+                        >
+                          <Plus className="size-4" />
+                          Exerciții
+                        </Button>
+                        <Link
+                          href={`/dashboard/patients/${patient.id}`}
+                          prefetch
+                          className="inline-flex h-11 min-h-[44px] items-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white hover:bg-[#064e3b]"
+                        >
+                          <FolderOpen className="size-4" />
+                          Deschide Fișa
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <AssignExercisesModal
