@@ -8,6 +8,7 @@ import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
 import { isSleepQuality } from "@/lib/patients/types"
+import { composeExerciseNotes, isWeekdayId, type WeekdayId } from "@/lib/exercises/schedule"
 import { startOfTodayIso, startOfTomorrowIso } from "@/lib/time/bucharest"
 import {
   patientAccessUrl,
@@ -374,6 +375,70 @@ export async function addExercise(patientId: string, formData: FormData): Promis
 
   revalidatePath(`/dashboard/patients/${patientId}`)
   return { error: null, token: null, exercise: data as ExerciseRecord }
+}
+
+export type AssignableExerciseInput = {
+  title: string
+  videoUrl?: string | null
+  sets?: number | null
+  reps?: number | null
+  description?: string | null
+}
+
+export async function assignExercisesBatch(
+  patientId: string,
+  exercises: AssignableExerciseInput[],
+  days: string[],
+): Promise<{ error: string | null; inserted: number }> {
+  if (!patientId || exercises.length === 0) {
+    return { error: "Selectează cel puțin un exercițiu.", inserted: 0 }
+  }
+
+  const weekdayIds = days.filter(isWeekdayId) as WeekdayId[]
+  if (weekdayIds.length === 0) {
+    return { error: "Selectează cel puțin o zi din săptămână.", inserted: 0 }
+  }
+
+  const { supabase, user } = await requireUser()
+  if (!user) {
+    return { error: "Sesiunea a expirat.", inserted: 0 }
+  }
+
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id, full_name")
+  if (!owned.data) {
+    return { error: "Pacientul nu aparține acestui cabinet.", inserted: 0 }
+  }
+
+  const client = await privilegedClinicClient(supabase)
+  const rows = exercises
+    .map((exercise) => {
+      const title = exercise.title.trim()
+      if (!title) {
+        return null
+      }
+      return {
+        patient_id: patientId,
+        title,
+        video_url: exercise.videoUrl?.trim() || null,
+        sets: typeof exercise.sets === "number" && Number.isFinite(exercise.sets) ? exercise.sets : null,
+        reps: typeof exercise.reps === "number" && Number.isFinite(exercise.reps) ? exercise.reps : null,
+        notes: composeExerciseNotes(String(exercise.description ?? ""), weekdayIds),
+      }
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+
+  if (rows.length === 0) {
+    return { error: "Niciun exercițiu valid de salvat.", inserted: 0 }
+  }
+
+  const { data, error } = await client.from("exercises").insert(rows).select("id")
+  if (error) {
+    return { error: error.message, inserted: 0 }
+  }
+
+  revalidatePath("/dashboard")
+  revalidatePath(`/dashboard/patients/${patientId}`)
+  return { error: null, inserted: data?.length ?? rows.length }
 }
 
 export async function deleteExercise(patientId: string, exerciseId: string): Promise<void> {

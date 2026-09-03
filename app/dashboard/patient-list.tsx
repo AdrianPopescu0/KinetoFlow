@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
-import { Check, Copy, FolderOpen, Search } from "lucide-react"
+import { Check, Copy, FolderOpen, Plus, Search } from "lucide-react"
 
+import { AssignExercisesModal } from "@/app/dashboard/assign-exercises-modal"
 import { AssignedTherapistSelect } from "@/app/dashboard/assigned-therapist-select"
 import { assignPatientTherapist } from "@/app/dashboard/patients/actions"
 import { toast } from "@/components/ui/toaster"
@@ -39,6 +40,7 @@ export function PatientList({
   const [scope, setScope] = useState<PatientAssignmentScope>("mine")
   const [assignments, setAssignments] = useState<Record<string, string | null>>({})
   const [source, setSource] = useState(patients)
+  const [exerciseTarget, setExerciseTarget] = useState<{ id: string; name: string } | null>(null)
   const [, startAssign] = useTransition()
 
   // Datele proaspete de pe server înlocuiesc suprascrierile optimiste.
@@ -217,6 +219,15 @@ export function PatientList({
                         {copiedId === patient.id ? <Check className="size-4" /> : <Copy className="size-4" />}
                         Copiază Link Acces
                       </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setExerciseTarget({ id: patient.id, name: patient.full_name })}
+                        className="h-11 min-h-[44px] rounded-xl"
+                      >
+                        <Plus className="size-4" />
+                        Exerciții
+                      </Button>
                       <Link
                         href={`/dashboard/patients/${patient.id}`}
                         prefetch
@@ -233,6 +244,13 @@ export function PatientList({
           </table>
         </div>
       )}
+
+      <AssignExercisesModal
+        open={Boolean(exerciseTarget)}
+        patientId={exerciseTarget?.id ?? ""}
+        patientName={exerciseTarget?.name ?? ""}
+        onClose={() => setExerciseTarget(null)}
+      />
     </div>
   )
 }
