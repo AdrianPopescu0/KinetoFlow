@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { createClient } from "@/utils/supabase/server"
-import { listClinicMemberUserIds, privilegedClinicClient } from "@/lib/clinics/members"
-import { clinicIdFromUser } from "@/lib/clinics/profile"
+import { listClinicMemberProfiles, listClinicMemberUserIds, privilegedClinicClient, shareClinicName } from "@/lib/clinics/members"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
@@ -90,9 +89,8 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
   }
 
   const accessCode = await allocateAccessCode(supabase)
-  const clinicId = clinicIdFromUser(user)
   const basePayload = {
-    ...patientTenantPayload(user.id, clinicId),
+    ...patientTenantPayload(user.id),
     full_name: fullName,
     email,
     phone,
@@ -107,7 +105,7 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     const withoutNotes = await supabase
       .from("patients")
       .insert({
-        ...patientTenantPayload(user.id, clinicId),
+        ...patientTenantPayload(user.id),
         full_name: basePayload.full_name,
         email: basePayload.email,
         phone: basePayload.phone,
@@ -198,11 +196,10 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
     return { error: "Sesiunea a expirat.", token: null }
   }
 
-  const clinicId = clinicIdFromUser(user)
   const expectedUpdatedAt = readOptional(formData, "expected_updated_at")
   const forceOverwrite = String(formData.get("force_overwrite") ?? "") === "1"
 
-  const snapshot = await fetchPatientFileSnapshot(supabase, user.id, patientId, clinicId)
+  const snapshot = await fetchPatientFileSnapshot(supabase, user.id, patientId)
   if (!snapshot) {
     return { error: "Pacientul nu a fost găsit.", token: null }
   }
@@ -239,7 +236,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
 
   if (error || !data || data.length === 0) {
     if (!forceOverwrite && snapshot.updated_at && expectedUpdatedAt) {
-      const latest = await fetchPatientFileSnapshot(supabase, user.id, patientId, clinicId)
+      const latest = await fetchPatientFileSnapshot(supabase, user.id, patientId)
       if (latest && isWriteConflict(expectedUpdatedAt, latest.updated_at)) {
         return { error: null, token: null, conflict: true, current: latest }
       }
@@ -285,34 +282,8 @@ export async function listAssignableTherapists(): Promise<{
     return { therapists: [] }
   }
 
-  const client = await privilegedClinicClient(supabase)
-  const { data: me } = await client
-    .from("clinic_profiles")
-    .select("clinic_name")
-    .eq("user_id", user.id)
-    .maybeSingle()
-
-  const clinicName = String(me?.clinic_name ?? "").trim()
-  if (!clinicName) {
-    return { therapists: [] }
-  }
-
-  const { data } = await client
-    .from("clinic_profiles")
-    .select("user_id, therapist_name")
-    .eq("clinic_name", clinicName)
-
-  return {
-    therapists: (data ?? [])
-      .filter((row) => typeof row.user_id === "string" && row.user_id.length > 0)
-      .map((row) => ({
-        user_id: String(row.user_id),
-        therapist_name:
-          typeof row.therapist_name === "string" && row.therapist_name.trim().length > 0
-            ? row.therapist_name.trim()
-            : "Terapeut",
-      })),
-  }
+  const therapists = await listClinicMemberProfiles(supabase, user.id)
+  return { therapists }
 }
 
 export async function assignPatientTherapist(
@@ -324,7 +295,15 @@ export async function assignPatientTherapist(
     return { error: "Sesiunea a expirat. Autentifică-te din nou." }
   }
 
-  const { error } = await supabase
+  if (assignedTherapistId) {
+    const sameClinic = await shareClinicName(supabase, user.id, assignedTherapistId)
+    if (!sameClinic) {
+      return { error: "Terapeutul ales nu este din aceeași clinică." }
+    }
+  }
+
+  const client = await privilegedClinicClient(supabase)
+  const { error } = await client
     .from("patients")
     .update({ assigned_therapist_id: assignedTherapistId })
     .eq("id", patientId)
@@ -377,7 +356,7 @@ export async function addExercise(patientId: string, formData: FormData): Promis
     return { error: "Sesiunea a expirat.", token: null }
   }
 
-  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id", clinicIdFromUser(user))
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id")
   if (!owned.data) {
     return { error: "Pacientul nu aparține acestui cabinet.", token: null }
   }
@@ -411,7 +390,7 @@ export async function deleteExercise(patientId: string, exerciseId: string): Pro
     return
   }
 
-  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id", clinicIdFromUser(user))
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id")
   if (!owned.data) {
     return
   }

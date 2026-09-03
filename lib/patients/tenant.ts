@@ -19,7 +19,7 @@ export async function selectOwnPatients<T = Record<string, unknown>>(
   supabase: SupabaseClient,
   userId: string,
   columns: string,
-  _clinicId: string = userId,
+  _unused?: string,
 ): Promise<{ data: T[] | null; error: { message: string; code?: string } | null }> {
   const memberIds = await listClinicMemberUserIds(supabase, userId)
   const client = await privilegedClinicClient(supabase)
@@ -46,15 +46,6 @@ export async function selectOwnPatients<T = Record<string, unknown>>(
     return { data: null, error: byUserId.error }
   }
 
-  const byClinic = await supabase
-    .from("patients")
-    .select(columns)
-    .eq("clinic_id", _clinicId)
-    .order("created_at", { ascending: false })
-  if (!byClinic.error) {
-    return { data: (byClinic.data as T[] | null) ?? [], error: null }
-  }
-
   return { data: null, error: byTherapist.error }
 }
 
@@ -63,7 +54,7 @@ export async function getOwnPatientRow(
   userId: string,
   patientId: string,
   columns: string,
-  _clinicId: string = userId,
+  _unused?: string,
 ): Promise<{ data: Record<string, unknown> | null; error: { message: string; code?: string } | null }> {
   const memberIds = await listClinicMemberUserIds(supabase, userId)
   const client = await privilegedClinicClient(supabase)
@@ -92,24 +83,13 @@ export async function getOwnPatientRow(
     return { data: null, error: byUserId.error }
   }
 
-  const byClinic = await supabase
-    .from("patients")
-    .select(columns)
-    .eq("id", patientId)
-    .eq("clinic_id", _clinicId)
-    .maybeSingle()
-  if (!byClinic.error) {
-    return { data: (byClinic.data as Record<string, unknown> | null) ?? null, error: null }
-  }
-
   return { data: null, error: byTherapist.error }
 }
 
-export function patientTenantPayload(userId: string, clinicId: string = userId) {
+export function patientTenantPayload(userId: string) {
   return {
     user_id: userId,
     therapist_id: userId,
-    clinic_id: clinicId,
     assigned_therapist_id: userId,
   }
 }

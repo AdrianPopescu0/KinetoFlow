@@ -53,20 +53,20 @@ export async function fetchPatientFileSnapshot(
   supabase: SupabaseClient,
   userId: string,
   patientId: string,
-  clinicId: string,
+  _unused?: string,
 ): Promise<PatientFileSnapshot | null> {
-  const stamped = await getOwnPatientRow(supabase, userId, patientId, SNAPSHOT_COLUMNS, clinicId)
+  const stamped = await getOwnPatientRow(supabase, userId, patientId, SNAPSHOT_COLUMNS)
   if (!stamped.error && stamped.data) {
     return snapshotFromRow(stamped.data)
   }
   if (stamped.error && looksLikeMissingUpdatedAt(stamped.error)) {
-    const legacy = await getOwnPatientRow(supabase, userId, patientId, SNAPSHOT_COLUMNS_LEGACY, clinicId)
+    const legacy = await getOwnPatientRow(supabase, userId, patientId, SNAPSHOT_COLUMNS_LEGACY)
     if (!legacy.error && legacy.data) {
       return snapshotFromRow(legacy.data)
     }
   }
   if (!stamped.data) {
-    const legacy = await getOwnPatientRow(supabase, userId, patientId, SNAPSHOT_COLUMNS_LEGACY, clinicId)
+    const legacy = await getOwnPatientRow(supabase, userId, patientId, SNAPSHOT_COLUMNS_LEGACY)
     if (!legacy.error && legacy.data) {
       return snapshotFromRow(legacy.data)
     }

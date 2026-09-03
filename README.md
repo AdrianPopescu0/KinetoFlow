@@ -62,7 +62,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 În Supabase: **SQL Editor** → lipește și rulează `supabase/migrations/001_patients.sql`.
 
-Tabele: `patients` (token UUID unic pentru `/patient/[token]`), `exercises` (programul pacientului), `check_ins`. Izolare pe cabinet: `clinic_id` (JWT `clinic_id` verificat față de `clinic_profiles` / `auth.uid()`). Rulează `006_tenant_isolation.sql` și `008_clinic_rls.sql`. Un terapeut autentificat are SELECT/INSERT/UPDATE/DELETE doar pe rândurile clinicii sale; nu poate citi pacienții altui cabinet. Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient.
+Tabele: `patients` (token UUID unic pentru `/patient/[token]`; **fără** coloana `clinic_id` — cabinetul e `therapist_id` + `clinic_profiles.clinic_name`), `exercises`, `check_ins`. Rulează `012_patients_clinic_name.sql` și `013_patients_no_clinic_id.sql` ca să înlocuiești triggerul/RLS vechi care scriau `patients.clinic_id`. Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient.
 
 Fișa clinică: `/dashboard/patients/[id]`. La salvare, aplicația compară `updated_at` cu momentul deschiderii ecranului; dacă altcineva a modificat fișa, terapeutul e avertizat și poate reîncărca datele. Rulează `supabase/migrations/009_patients_updated_at.sql`. Asignare terapeut: `010_assigned_therapist.sql` (`assigned_therapist_id`). Note clinice: `002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
@@ -77,7 +77,7 @@ Reguli de securitate aplicate:
 - Mesaj generic la eșec: „Email sau parolă incorectă” (fără enumerarea utilizatorilor)
 - Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori și trimite la `/onboarding` dacă lipsește `clinic_profiles`
 - Verificare `getUser()` (nu `getSession()`) pentru autorizare
-- RLS pe `patients`, `exercises` (program asignat) și `check_ins`: SELECT/INSERT/UPDATE/DELETE doar unde `clinic_id = current_clinic_id()` (JWT `clinic_id` validat față de profil; altfel `clinic_profiles` / `auth.uid()`)
+- RLS pe `patients`: vizibil dacă `therapist_id` / `assigned_therapist_id` e al tău sau al unui coleg cu același `clinic_name` (`013_patients_no_clinic_id.sql`)
 
 ## Structură relevantă
 

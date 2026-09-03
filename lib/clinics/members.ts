@@ -14,34 +14,73 @@ export async function privilegedClinicClient(userClient: SupabaseClient): Promis
   }
 }
 
-export async function listClinicMemberUserIds(
+export async function clinicNameForUser(
   supabase: SupabaseClient,
   userId: string,
-): Promise<string[]> {
+): Promise<string> {
   const client = await privilegedClinicClient(supabase)
   const { data: me } = await client
     .from("clinic_profiles")
     .select("clinic_name")
     .eq("user_id", userId)
+    .limit(1)
     .maybeSingle()
+  return String(me?.clinic_name ?? "").trim()
+}
 
-  const clinicName = String(me?.clinic_name ?? "").trim()
+export async function listClinicMemberProfiles(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<ClinicTherapistOption[]> {
+  const clinicName = await clinicNameForUser(supabase, userId)
   if (!clinicName) {
-    return [userId]
+    return []
   }
 
-  const { data: members } = await client
+  const client = await privilegedClinicClient(supabase)
+  const { data } = await client
     .from("clinic_profiles")
-    .select("user_id")
-    .eq("clinic_name", clinicName)
+    .select("user_id, therapist_name, clinic_name")
+    .order("therapist_name", { ascending: true })
 
-  const ids = [
-    ...new Set(
-      (members ?? [])
-        .map((row) => row.user_id)
-        .filter((id): id is string => typeof id === "string" && id.length > 0),
-    ),
-  ]
+  const members = (data ?? []).filter(
+    (row) =>
+      typeof row.user_id === "string" &&
+      String(row.clinic_name ?? "").trim() === clinicName,
+  )
+
+  if (members.length === 0) {
+    const { data: exact } = await client
+      .from("clinic_profiles")
+      .select("user_id, therapist_name, clinic_name")
+      .eq("clinic_name", clinicName)
+      .order("therapist_name", { ascending: true })
+    return (exact ?? [])
+      .filter((row) => typeof row.user_id === "string")
+      .map((row) => ({
+        user_id: String(row.user_id),
+        therapist_name:
+          typeof row.therapist_name === "string" && row.therapist_name.trim().length > 0
+            ? row.therapist_name.trim()
+            : "Terapeut",
+      }))
+  }
+
+  return members.map((row) => ({
+    user_id: String(row.user_id),
+    therapist_name:
+      typeof row.therapist_name === "string" && row.therapist_name.trim().length > 0
+        ? row.therapist_name.trim()
+        : "Terapeut",
+  }))
+}
+
+export async function listClinicMemberUserIds(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<string[]> {
+  const members = await listClinicMemberProfiles(supabase, userId)
+  const ids = [...new Set(members.map((row) => row.user_id))]
   return ids.length > 0 ? ids : [userId]
 }
 
@@ -61,46 +100,15 @@ export async function listClinicTherapistOptions(
   supabase: SupabaseClient,
   user: User,
 ): Promise<ClinicTherapistOption[]> {
+  const members = await listClinicMemberProfiles(supabase, user.id)
+  if (members.some((row) => row.user_id === user.id)) {
+    return members
+  }
+
   const selfName =
     typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim().length > 0
       ? user.user_metadata.full_name.trim()
       : therapistDisplayName(user.email)
 
-  const client = await privilegedClinicClient(supabase)
-  const { data: me } = await client
-    .from("clinic_profiles")
-    .select("clinic_name, therapist_name")
-    .eq("user_id", user.id)
-    .maybeSingle()
-
-  const clinicName = String(me?.clinic_name ?? "").trim()
-  let rows: Array<{ user_id: unknown; therapist_name: unknown }> = []
-
-  if (clinicName) {
-    const { data } = await client
-      .from("clinic_profiles")
-      .select("user_id, therapist_name")
-      .eq("clinic_name", clinicName)
-    rows = data ?? []
-  }
-
-  const fromProfiles = rows
-    .filter((row) => typeof row.user_id === "string")
-    .map((row) => ({
-      user_id: String(row.user_id),
-      therapist_name:
-        typeof row.therapist_name === "string" && row.therapist_name.trim().length > 0
-          ? row.therapist_name.trim()
-          : selfName,
-    }))
-
-  if (fromProfiles.some((row) => row.user_id === user.id)) {
-    return fromProfiles
-  }
-
-  const ownName =
-    typeof me?.therapist_name === "string" && me.therapist_name.trim().length > 0
-      ? me.therapist_name.trim()
-      : selfName
-  return [{ user_id: user.id, therapist_name: ownName }, ...fromProfiles]
+  return [{ user_id: user.id, therapist_name: selfName }, ...members]
 }

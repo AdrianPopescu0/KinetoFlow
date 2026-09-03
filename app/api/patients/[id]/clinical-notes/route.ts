@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { revalidatePath } from "next/cache"
 
 import { listClinicMemberUserIds, privilegedClinicClient } from "@/lib/clinics/members"
-import { clinicIdFromUser } from "@/lib/clinics/profile"
 import { fetchPatientFileSnapshot, isWriteConflict } from "@/lib/patients/optimistic"
 import { createClient } from "@/utils/supabase/server"
 
@@ -46,8 +45,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Notițele trebuie să fie text." }, { status: 400 })
   }
 
-  const clinicId = clinicIdFromUser(user)
-  const snapshot = await fetchPatientFileSnapshot(supabase, user.id, patientId, clinicId)
+  const snapshot = await fetchPatientFileSnapshot(supabase, user.id, patientId)
   if (!snapshot) {
     return NextResponse.json({ error: "Pacientul nu a fost găsit." }, { status: 404 })
   }
@@ -75,7 +73,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   if (error || !data || data.length === 0) {
     if (!forceOverwrite && expected) {
-      const latest = await fetchPatientFileSnapshot(supabase, user.id, patientId, clinicId)
+      const latest = await fetchPatientFileSnapshot(supabase, user.id, patientId)
       if (latest && isWriteConflict(expected, latest.updated_at)) {
         return NextResponse.json({ code: "conflict", current: latest }, { status: 409 })
       }
