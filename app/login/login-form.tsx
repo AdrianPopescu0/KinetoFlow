@@ -106,7 +106,7 @@ export function LoginForm({
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="email" className="text-slate-900">
-            Email
+            {tab === "register" ? "Email administrator" : "Adresa de email"}
           </Label>
           <Input
             id="email"
@@ -116,10 +116,19 @@ export function LoginForm({
             inputMode="email"
             required
             disabled={isPending}
-            placeholder="nume@clinica.ro"
+            placeholder={
+              tab === "register"
+                ? "exemplu@gmail.com sau email@clinica.ro"
+                : "emailul-tau@exemplu.com"
+            }
             className="h-12 min-h-12 border-slate-300 px-3"
             aria-invalid={error ? true : undefined}
           />
+          {tab === "register" ? (
+            <p className="text-xs leading-relaxed text-slate-500">
+              Cu această adresă vei administra clinica și vei invita colegii.
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-2">

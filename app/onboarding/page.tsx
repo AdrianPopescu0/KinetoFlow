@@ -41,10 +41,10 @@ export default async function OnboardingPage() {
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 py-10">
         <p className="text-xs font-semibold tracking-wide text-teal-800 uppercase">Prima configurare</p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-          Datele clinicii
+          Configurează cabinetul tău
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          Completăm o singură dată profilul cabinetului. Apoi ajungi direct în dashboard.
+          Aceste date separă activitatea clinicii tale de a altor cabinete din platformă.
           {user.email ? (
             <>
               {" "}
