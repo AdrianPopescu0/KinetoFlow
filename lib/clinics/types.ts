@@ -1,8 +1,8 @@
 export type ClinicRole = "admin" | "therapist"
 
 export type ClinicProfile = {
+  id: string | null
   user_id: string
-  clinic_id: string
   clinic_name: string
   therapist_name: string
   phone: string | null

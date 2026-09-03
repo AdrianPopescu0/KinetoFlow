@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { createClient } from "@/utils/supabase/server"
-import { clinicIdFromUser } from "@/lib/clinics/profile"
+import { clinicIdFromUser, fetchClinicProfile } from "@/lib/clinics/profile"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
@@ -283,12 +283,15 @@ export async function assignPatientTherapist(
   }
 
   if (therapistId && therapistId !== user.id) {
+    const { profile: actor } = await fetchClinicProfile(supabase, user.id)
+    const clinicName = actor?.clinic_name?.trim()
     const { data: profile } = await supabase
       .from("clinic_profiles")
       .select("user_id")
       .eq("user_id", therapistId)
+      .eq("clinic_name", clinicName ?? "")
       .maybeSingle()
-    if (!profile) {
+    if (!profile || !clinicName) {
       return { error: "Terapeutul ales nu este disponibil în acest cabinet." }
     }
   }

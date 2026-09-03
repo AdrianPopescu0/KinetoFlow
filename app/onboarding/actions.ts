@@ -56,7 +56,6 @@ export async function saveClinicProfile(formData: FormData): Promise<OnboardingS
 
   const row = {
     user_id: user.id,
-    clinic_id: user.id,
     clinic_name: clinicName,
     therapist_name: therapistName,
     phone,

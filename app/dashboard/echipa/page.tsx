@@ -24,7 +24,7 @@ export default async function ClinicTeamPage() {
   const { data: members } = await supabase
     .from("clinic_profiles")
     .select("user_id, therapist_name, phone, role")
-    .eq("clinic_id", profile.clinic_id)
+    .eq("clinic_name", profile.clinic_name)
     .order("therapist_name", { ascending: true })
 
   return (

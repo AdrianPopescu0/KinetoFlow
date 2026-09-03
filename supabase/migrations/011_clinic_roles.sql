@@ -1,19 +1,15 @@
--- KinetoFlow — roluri clinică (admin | therapist) și clinic_id pe profil
+-- KinetoFlow — roluri clinică (admin | therapist)
 -- Rulează în Supabase: SQL Editor → New query → Run
+--
+-- clinic_profiles NU are coloana clinic_id. Cabinetul se leagă prin clinic_name.
+-- Tenancy pe pacienți rămâne patients.clinic_id = JWT / user_id al adminului.
 
 alter table public.clinic_profiles
   add column if not exists role text;
 
-alter table public.clinic_profiles
-  add column if not exists clinic_id uuid;
-
 update public.clinic_profiles
 set role = 'admin'
 where role is null or role not in ('admin', 'therapist');
-
-update public.clinic_profiles
-set clinic_id = user_id
-where clinic_id is null;
 
 alter table public.clinic_profiles
   alter column role set default 'therapist';
@@ -29,15 +25,13 @@ alter table public.clinic_profiles
   check (role in ('admin', 'therapist'));
 
 alter table public.clinic_profiles
-  alter column clinic_id set not null;
-
-alter table public.clinic_profiles
   alter column phone drop not null;
 
-create index if not exists clinic_profiles_clinic_id_idx
-  on public.clinic_profiles (clinic_id);
+create index if not exists clinic_profiles_clinic_name_idx
+  on public.clinic_profiles (clinic_name);
 
--- current_clinic_id: cabinetul din clinic_profiles.clinic_id (nu doar auth.uid())
+-- current_clinic_id: JWT clinic_id (user_id-ul adminului) dacă e din același cabinet,
+-- altfel user_id-ul adminului găsit după clinic_name, altfel auth.uid().
 create or replace function public.current_clinic_id()
 returns uuid
 language plpgsql
@@ -48,7 +42,7 @@ as $$
 declare
   claim text;
   from_jwt uuid;
-  from_profile uuid;
+  from_admin uuid;
 begin
   if auth.uid() is null then
     return null;
@@ -69,17 +63,20 @@ begin
     end;
   end if;
 
-  select cp.clinic_id
-    into from_profile
-  from public.clinic_profiles cp
-  where cp.user_id = auth.uid()
+  select admin.user_id
+    into from_admin
+  from public.clinic_profiles me
+  join public.clinic_profiles admin
+    on admin.clinic_name = me.clinic_name
+   and admin.role = 'admin'
+  where me.user_id = auth.uid()
   limit 1;
 
-  if from_jwt is not null and from_profile is not null and from_jwt = from_profile then
+  if from_jwt is not null and (from_jwt = auth.uid() or from_jwt = from_admin) then
     return from_jwt;
   end if;
 
-  return coalesce(from_profile, auth.uid());
+  return coalesce(from_admin, auth.uid());
 end;
 $$;
 
@@ -95,7 +92,12 @@ create policy "Clinic members read clinic profiles"
   to authenticated
   using (
     user_id = auth.uid()
-    or clinic_id = public.current_clinic_id()
+    or clinic_name = (
+      select me.clinic_name
+      from public.clinic_profiles me
+      where me.user_id = auth.uid()
+      limit 1
+    )
   );
 
 drop policy if exists "Therapists insert own clinic profile" on public.clinic_profiles;

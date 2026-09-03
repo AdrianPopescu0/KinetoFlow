@@ -10,7 +10,7 @@ export async function fetchClinicProfile(
 ): Promise<{ profile: ClinicProfile | null; error: string | null }> {
   const { data, error } = await supabase
     .from("clinic_profiles")
-    .select("user_id, clinic_id, clinic_name, therapist_name, phone, role")
+    .select("id, user_id, clinic_name, therapist_name, phone, role")
     .eq("user_id", therapistId)
     .maybeSingle()
 
@@ -43,8 +43,8 @@ function mapClinicProfile(row: Record<string, unknown>, fallbackUserId: string):
   const role = row.role === "therapist" ? "therapist" : "admin"
   const userId = typeof row.user_id === "string" ? row.user_id : fallbackUserId
   return {
+    id: typeof row.id === "string" ? row.id : null,
     user_id: userId,
-    clinic_id: typeof row.clinic_id === "string" ? row.clinic_id : userId,
     clinic_name: String(row.clinic_name ?? ""),
     therapist_name: String(row.therapist_name ?? ""),
     phone: typeof row.phone === "string" ? row.phone : null,
@@ -61,11 +61,8 @@ export function clinicReadyFromUser(user: User): boolean {
   return typeof clinicName === "string" && clinicName.trim().length > 0
 }
 
-/** Identificatorul de cabinet pentru RLS / tenancy. */
+/** Identificatorul de cabinet pentru pacienți (JWT / user.id), nu o coloană din clinic_profiles. */
 export function clinicIdFromUser(user: User, profile?: ClinicProfile | null): string {
-  if (profile?.clinic_id) {
-    return profile.clinic_id
-  }
   const appClaim = user.app_metadata?.clinic_id
   const userClaim = user.user_metadata?.clinic_id
   if (typeof appClaim === "string" && appClaim.length > 0) {
@@ -74,7 +71,7 @@ export function clinicIdFromUser(user: User, profile?: ClinicProfile | null): st
   if (typeof userClaim === "string" && userClaim.length > 0) {
     return userClaim
   }
-  return user.id
+  return profile?.user_id ?? user.id
 }
 
 export async function listClinicTherapists(
@@ -86,7 +83,15 @@ export async function listClinicTherapists(
       ? user.user_metadata.full_name.trim()
       : therapistDisplayName(user.email)
 
-  const { data } = await supabase.from("clinic_profiles").select("user_id, therapist_name")
+  const selfProfile = await fetchClinicProfile(supabase, user.id)
+  const clinicName = selfProfile.profile?.clinic_name?.trim() ?? ""
+
+  let query = supabase.from("clinic_profiles").select("user_id, therapist_name, clinic_name")
+  if (clinicName) {
+    query = query.eq("clinic_name", clinicName)
+  }
+
+  const { data } = await query
   const fromProfiles = (data ?? [])
     .filter((row) => typeof row.user_id === "string")
     .map((row) => ({

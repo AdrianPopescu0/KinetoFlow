@@ -85,7 +85,11 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
     throw new ForbiddenError("Doar administratorul clinicii poate invita terapeuți.")
   }
 
-  const clinicId = profile.clinic_id
+  const clinicName = profile.clinic_name.trim()
+  if (!clinicName) {
+    return { error: "Profilul cabinetului este incomplet. Reîncarcă pagina." }
+  }
+  const clinicOwnerId = profile.user_id
   const technicalEmail = newTherapistTechnicalEmail(therapistName)
   const redirectTo = `${publicSiteUrl()}/auth/callback?next=/dashboard`
 
@@ -95,7 +99,7 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
     const { data: existingPhone } = await admin
       .from("clinic_profiles")
       .select("user_id")
-      .eq("clinic_id", clinicId)
+      .eq("clinic_name", clinicName)
       .eq("phone", phone)
       .maybeSingle()
 
@@ -109,14 +113,14 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
       email_confirm: true,
       user_metadata: {
         full_name: therapistName,
-        clinic_name: profile.clinic_name,
-        clinic_id: clinicId,
+        clinic_name: clinicName,
+        clinic_id: clinicOwnerId,
         phone,
         invited_by: user.id,
         role: "therapist",
       },
       app_metadata: {
-        clinic_id: clinicId,
+        clinic_id: clinicOwnerId,
         role: "therapist",
       },
     })
@@ -148,8 +152,7 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
 
     const { error: insertError } = await admin.from("clinic_profiles").insert({
       user_id: invitedUserId,
-      clinic_id: clinicId,
-      clinic_name: profile.clinic_name,
+      clinic_name: clinicName,
       therapist_name: therapistName,
       phone,
       role: "therapist",
@@ -161,7 +164,7 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
 
     const message = therapistInviteMessage({
       therapistName,
-      clinicName: profile.clinic_name,
+      clinicName,
       inviteLink,
     })
     const whatsappHref = patientWhatsAppHref(phone, message)
