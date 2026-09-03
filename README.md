@@ -37,7 +37,7 @@ npm install
 npm run dev -- --port 43123 --hostname 127.0.0.1
 ```
 
-Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau programul pacient [http://127.0.0.1:43123/p/demo](http://127.0.0.1:43123/p/demo).
+Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau programul pacient [http://127.0.0.1:43123/patient/demo](http://127.0.0.1:43123/patient/demo).
 
 ## Autentificare
 
@@ -51,14 +51,15 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
 | `/auth/callback` | Schimb PKCE pentru sesiune după email |
-| `/acces` | Login pacient: telefon + cod 8 cifre (obligatoriu înainte de `/p/[token]`) |
-| `/p/[patientToken]` | Programul pacientului — doar cu sesiune după `/acces` |
+| `/acces` | Login pacient: telefon + cod 8 cifre (opțional, dacă nu ai linkul cu token) |
+| `/patient/[token]` | Programul public al pacientului. Tokenul valid se salvează imediat în `localStorage` și într-un cookie de sesiune; `/p/[token]` rămâne echivalent |
+| `/patient` | Recuperează tokenul din stocare dacă un webview (WhatsApp/Facebook) a tăiat parametrii din URL |
 
 ## Schema pacienți
 
 În Supabase: **SQL Editor** → lipește și rulează `supabase/migrations/001_patients.sql`.
 
-Tabele: `patients` (token UUID unic pentru `/p/[token]`), `exercises` (programul pacientului), `check_ins`. Izolare pe cabinet: `clinic_id` (JWT `clinic_id` verificat față de `clinic_profiles` / `auth.uid()`). Rulează `006_tenant_isolation.sql` și `008_clinic_rls.sql`. Un terapeut autentificat are SELECT/INSERT/UPDATE/DELETE doar pe rândurile clinicii sale; nu poate citi pacienții altui cabinet. Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient.
+Tabele: `patients` (token UUID unic pentru `/patient/[token]`), `exercises` (programul pacientului), `check_ins`. Izolare pe cabinet: `clinic_id` (JWT `clinic_id` verificat față de `clinic_profiles` / `auth.uid()`). Rulează `006_tenant_isolation.sql` și `008_clinic_rls.sql`. Un terapeut autentificat are SELECT/INSERT/UPDATE/DELETE doar pe rândurile clinicii sale; nu poate citi pacienții altui cabinet. Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient.
 
 Fișa clinică: `/dashboard/patients/[id]`. Note clinice: rulează și `supabase/migrations/002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
@@ -86,5 +87,7 @@ middleware.ts                    # Next.js middleware
 app/login/actions.ts             # Server Action login()
 app/login/page.tsx               # UI login split-screen
 app/dashboard/page.tsx           # Dashboard terapeut (protejat)
-app/p/[patientToken]/page.tsx    # Programul pacientului
+app/patient/[token]/page.tsx     # Programul public al pacientului
+app/patient/page.tsx             # Recuperare token (webview fără parametri)
+app/p/[patientToken]/page.tsx    # Alias vechi al programului pacientului
 ```

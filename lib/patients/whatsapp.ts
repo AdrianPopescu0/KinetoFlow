@@ -11,7 +11,7 @@ export function publicSiteUrl(): string {
 }
 
 export function patientPortalUrl(token: string): string {
-  return `${publicSiteUrl()}/p/${token}`
+  return `${publicSiteUrl()}/patient/${token}`
 }
 
 export function patientAccessUrl(): string {

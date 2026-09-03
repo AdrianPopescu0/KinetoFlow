@@ -2,7 +2,16 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
-import { PATIENT_SESSION_COOKIE, patientTokenFromPath } from "@/lib/patients/session"
+import {
+  PATIENT_RESUME_COOKIE,
+  PATIENT_SESSION_COOKIE,
+  isPatientBarePath,
+  looksLikePatientToken,
+  patientPublicPath,
+  patientResumeCookieOptions,
+  patientTokenFromPath,
+  patientUrlAccessCookieOptions,
+} from "@/lib/patients/session"
 import { getSupabasePublicEnv, isUnconfiguredSupabaseUrl } from "@/utils/supabase/env"
 
 const PROTECTED_PREFIX = "/dashboard"
@@ -19,36 +28,49 @@ function isOnboardingPath(pathname: string): boolean {
   return pathname === "/onboarding" || pathname.startsWith("/onboarding/")
 }
 
-function patientPortalGuard(request: NextRequest): NextResponse | null {
-  const token = patientTokenFromPath(request.nextUrl.pathname)
-  if (!token) {
-    return null
+function storedPatientToken(request: NextRequest): string | null {
+  const access = request.cookies.get(PATIENT_SESSION_COOKIE)?.value
+  if (access && looksLikePatientToken(access)) {
+    return access
   }
-
-  const session = request.cookies.get(PATIENT_SESSION_COOKIE)?.value
-  if (session === token) {
-    return null
+  const resume = request.cookies.get(PATIENT_RESUME_COOKIE)?.value
+  if (resume && looksLikePatientToken(resume)) {
+    return resume
   }
+  return null
+}
 
-  const redirectUrl = request.nextUrl.clone()
-  redirectUrl.pathname = "/acces"
-  redirectUrl.search = ""
-  redirectUrl.searchParams.set("redirectTo", `/p/${token}`)
-  return NextResponse.redirect(redirectUrl)
+function stampPatientCookies(response: NextResponse, token: string): void {
+  response.cookies.set(PATIENT_SESSION_COOKIE, token, patientUrlAccessCookieOptions)
+  response.cookies.set(PATIENT_RESUME_COOKIE, token, patientResumeCookieOptions)
 }
 
 export async function updateSession(request: NextRequest) {
-  const blocked = patientPortalGuard(request)
-  if (blocked) {
-    return blocked
+  const pathname = request.nextUrl.pathname
+  const urlTokenRaw = patientTokenFromPath(pathname)
+  const urlToken = urlTokenRaw && looksLikePatientToken(urlTokenRaw) ? urlTokenRaw : null
+
+  if (isPatientBarePath(pathname)) {
+    const stored = storedPatientToken(request)
+    if (stored) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = patientPublicPath(stored)
+      redirectUrl.search = ""
+      const redirect = NextResponse.redirect(redirectUrl)
+      stampPatientCookies(redirect, stored)
+      return redirect
+    }
   }
 
   let supabaseResponse = NextResponse.next({
     request,
   })
 
+  if (urlToken) {
+    stampPatientCookies(supabaseResponse, urlToken)
+  }
+
   const { url, anonKey } = getSupabasePublicEnv()
-  const pathname = request.nextUrl.pathname
 
   if (isUnconfiguredSupabaseUrl(url)) {
     if (isProtectedPath(pathname) || isOnboardingPath(pathname)) {
@@ -76,6 +98,9 @@ export async function updateSession(request: NextRequest) {
         cookiesToSet.forEach(({ name, value, options }) => {
           supabaseResponse.cookies.set(name, value, options)
         })
+        if (urlToken) {
+          stampPatientCookies(supabaseResponse, urlToken)
+        }
       },
     },
   })

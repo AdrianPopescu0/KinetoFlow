@@ -1,8 +1,11 @@
+"use client"
+
 import { BookOpen } from "lucide-react"
 
 import { logoutPatient } from "@/app/acces/actions"
 import { Logo } from "@/components/Logo"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
+import { clearStoredPatientToken } from "@/lib/patients/token-storage"
 
 type PatientHeaderProps = {
   firstName: string
@@ -27,7 +30,12 @@ export function PatientHeader({ firstName, dateLabel, onOpenGuide }: PatientHead
                 Ghid recuperare
               </button>
             ) : null}
-            <form action={logoutPatient}>
+            <form
+              action={async () => {
+                clearStoredPatientToken()
+                await logoutPatient()
+              }}
+            >
               <PendingSubmitButton
                 type="submit"
                 pendingLabel="Ieșire…"

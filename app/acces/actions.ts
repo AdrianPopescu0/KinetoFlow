@@ -6,8 +6,11 @@ import { redirect } from "next/navigation"
 import { isAccessCode } from "@/lib/patients/access-code"
 import { phonesMatch, toWhatsAppNumber } from "@/lib/patients/phone"
 import {
+  PATIENT_RESUME_COOKIE,
   PATIENT_SESSION_COOKIE,
   isSafePatientRedirect,
+  patientPublicPath,
+  patientResumeCookieOptions,
   patientSessionCookieOptions,
 } from "@/lib/patients/session"
 
@@ -39,13 +42,20 @@ export async function accessWithCode(formData: FormData): Promise<PatientAccessS
   const token = String(data.token)
   const jar = await cookies()
   jar.set(PATIENT_SESSION_COOKIE, token, patientSessionCookieOptions)
+  jar.set(PATIENT_RESUME_COOKIE, token, patientResumeCookieOptions)
 
-  const next = isSafePatientRedirect(redirectToRaw) && redirectToRaw === `/p/${token}` ? redirectToRaw : `/p/${token}`
+  const canonical = patientPublicPath(token)
+  const next =
+    isSafePatientRedirect(redirectToRaw) &&
+    (redirectToRaw === canonical || redirectToRaw === `/p/${token}`)
+      ? redirectToRaw
+      : canonical
   redirect(next)
 }
 
 export async function logoutPatient(): Promise<void> {
   const jar = await cookies()
   jar.delete(PATIENT_SESSION_COOKIE)
+  jar.delete(PATIENT_RESUME_COOKIE)
   redirect("/acces")
 }

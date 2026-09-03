@@ -6,13 +6,13 @@ import { PersistPatientToken } from "@/components/patient/persist-patient-token"
 import { resolvePatientProgram, urlTokenOrRedirectFromCookies } from "@/lib/patients/resolve-program"
 
 type PatientPageProps = {
-  params: Promise<{ patientToken: string }>
+  params: Promise<{ token: string }>
 }
 
 export async function generateMetadata({ params }: PatientPageProps): Promise<Metadata> {
-  const { patientToken: rawToken } = await params
-  const patientToken = await urlTokenOrRedirectFromCookies(rawToken)
-  const program = await resolvePatientProgram(patientToken)
+  const { token: rawToken } = await params
+  const token = await urlTokenOrRedirectFromCookies(rawToken)
+  const program = await resolvePatientProgram(token)
 
   if (!program) {
     return { title: "Program invalid | KinetoFlow" }
@@ -24,10 +24,10 @@ export async function generateMetadata({ params }: PatientPageProps): Promise<Me
   }
 }
 
-export default async function PatientPage({ params }: PatientPageProps) {
-  const { patientToken: rawToken } = await params
-  const patientToken = await urlTokenOrRedirectFromCookies(rawToken)
-  const program = await resolvePatientProgram(patientToken)
+export default async function PatientPublicPage({ params }: PatientPageProps) {
+  const { token: rawToken } = await params
+  const token = await urlTokenOrRedirectFromCookies(rawToken)
+  const program = await resolvePatientProgram(token)
 
   if (!program) {
     notFound()
