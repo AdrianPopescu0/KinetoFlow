@@ -4,11 +4,12 @@ import { revalidatePath } from "next/cache"
 
 import { getCachedUser } from "@/lib/auth/session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
+import { recoveryRedirectTo, whatsAppInviteUrlFromGenerateLink } from "@/lib/auth/invite-link"
 import { newTherapistTechnicalEmail, randomAccountPassword } from "@/lib/clinics/technical-email"
 import { isClinicAdmin } from "@/lib/clinics/types"
 import { ForbiddenError } from "@/lib/http/forbidden"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
-import { patientWhatsAppHref, publicSiteUrl } from "@/lib/patients/whatsapp"
+import { patientWhatsAppHref } from "@/lib/patients/whatsapp"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
@@ -34,26 +35,9 @@ function therapistInviteMessage(input: {
   const firstName = input.therapistName.trim().split(/\s+/)[0] ?? input.therapistName
   return [
     `Salut ${firstName}! Te-am adăugat în echipa clinicii ${input.clinicName} pe KinetoFlow.`,
-    "Activează-ți accesul (un tap, fără email) de pe acest link unic:",
+    "Activează-ți accesul (fără email) și setează-ți parola de pe acest link unic:",
     input.inviteLink,
   ].join("\n")
-}
-
-function extractActionLink(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") {
-    return null
-  }
-  const record = payload as {
-    properties?: { action_link?: string }
-    action_link?: string
-  }
-  if (typeof record.properties?.action_link === "string" && record.properties.action_link.length > 0) {
-    return record.properties.action_link
-  }
-  if (typeof record.action_link === "string" && record.action_link.length > 0) {
-    return record.action_link
-  }
-  return null
 }
 
 export async function inviteTherapistAction(formData: FormData): Promise<InviteTherapistState> {
@@ -91,7 +75,7 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
   }
   const clinicOwnerId = profile.user_id
   const technicalEmail = newTherapistTechnicalEmail(therapistName)
-  const redirectTo = `${publicSiteUrl()}/auth/callback?next=/dashboard`
+  const redirectTo = recoveryRedirectTo()
 
   try {
     const admin = createServiceRoleClient()
@@ -132,22 +116,14 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
     const invitedUserId = created.user.id
 
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-      type: "magiclink",
+      type: "recovery",
       email: technicalEmail,
       options: { redirectTo },
     })
 
-    let inviteLink = extractActionLink(linkData)
+    const inviteLink = whatsAppInviteUrlFromGenerateLink(linkData)
     if (linkError || !inviteLink) {
-      const recovery = await admin.auth.admin.generateLink({
-        type: "recovery",
-        email: technicalEmail,
-        options: { redirectTo },
-      })
-      inviteLink = extractActionLink(recovery.data)
-      if (!inviteLink) {
-        return { error: linkError ? formatSupabaseError(linkError) : "Nu am putut genera linkul de acces." }
-      }
+      return { error: linkError ? formatSupabaseError(linkError) : "Nu am putut genera linkul de acces." }
     }
 
     const { error: insertError } = await admin.from("clinic_profiles").insert({

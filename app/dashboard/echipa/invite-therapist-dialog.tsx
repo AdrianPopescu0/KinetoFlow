@@ -95,8 +95,8 @@ export function InviteTherapistDialog({
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900">Invitația e gata</h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      Trimite-i lui {ready.therapistName} linkul unic pe WhatsApp. Contul e creat; un tap activează
-                      accesul.
+                      Trimite-i lui {ready.therapistName} linkul pe WhatsApp. La deschidere își confirmă invitația
+                      și își alege parola — fără email.
                     </p>
                   </div>
                 </div>

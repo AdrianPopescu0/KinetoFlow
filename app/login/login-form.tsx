@@ -17,10 +17,16 @@ import { cn } from "@/lib/utils"
 
 type AuthTab = "login" | "register"
 
-export function LoginForm({ initialTab }: { initialTab: AuthTab }) {
+export function LoginForm({
+  initialTab,
+  initialError = null,
+}: {
+  initialTab: AuthTab
+  initialError?: string | null
+}) {
   const router = useRouter()
   const [tab, setTab] = useState<AuthTab>(initialTab)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(initialError)
   const [info, setInfo] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [password, setPassword] = useState("")

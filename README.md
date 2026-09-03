@@ -24,11 +24,12 @@ cp .env.example .env.local
 
 În dashboard-ul Supabase, **Authentication → Providers → Email** trebuie să fie activ. Pentru fluxul de onboarding imediat după înregistrare, dezactivează „Confirm email” (sau lasă-l activ — utilizatorul confirmă din email și apoi intră în cont).
 
-Adaugă URL-urile de redirect pentru recuperarea parolei:
+Adaugă URL-urile de redirect pentru recuperarea parolei și invitațiile WhatsApp:
 
 - `http://localhost:43123/auth/callback`
 - `http://127.0.0.1:43123/auth/callback`
 - domeniul de producție + `/auth/callback`
+- domeniul de producție + `/auth/callback?next=/auth/set-password`
 
 3. Instalează dependențele și pornește serverul de dezvoltare:
 
@@ -50,7 +51,9 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 | `/recuperare-parola` | Cerere de resetare a parolei |
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
-| `/auth/callback` | Schimb PKCE pentru sesiune după email |
+| `/auth/callback` | Schimb `code` (PKCE) sau `token_hash` (recovery) → sesiune, apoi redirect |
+| `/auth/activare` | Pagină intermediară pentru invitația WhatsApp (OTP-ul nu se arde la preview) |
+| `/auth/set-password` | Noul terapeut își alege parola după confirmarea invitației |
 | `/acces` | Login pacient: telefon + cod 8 cifre (opțional, dacă nu ai linkul cu token) |
 | `/patient/[token]` | Programul public al pacientului. Tokenul valid se salvează imediat în `localStorage` și într-un cookie de sesiune; `/p/[token]` rămâne echivalent |
 | `/patient` | Recuperează tokenul din stocare dacă un webview (WhatsApp/Facebook) a tăiat parametrii din URL |
