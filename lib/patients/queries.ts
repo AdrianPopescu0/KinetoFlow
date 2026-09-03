@@ -14,19 +14,19 @@ import type {
 } from "@/lib/patients/types-db"
 
 const PATIENT_LIST_COLUMNS =
-  "id, user_id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
 const PATIENT_LIST_COLUMNS_PLAIN =
-  "id, user_id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS_STAMPED =
-  "id, user_id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, updated_at"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, updated_at"
 const PATIENT_COLUMNS =
-  "id, user_id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at"
 const PATIENT_LIST_COLUMNS_NO_ASSIGN =
-  "id, user_id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
+  "id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
 const PATIENT_LIST_COLUMNS_PLAIN_NO_ASSIGN =
-  "id, user_id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
+  "id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS_FALLBACK =
-  "id, therapist_id, full_name, email, phone, diagnosis, token, created_at"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, created_at"
 const PATIENT_PICKER_COLUMNS = "id, full_name, diagnosis"
 
 function isMissingRelation(error: { message: string; code?: string } | null): boolean {
@@ -42,14 +42,10 @@ function isMissingRelation(error: { message: string; code?: string } | null): bo
 }
 
 function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
-  const ownerId =
-    (typeof row.user_id === "string" && row.user_id) ||
-    (typeof row.therapist_id === "string" && row.therapist_id) ||
-    ""
+  const ownerId = typeof row.therapist_id === "string" ? row.therapist_id : ""
   return {
     id: String(row.id),
-    user_id: ownerId,
-    therapist_id: typeof row.therapist_id === "string" ? row.therapist_id : ownerId,
+    therapist_id: ownerId,
     full_name: String(row.full_name),
     email: typeof row.email === "string" ? row.email : null,
     phone: typeof row.phone === "string" ? row.phone : null,

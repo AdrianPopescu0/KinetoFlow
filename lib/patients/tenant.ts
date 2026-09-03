@@ -14,7 +14,7 @@ function isMissingColumn(error: { message?: string; code?: string } | null, colu
   )
 }
 
-/** Pacienții cabinetului: `therapist_id` ∈ user_id-urile cu același `clinic_name`. */
+/** Pacienții cabinetului: `therapist_id` / `assigned_therapist_id` ∈ membrii cu același `clinic_name`. */
 export async function selectOwnPatients<T = Record<string, unknown>>(
   supabase: SupabaseClient,
   userId: string,
@@ -35,16 +35,16 @@ export async function selectOwnPatients<T = Record<string, unknown>>(
     return { data: (byTherapist.data as T[] | null) ?? [], error: null }
   }
 
-  if (isMissingColumn(byTherapist.error, "therapist_id")) {
-    const byUserId = await client
+  if (isMissingColumn(byTherapist.error, "assigned_therapist_id")) {
+    const legacy = await client
       .from("patients")
       .select(columns)
-      .in("user_id", memberIds)
+      .in("therapist_id", memberIds)
       .order("created_at", { ascending: false })
-    if (!byUserId.error) {
-      return { data: (byUserId.data as T[] | null) ?? [], error: null }
+    if (!legacy.error) {
+      return { data: (legacy.data as T[] | null) ?? [], error: null }
     }
-    return { data: null, error: byUserId.error }
+    return { data: null, error: legacy.error }
   }
 
   return { data: null, error: byTherapist.error }
@@ -72,17 +72,17 @@ export async function getOwnPatientRow(
     return { data: (byTherapist.data as Record<string, unknown> | null) ?? null, error: null }
   }
 
-  if (isMissingColumn(byTherapist.error, "therapist_id")) {
-    const byUserId = await client
+  if (isMissingColumn(byTherapist.error, "assigned_therapist_id")) {
+    const legacy = await client
       .from("patients")
       .select(columns)
       .eq("id", patientId)
-      .in("user_id", memberIds)
+      .in("therapist_id", memberIds)
       .maybeSingle()
-    if (!byUserId.error) {
-      return { data: (byUserId.data as Record<string, unknown> | null) ?? null, error: null }
+    if (!legacy.error) {
+      return { data: (legacy.data as Record<string, unknown> | null) ?? null, error: null }
     }
-    return { data: null, error: byUserId.error }
+    return { data: null, error: legacy.error }
   }
 
   return { data: null, error: byTherapist.error }
@@ -90,7 +90,6 @@ export async function getOwnPatientRow(
 
 export function patientTenantPayload(userId: string) {
   return {
-    user_id: userId,
     therapist_id: userId,
     assigned_therapist_id: userId,
   }

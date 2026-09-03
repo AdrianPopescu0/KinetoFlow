@@ -1,6 +1,6 @@
 "use client"
 
-import { useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 import { assignPatientTherapist } from "@/app/dashboard/patients/actions"
@@ -11,25 +11,38 @@ const UNASSIGNED = ""
 export function AssignedTherapistSelect({
   patientId,
   assignedTherapistId,
+  therapistId,
   therapists,
 }: {
   patientId: string
   assignedTherapistId: string | null
+  therapistId: string | null
   therapists: Array<{ user_id: string; therapist_name: string }>
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
-  const known = therapists.some((therapist) => therapist.user_id === assignedTherapistId)
+  const [selected, setSelected] = useState(assignedTherapistId ?? therapistId ?? UNASSIGNED)
+
+  useEffect(() => {
+    setSelected(assignedTherapistId ?? therapistId ?? UNASSIGNED)
+  }, [assignedTherapistId, therapistId])
+
+  const known = selected !== UNASSIGNED && therapists.some((therapist) => therapist.user_id === selected)
 
   function onChange(value: string) {
     const targetUserId = value === UNASSIGNED ? null : value
+    const previous = selected
+    setSelected(value)
+
     startTransition(async () => {
       const result = await assignPatientTherapist(patientId, targetUserId)
       if (result.error) {
+        setSelected(previous)
         toast(result.error)
         return
       }
-      toast(targetUserId ? "Terapeutul responsabil a fost actualizat." : "Pacientul este neasignat / la comun.")
+      const name = therapists.find((therapist) => therapist.user_id === targetUserId)?.therapist_name
+      toast(name ? `Pacientul a fost asignat lui ${name}.` : "Pacientul este neasignat / la comun.")
       router.refresh()
     })
   }
@@ -38,19 +51,17 @@ export function AssignedTherapistSelect({
     <select
       aria-label="Terapeut responsabil"
       disabled={pending}
-      value={assignedTherapistId ?? UNASSIGNED}
+      value={selected}
       onChange={(event) => onChange(event.target.value)}
       className="h-9 max-w-[11.5rem] rounded-lg border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 outline-none focus-visible:border-[#042f2e] disabled:opacity-60"
     >
       <option value={UNASSIGNED}>Neasignat / La comun</option>
       {therapists.map((therapist) => (
-        <option key={therapist.user_id} value={therapist.user_id} label={therapist.therapist_name}>
+        <option key={therapist.user_id} value={therapist.user_id}>
           {therapist.therapist_name}
         </option>
       ))}
-      {assignedTherapistId && !known ? (
-        <option value={assignedTherapistId}>Alt terapeut</option>
-      ) : null}
+      {selected !== UNASSIGNED && !known ? <option value={selected}>Terapeut din alt cabinet</option> : null}
     </select>
   )
 }
