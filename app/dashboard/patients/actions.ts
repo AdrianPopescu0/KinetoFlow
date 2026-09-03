@@ -322,10 +322,11 @@ export async function assignPatientTherapist(
   }
 
   const client = await privilegedClinicClient(supabase)
-  const { error } = await client
-    .from("patients")
-    .update({ assigned_therapist_id: targetUserId })
-    .eq("id", patientId)
+  const payload = targetUserId
+    ? { assigned_therapist_id: targetUserId, therapist_id: targetUserId }
+    : { assigned_therapist_id: null }
+
+  const { error } = await client.from("patients").update(payload).eq("id", patientId)
 
   if (error) {
     return { error: error.message }
