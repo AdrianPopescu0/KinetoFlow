@@ -35,11 +35,13 @@ export function AssignExercisesModal({
   patientName,
   open,
   onClose,
+  onSaved,
 }: {
   patientId: string
   patientName: string
   open: boolean
   onClose: () => void
+  onSaved?: () => void
 }) {
   if (!open) {
     return null
@@ -51,6 +53,7 @@ export function AssignExercisesModal({
       patientId={patientId}
       patientName={patientName}
       onClose={onClose}
+      onSaved={onSaved}
     />
   )
 }
@@ -59,10 +62,12 @@ function AssignExercisesModalContent({
   patientId,
   patientName,
   onClose,
+  onSaved,
 }: {
   patientId: string
   patientName: string
   onClose: () => void
+  onSaved?: () => void
 }) {
   const initialInterval = intervalFromToday(7)
   const [query, setQuery] = useState("")
@@ -147,6 +152,7 @@ function AssignExercisesModalContent({
           : `${result.inserted} exerciții au fost adăugate în planul lui ${patientName}.`,
       )
       onClose()
+      onSaved?.()
     })
   }
 

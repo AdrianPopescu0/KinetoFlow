@@ -1,18 +1,13 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { Plus, Search, X } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Search, X } from "lucide-react"
 
 import { LibraryCard } from "@/app/dashboard/exercises/library-card"
-import {
-  AddExerciseDialog,
-  AssignDialog,
-  PreviewDialog,
-} from "@/app/dashboard/exercises/library-dialogs"
+import { AssignDialog, PreviewDialog } from "@/app/dashboard/exercises/library-dialogs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
-import { loadCustomExercises, saveCustomExercises } from "@/lib/exercises/extras"
 import { EMPTY_FILTERS, filterLibrary, regionCounts, subcategoriesForRegion } from "@/lib/exercises/filter"
 import {
   DIFFICULTIES,
@@ -38,17 +33,10 @@ import type {
 import { cn } from "@/lib/utils"
 
 export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] }) {
-  const [custom, setCustom] = useState<LibraryExercise[]>([])
   const [filters, setFilters] = useState<LibraryFilters>(EMPTY_FILTERS)
   const [preview, setPreview] = useState<LibraryExercise | null>(null)
   const [assign, setAssign] = useState<LibraryExercise | null>(null)
-  const [adding, setAdding] = useState(false)
-
-  useEffect(() => {
-    setCustom(loadCustomExercises())
-  }, [])
-
-  const catalog = useMemo(() => [...custom, ...LIBRARY_EXERCISES], [custom])
+  const catalog = LIBRARY_EXERCISES
   const visible = useMemo(() => filterLibrary(catalog, filters), [catalog, filters])
   const counts = useMemo(
     () =>
@@ -68,15 +56,6 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
       [key]: value,
       ...(key === "region" ? { subcategory: "all" as const } : {}),
     }))
-  }
-
-  function addCustom(exercise: LibraryExercise) {
-    setCustom((current) => {
-      const next = [exercise, ...current]
-      saveCustomExercises(next)
-      return next
-    })
-    setFilters((current) => ({ ...current, region: exercise.region, subcategory: "all" }))
   }
 
   const tags: Array<{ key: string; label: string; onClear: () => void }> = []
@@ -176,14 +155,6 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
             options={[{ id: "all", label: "Orice poziție" }, ...POSITIONS]}
           />
         </div>
-        <Button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="h-12 min-h-[48px] shrink-0 rounded-xl px-4 sm:ml-auto"
-        >
-          <Plus className="size-4" />
-          Adaugă Exercițiu
-        </Button>
       </div>
 
       <div
@@ -274,7 +245,6 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
       {assign ? (
         <AssignDialog exercise={assign} patients={patients} onClose={() => setAssign(null)} />
       ) : null}
-      {adding ? <AddExerciseDialog onClose={() => setAdding(false)} onCreated={addCustom} /> : null}
     </div>
   )
 }

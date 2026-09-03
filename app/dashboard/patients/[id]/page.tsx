@@ -71,9 +71,11 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
         <section className={surfaceCardClassName("overflow-hidden")}>
           <div className="border-b border-slate-200 px-5 py-4">
             <h2 className="text-base font-semibold text-slate-800">Exerciții prescrise</h2>
-            <p className="text-sm text-slate-600">Adaugă video YouTube sau MP4, serii, repetări și instrucțiuni.</p>
+            <p className="text-sm text-slate-600">
+              Planul pacientului, asignat din biblioteca verificată de exerciții.
+            </p>
           </div>
-          <ExerciseManager patientId={patient.id} exercises={exercises} />
+          <ExerciseManager patientId={patient.id} patientName={patient.full_name} exercises={exercises} />
         </section>
 
         <section className={surfaceCardClassName("overflow-hidden")}>
