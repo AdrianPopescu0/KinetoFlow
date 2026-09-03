@@ -34,7 +34,6 @@ export function VideoPreview({ url, title }: { url: string | null; title: string
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
         allowFullScreen
         className="aspect-video h-full w-full"
-        {...{ playsInline: true, playsinline: "1" }}
       />
     )
   }
