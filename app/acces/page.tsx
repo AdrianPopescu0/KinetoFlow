@@ -10,11 +10,12 @@ export const metadata: Metadata = {
 }
 
 type PatientAccessPageProps = {
-  searchParams: Promise<{ redirectTo?: string }>
+  searchParams: Promise<{ redirectTo?: string; code?: string }>
 }
 
 export default async function PatientAccessPage({ searchParams }: PatientAccessPageProps) {
-  const { redirectTo } = await searchParams
+  const { redirectTo, code } = await searchParams
+  const prefilledCode = typeof code === "string" ? code.replace(/\D/g, "").slice(0, 8) : ""
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-slate-50">
@@ -25,10 +26,12 @@ export default async function PatientAccessPage({ searchParams }: PatientAccessP
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Acces pacient</h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            Introdu numărul de telefon și codul de 8 cifre primit pe WhatsApp. Nu ai nevoie de parolă.
+            {prefilledCode
+              ? "Codul tău e deja completat. Confirmă numărul de telefon ca să intri în program."
+              : "Introdu numărul de telefon și codul de 8 cifre primit pe WhatsApp. Nu ai nevoie de parolă."}
           </p>
           <div className="mt-6">
-            <PatientAccessForm redirectTo={redirectTo} />
+            <PatientAccessForm redirectTo={redirectTo} prefilledCode={prefilledCode} />
           </div>
         </div>
       </main>

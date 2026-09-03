@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react"
 import Link from "next/link"
 import { AlertCircle, Loader2 } from "lucide-react"
 
@@ -9,23 +9,65 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  readRememberedPhone,
+  rememberPhone,
+  rememberedPhoneServerSnapshot,
+  subscribeRememberedPhone,
+} from "@/lib/patients/remembered-phone"
 
-export function PatientAccessForm({ redirectTo }: { redirectTo?: string }) {
+export function PatientAccessForm({
+  redirectTo,
+  prefilledCode = "",
+}: {
+  redirectTo?: string
+  prefilledCode?: string
+}) {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const autoSubmitted = useRef(false)
 
-  function handleSubmit(formData: FormData) {
-    setError(null)
-    startTransition(async () => {
-      const result = await accessWithCode(formData)
-      if (result?.error) {
-        setError(result.error)
-      }
-    })
-  }
+  const rememberedPhone = useSyncExternalStore(
+    subscribeRememberedPhone,
+    readRememberedPhone,
+    rememberedPhoneServerSnapshot,
+  )
+
+  const submit = useCallback(
+    (formData: FormData) => {
+      setError(null)
+      rememberPhone(String(formData.get("phone") ?? ""))
+
+      startTransition(async () => {
+        const result = await accessWithCode(formData)
+        if (result?.error) {
+          setError(result.error)
+        }
+      })
+    },
+    [startTransition],
+  )
+
+  // Link din WhatsApp + telefon reținut pe acest dispozitiv = intrare fără niciun tap.
+  useEffect(() => {
+    if (autoSubmitted.current || !prefilledCode || !rememberedPhone) {
+      return
+    }
+    autoSubmitted.current = true
+
+    const formData = new FormData()
+    formData.set("phone", rememberedPhone)
+    formData.set("access_code", prefilledCode)
+    if (redirectTo) {
+      formData.set("redirectTo", redirectTo)
+    }
+    submit(formData)
+  }, [prefilledCode, rememberedPhone, redirectTo, submit])
+
+  const autoSigningIn = isPending && Boolean(prefilledCode) && Boolean(rememberedPhone) && !error
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-5">
+    <form action={submit} className="flex flex-col gap-5">
       {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
       {error ? (
         <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
@@ -33,6 +75,13 @@ export function PatientAccessForm({ redirectTo }: { redirectTo?: string }) {
           <AlertTitle>Acces eșuat</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      ) : null}
+
+      {autoSigningIn ? (
+        <p className="flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-[#042f2e]">
+          <Loader2 className="size-4 animate-spin" />
+          Te conectăm automat…
+        </p>
       ) : null}
 
       <div className="flex flex-col gap-2">
@@ -44,6 +93,8 @@ export function PatientAccessForm({ redirectTo }: { redirectTo?: string }) {
           inputMode="tel"
           required
           disabled={isPending}
+          defaultValue={rememberedPhone}
+          autoFocus={Boolean(prefilledCode) && !rememberedPhone}
           placeholder="07xx xxx xxx"
           className="h-12 border-slate-300"
           autoComplete="tel"
@@ -60,6 +111,7 @@ export function PatientAccessForm({ redirectTo }: { redirectTo?: string }) {
           maxLength={8}
           required
           disabled={isPending}
+          defaultValue={prefilledCode}
           placeholder="12345678"
           className="h-12 border-slate-300 tracking-[0.3em]"
           autoComplete="one-time-code"

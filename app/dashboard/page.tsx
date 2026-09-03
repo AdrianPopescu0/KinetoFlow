@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 
 import { AddPatientDialog } from "@/app/dashboard/add-patient-dialog"
 import { DashboardOverview } from "@/app/dashboard/dashboard-overview"
+import { OnboardingTour } from "@/components/dashboard/onboarding-tour"
 import { getCachedUser } from "@/lib/auth/session"
 import { listClinicTherapistOptions } from "@/lib/clinics/members"
 import { listTherapistPatients } from "@/lib/patients/queries"
@@ -22,6 +23,8 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-8">
+      {currentTherapistId ? <OnboardingTour userId={currentTherapistId} /> : null}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-800">Panoul terapeutului</h1>

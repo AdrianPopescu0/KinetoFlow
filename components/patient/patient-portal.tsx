@@ -9,6 +9,7 @@ import { DailyCheckinForm } from "@/components/patient/daily-checkin-form"
 import { ExerciseCard } from "@/components/patient/exercise-card"
 import { ExtraTipsDialog, RecoveryDrawer, RecoveryGuidePanel } from "@/components/patient/recovery-guide-panel"
 import { PatientHeader } from "@/components/patient/patient-header"
+import { PatientOnboardingModal } from "@/components/patient/patient-onboarding-modal"
 import { TherapistSupportColumn } from "@/components/patient/therapist-support-column"
 import { formatRomanianDate, todayInBucharest } from "@/lib/patients/program"
 import {
@@ -100,6 +101,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
 
   return (
     <AppShell>
+      <PatientOnboardingModal patientKey={program.token} />
       <PatientHeader firstName={program.firstName} dateLabel={dateLabel} onOpenGuide={() => setGuideOpen(true)} />
 
       <main className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 overflow-x-hidden px-4 py-6 pb-16 lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(260px,320px)] lg:items-start lg:px-6">
