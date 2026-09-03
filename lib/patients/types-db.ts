@@ -10,6 +10,7 @@ export type PatientRecord = {
   token: string
   access_code: string | null
   created_at: string
+  updated_at: string | null
 }
 
 export type ExerciseRecord = {

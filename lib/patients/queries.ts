@@ -17,6 +17,8 @@ const PATIENT_LIST_COLUMNS =
   "id, user_id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
 const PATIENT_LIST_COLUMNS_PLAIN =
   "id, user_id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
+const PATIENT_COLUMNS_STAMPED =
+  "id, user_id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, updated_at"
 const PATIENT_COLUMNS =
   "id, user_id, therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at"
 const PATIENT_COLUMNS_FALLBACK =
@@ -52,6 +54,7 @@ function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
     token: String(row.token),
     access_code: typeof row.access_code === "string" ? row.access_code : null,
     created_at: String(row.created_at),
+    updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
   }
 }
 
@@ -183,6 +186,11 @@ export const getTherapistPatient = cache(async (id: string): Promise<{
   const { supabase, userId, clinicId } = await currentTherapist()
   if (!userId || !clinicId) {
     return { patient: null, exercises: [], checkIns: [], error: "Sesiunea a expirat." }
+  }
+
+  const stamped = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_STAMPED, clinicId)
+  if (!stamped.error && stamped.data) {
+    return loadPatientRelations(supabase, withClinicalNotes(stamped.data as Record<string, unknown>))
   }
 
   const { data: patientRow, error } = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS, clinicId)

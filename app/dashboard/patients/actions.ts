@@ -17,6 +17,11 @@ import {
 } from "@/lib/patients/whatsapp"
 
 import type { ExerciseRecord } from "@/lib/patients/types-db"
+import {
+  fetchPatientFileSnapshot,
+  isWriteConflict,
+  type PatientFileSnapshot,
+} from "@/lib/patients/optimistic"
 
 export type MutationState = {
   error: string | null
@@ -30,6 +35,9 @@ export type MutationState = {
   whatsappWebHref?: string | null
   whatsappMessage?: string | null
   exercise?: ExerciseRecord | null
+  conflict?: boolean
+  current?: PatientFileSnapshot | null
+  updatedAt?: string | null
 }
 
 function readOptional(formData: FormData, key: string): string | null {
@@ -190,6 +198,18 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
   }
 
   const clinicId = clinicIdFromUser(user)
+  const expectedUpdatedAt = readOptional(formData, "expected_updated_at")
+  const forceOverwrite = String(formData.get("force_overwrite") ?? "") === "1"
+
+  const snapshot = await fetchPatientFileSnapshot(supabase, user.id, patientId, clinicId)
+  if (!snapshot) {
+    return { error: "Pacientul nu a fost găsit.", token: null }
+  }
+
+  if (!forceOverwrite && isWriteConflict(expectedUpdatedAt, snapshot.updated_at)) {
+    return { error: null, token: null, conflict: true, current: snapshot }
+  }
+
   const payload: {
     full_name: string
     email: string | null
@@ -206,14 +226,22 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
     payload.clinical_notes = readOptional(formData, "clinical_notes")
   }
 
-  const { error } = await supabase
-    .from("patients")
-    .update(payload)
-    .eq("id", patientId)
-    .eq("clinic_id", clinicId)
+  let update = supabase.from("patients").update(payload).eq("id", patientId).eq("clinic_id", clinicId)
+  if (!forceOverwrite && expectedUpdatedAt && snapshot.updated_at) {
+    update = update.eq("updated_at", snapshot.updated_at)
+  }
 
-  if (error) {
-    await supabase
+  const { data, error } = await update.select("id, updated_at")
+
+  if (error || !data || data.length === 0) {
+    if (!forceOverwrite && snapshot.updated_at && expectedUpdatedAt) {
+      const latest = await fetchPatientFileSnapshot(supabase, user.id, patientId, clinicId)
+      if (latest && isWriteConflict(expectedUpdatedAt, latest.updated_at)) {
+        return { error: null, token: null, conflict: true, current: latest }
+      }
+    }
+
+    const fallback = await supabase
       .from("patients")
       .update({
         full_name: payload.full_name,
@@ -223,11 +251,26 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
       })
       .eq("id", patientId)
       .eq("user_id", user.id)
+      .select("id, updated_at")
+
+    if (fallback.error) {
+      return { error: fallback.error.message, token: null }
+    }
+    if (!fallback.data || fallback.data.length === 0) {
+      return { error: "Nu am putut salva fișa pacientului.", token: null }
+    }
+
+    revalidatePath("/dashboard")
+    revalidatePath(`/dashboard/patients/${patientId}`)
+    const stamp =
+      typeof fallback.data[0]?.updated_at === "string" ? fallback.data[0].updated_at : null
+    return { error: null, token: null, updatedAt: stamp }
   }
 
   revalidatePath("/dashboard")
   revalidatePath(`/dashboard/patients/${patientId}`)
-  return { error: null, token: null }
+  const stamp = typeof data[0]?.updated_at === "string" ? data[0].updated_at : null
+  return { error: null, token: null, updatedAt: stamp }
 }
 
 export async function deletePatient(patientId: string): Promise<{ error: string | null }> {

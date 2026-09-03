@@ -4,10 +4,13 @@ import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
 
+import { PatientSaveConflictNotice } from "@/app/dashboard/patients/patient-save-conflict"
+import { usePatientFileStamp } from "@/app/dashboard/patients/patient-file-stamp"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
+import type { PatientFileSnapshot } from "@/lib/patients/optimistic"
 import {
   clearClinicalNotesDraft,
   initialClinicalNotes,
@@ -26,6 +29,8 @@ export function ClinicalNotesEditor({
   const serverValue = serverNotes ?? ""
   const [notes, setNotes] = useState(serverValue)
   const [draftAt, setDraftAt] = useState<number | null>(null)
+  const { expectedUpdatedAt, setExpectedUpdatedAt } = usePatientFileStamp()
+  const [conflict, setConflict] = useState<PatientFileSnapshot | null>(null)
   const [sessionExpired, setSessionExpired] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -71,7 +76,7 @@ export function ClinicalNotesEditor({
     }
   }, [patientId])
 
-  async function saveFinal() {
+  async function saveFinal(forceOverwrite = false) {
     setSaveError(null)
     setIsSaving(true)
     writeClinicalNotesDraft(patientId, notesRef.current)
@@ -82,12 +87,26 @@ export function ClinicalNotesEditor({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ notes: notesRef.current }),
+        body: JSON.stringify({
+          notes: notesRef.current,
+          expectedUpdatedAt,
+          forceOverwrite,
+        }),
       })
 
       if (response.status === 401 || response.redirected) {
         setSessionExpired(true)
         toast("Sesiunea a expirat. Textul rămâne pe ecran — autentifică-te din nou, apoi salvează.", 8000)
+        return
+      }
+
+      if (response.status === 409) {
+        const payload = (await response.json().catch(() => null)) as
+          | { current?: PatientFileSnapshot }
+          | null
+        if (payload?.current) {
+          setConflict(payload.current)
+        }
         return
       }
 
@@ -97,7 +116,13 @@ export function ClinicalNotesEditor({
         return
       }
 
+      const saved = (await response.json().catch(() => null)) as { updated_at?: string | null } | null
+      if (typeof saved?.updated_at === "string") {
+        setExpectedUpdatedAt(saved.updated_at)
+      }
+
       setSessionExpired(false)
+      setConflict(null)
       clearClinicalNotesDraft(patientId)
       setDraftAt(null)
       toast("Notițele clinice au fost salvate.")
@@ -112,6 +137,23 @@ export function ClinicalNotesEditor({
 
   return (
     <div className="flex flex-col gap-3">
+      {conflict ? (
+        <PatientSaveConflictNotice
+          pending={isSaving}
+          onReload={() => {
+            const next = conflict.clinical_notes ?? ""
+            setNotes(next)
+            notesRef.current = next
+            lastWrittenRef.current = next
+            writeClinicalNotesDraft(patientId, next)
+            setExpectedUpdatedAt(conflict.updated_at)
+            setConflict(null)
+            toast("Am încărcat notițele salvate în baza de date.")
+          }}
+          onOverwrite={() => void saveFinal(true)}
+        />
+      ) : null}
+
       {sessionExpired ? (
         <Alert variant="destructive" className="border-amber-200 bg-amber-50 text-amber-950">
           <AlertTitle>Sesiunea a expirat</AlertTitle>
@@ -146,7 +188,7 @@ export function ClinicalNotesEditor({
             ? `Draft salvat local la ${new Date(draftAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}.`
             : "Draft-ul se salvează automat la fiecare 5 secunde pe acest dispozitiv."}
         </p>
-        <Button type="button" onClick={() => void saveFinal()} disabled={isSaving} className="h-11 rounded-xl">
+        <Button type="button" onClick={() => void saveFinal(false)} disabled={isSaving} className="h-11 rounded-xl">
           {isSaving ? (
             <>
               <Loader2 className="size-4 animate-spin" />

@@ -6,6 +6,7 @@ import { CopyAccessLink } from "@/app/dashboard/patients/copy-access-link"
 import { ClinicalNotesEditor } from "@/app/dashboard/patients/clinical-notes-editor"
 import { ExerciseManager } from "@/app/dashboard/patients/exercise-manager"
 import { PatientFileActions } from "@/app/dashboard/patients/patient-file-actions"
+import { PatientFileStampProvider } from "@/app/dashboard/patients/patient-file-stamp"
 import { VasChart } from "@/app/dashboard/patients/vas-chart"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { sleepLabel } from "@/lib/patients/display"
@@ -31,6 +32,7 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
 
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
+        <PatientFileStampProvider initialUpdatedAt={patient.updated_at}>
         <section className={surfaceCardClassName("p-5")}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -64,6 +66,7 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
             <ClinicalNotesEditor patientId={patient.id} serverNotes={patient.clinical_notes} />
           </div>
         </section>
+        </PatientFileStampProvider>
 
         <section className={surfaceCardClassName("overflow-hidden")}>
           <div className="border-b border-slate-200 px-5 py-4">
