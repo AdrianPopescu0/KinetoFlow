@@ -24,28 +24,18 @@ export function patientAccessUrlWithCode(accessCode: string): string {
   return code ? `${PATIENT_ACCESS_PAGE_URL}?code=${encodeURIComponent(code)}` : PATIENT_ACCESS_PAGE_URL
 }
 
-/** Backticks triple = monospace în WhatsApp; codul stă singur pe linie ca să fie ușor de copiat. */
-function monospace(value: string): string {
-  return `\`\`\`${value}\`\`\``
-}
-
 export function patientWhatsAppMessage(input: {
   fullName: string
-  token: string
+  clinicName: string
   accessCode: string
 }): string {
   return [
-    `Bună, ${input.fullName}! Sunt kinetoterapeutul tău de la KinetoFlow. Ți-am pregătit planul tău personalizat de exerciții.`,
+    `Bună, ${input.fullName}! Sunt kinetoterapeutul tău de la ${input.clinicName}. Ți-am pregătit planul de recuperare de astăzi.`,
+    "Intră în programul tău aici:",
+    `👉 ${patientAccessUrlWithCode(input.accessCode)}`,
     "",
-    "Intră direct în program de aici (un singur tap, fără parolă):",
-    patientPortalUrl(input.token),
-    "",
-    `Dacă linkul nu se deschide, folosește ${patientAccessUrlWithCode(input.accessCode)} — codul e deja completat, mai adaugi doar numărul de telefon.`,
-    "",
-    "Codul tău unic de 8 cifre:",
-    monospace(input.accessCode),
-    "",
-    "Te rog să faci check-in-ul de durere înainte să începi exercițiile. Spor la recuperare!",
+    `(Codul tău de acces este ${input.accessCode} și s-a completat automat).`,
+    "Te rog să completezi check-in-ul de durere înainte de exerciții. Spor la mișcare!",
   ].join("\n")
 }
 

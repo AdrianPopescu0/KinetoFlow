@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { createClient } from "@/utils/supabase/server"
+import { clinicNameForUser } from "@/lib/clinics/members"
 import {
   patientAccessUrl,
   patientWhatsAppHref,
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
     supabase,
     user.id,
     patientId,
-    "id, full_name, phone, token, access_code",
+    "id, full_name, phone, access_code",
   )
 
   if (resolved.error || !resolved.data) {
@@ -46,9 +47,9 @@ export async function POST(request: Request) {
   const found = resolved.data
   const accessCode = typeof found.access_code === "string" ? found.access_code : ""
   const phone = typeof found.phone === "string" ? found.phone : ""
-  const token = String(found.token)
   const fullName = String(found.full_name)
-  const message = patientWhatsAppMessage({ fullName, token, accessCode })
+  const clinicName = (await clinicNameForUser(supabase, user.id)) || "KinetoFlow"
+  const message = patientWhatsAppMessage({ fullName, clinicName, accessCode })
   const whatsappHref = phone ? patientWhatsAppHref(phone, message) : null
   const whatsappWebHref = phone ? patientWhatsAppWebHref(phone, message) : null
 

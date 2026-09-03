@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache"
 
 import { createClient } from "@/utils/supabase/server"
-import { listClinicMemberUserIds, privilegedClinicClient } from "@/lib/clinics/members"
+import {
+  clinicNameForUser,
+  listClinicMemberUserIds,
+  privilegedClinicClient,
+} from "@/lib/clinics/members"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
@@ -144,7 +148,8 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
 
   const token = String(row.token)
   const code = typeof row.access_code === "string" ? row.access_code : accessCode
-  const message = patientWhatsAppMessage({ fullName, token, accessCode: code })
+  const clinicName = (await clinicNameForUser(supabase, user.id)) || "KinetoFlow"
+  const message = patientWhatsAppMessage({ fullName, clinicName, accessCode: code })
 
   revalidatePath("/dashboard")
   return {
