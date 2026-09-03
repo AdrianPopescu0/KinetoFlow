@@ -321,7 +321,8 @@ export async function assignPatientTherapist(
     return { error: "Sesiunea a expirat. Autentifică-te din nou." }
   }
 
-  const { error } = await supabase
+  const client = await privilegedClinicClient(supabase)
+  const { error } = await client
     .from("patients")
     .update({ assigned_therapist_id: targetUserId })
     .eq("id", patientId)
