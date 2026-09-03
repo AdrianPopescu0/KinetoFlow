@@ -73,6 +73,14 @@ export function SupportModal({ open, onOpenChange }: SupportModalProps) {
         </DialogDescription>
 
         <form ref={formRef} action={handleSubmit} className="mt-5 flex flex-col gap-3.5">
+          <input
+            type="text"
+            name="hp_field"
+            style={{ display: "none" }}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+          />
           {error ? (
             <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
               {error}
@@ -115,7 +123,7 @@ export function SupportModal({ open, onOpenChange }: SupportModalProps) {
               name="message"
               required
               minLength={10}
-              maxLength={4000}
+              maxLength={1000}
               disabled={isPending}
               rows={4}
               placeholder="Cu ce te putem ajuta?"

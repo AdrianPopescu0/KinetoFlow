@@ -2,6 +2,7 @@
 
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 import { sendSupportTicketNotification } from "@/lib/support/notify-email"
+import { clientIpFromHeaders, consumeSupportRateLimit } from "@/lib/support/rate-limit"
 import { createClient } from "@/utils/supabase/server"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 import { getSupabaseServiceRoleKey } from "@/utils/supabase/env"
@@ -30,6 +31,11 @@ function isValidContact(contact: string): boolean {
 }
 
 export async function submitSupportTicket(formData: FormData): Promise<SupportTicketState> {
+  const honeypot = formData.get("hp_field")
+  if (typeof honeypot === "string" && honeypot.trim().length > 0) {
+    return { ok: true }
+  }
+
   const name = readTrimmed(formData, "name")
   const contact = readTrimmed(formData, "contact")
   const message = readTrimmed(formData, "message")
@@ -40,8 +46,13 @@ export async function submitSupportTicket(formData: FormData): Promise<SupportTi
   if (!isValidContact(contact) || contact.length > 160) {
     return { error: "Introdu un email valid sau un număr de telefon." }
   }
-  if (message.length < 10 || message.length > 4000) {
-    return { error: "Mesajul trebuie să aibă între 10 și 4000 de caractere." }
+  if (message.length < 10 || message.length > 1000) {
+    return { error: "Mesajul trebuie să aibă între 10 și 1000 de caractere." }
+  }
+
+  const ip = await clientIpFromHeaders()
+  if (!consumeSupportRateLimit(ip)) {
+    return { error: "Ai trimis prea multe mesaje. Reîncearcă peste o oră." }
   }
 
   const row = {
