@@ -10,8 +10,8 @@ export type ClinicProfile = {
 }
 
 export type ClinicTherapistOption = {
-  id: string
-  name: string
+  user_id: string
+  therapist_name: string
 }
 
 export function isClinicAdmin(profile: ClinicProfile | null | undefined): boolean {

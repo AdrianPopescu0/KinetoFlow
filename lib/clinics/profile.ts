@@ -103,18 +103,18 @@ export async function listClinicTherapists(
   const fromProfiles = (data ?? [])
     .filter((row) => typeof row.user_id === "string")
     .map((row) => ({
-      id: String(row.user_id),
-      name:
+      user_id: String(row.user_id),
+      therapist_name:
         typeof row.therapist_name === "string" && row.therapist_name.trim().length > 0
           ? row.therapist_name.trim()
           : selfName,
     }))
 
-  if (fromProfiles.some((row) => row.id === user.id)) {
+  if (fromProfiles.some((row) => row.user_id === user.id)) {
     return fromProfiles
   }
 
-  return [{ id: user.id, name: selfName }, ...fromProfiles]
+  return [{ user_id: user.id, therapist_name: selfName }, ...fromProfiles]
 }
 
 export async function therapistHasClinicProfile(

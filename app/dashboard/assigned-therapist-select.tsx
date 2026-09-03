@@ -4,7 +4,6 @@ import { useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 import { assignPatientTherapist } from "@/app/dashboard/patients/actions"
-import type { ClinicTherapistOption } from "@/lib/clinics/types"
 import { toast } from "@/components/ui/toaster"
 
 const UNASSIGNED = ""
@@ -16,21 +15,25 @@ export function AssignedTherapistSelect({
 }: {
   patientId: string
   assignedTherapistId: string | null
-  therapists: ClinicTherapistOption[]
+  therapists: Array<{ user_id: string; therapist_name: string }>
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
-  const known = therapists.some((therapist) => therapist.id === assignedTherapistId)
+  const known = therapists.some((therapist) => therapist.user_id === assignedTherapistId)
 
   function onChange(value: string) {
-    const next = value === UNASSIGNED ? null : value
+    const assignedTherapistIdNext = value === UNASSIGNED ? null : value
     startTransition(async () => {
-      const result = await assignPatientTherapist(patientId, next)
+      const result = await assignPatientTherapist(patientId, assignedTherapistIdNext)
       if (result.error) {
         toast(result.error)
         return
       }
-      toast(next ? "Terapeutul responsabil a fost actualizat." : "Pacientul este neasignat / la comun.")
+      toast(
+        assignedTherapistIdNext
+          ? "Terapeutul responsabil a fost actualizat."
+          : "Pacientul este neasignat / la comun.",
+      )
       router.refresh()
     })
   }
@@ -45,8 +48,8 @@ export function AssignedTherapistSelect({
     >
       <option value={UNASSIGNED}>Neasignat / La comun</option>
       {therapists.map((therapist) => (
-        <option key={therapist.id} value={therapist.id}>
-          {therapist.name}
+        <option key={therapist.user_id} value={therapist.user_id}>
+          {therapist.therapist_name}
         </option>
       ))}
       {assignedTherapistId && !known ? (

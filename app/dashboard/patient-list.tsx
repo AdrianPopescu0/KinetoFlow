@@ -5,10 +5,10 @@ import Link from "next/link"
 import { Check, Copy, FolderOpen, Search } from "lucide-react"
 
 import { AssignedTherapistSelect } from "@/app/dashboard/assigned-therapist-select"
+import { listAssignableTherapists } from "@/app/dashboard/patients/actions"
 import { toast } from "@/components/ui/toaster"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import type { ClinicTherapistOption } from "@/lib/clinics/types"
 import {
   emptyAssignmentScopeMessage,
   emptyFilterMessage,
@@ -26,16 +26,15 @@ export function PatientList({
   patients,
   filter,
   currentTherapistId,
-  therapists,
 }: {
   patients: PatientListItem[]
   filter: PatientListFilter
   currentTherapistId: string
-  therapists: ClinicTherapistOption[]
 }) {
   const [query, setQuery] = useState("")
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [scope, setScope] = useState<PatientAssignmentScope>("mine")
+  const [therapists, setTherapists] = useState<Array<{ user_id: string; therapist_name: string }>>([])
 
   useEffect(() => {
     try {
@@ -45,6 +44,18 @@ export function PatientList({
       }
     } catch {
       // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void listAssignableTherapists().then((result) => {
+      if (!cancelled) {
+        setTherapists(result.therapists)
+      }
+    })
+    return () => {
+      cancelled = true
     }
   }, [])
 

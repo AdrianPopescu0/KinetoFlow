@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { createClient } from "@/utils/supabase/server"
-import { listClinicMemberUserIds, privilegedClinicClient, shareClinicName } from "@/lib/clinics/members"
+import { listClinicMemberUserIds, privilegedClinicClient } from "@/lib/clinics/members"
 import { clinicIdFromUser } from "@/lib/clinics/profile"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
@@ -277,34 +277,57 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
   return { error: null, token: null, updatedAt: stamp }
 }
 
+export async function listAssignableTherapists(): Promise<{
+  therapists: Array<{ user_id: string; therapist_name: string }>
+}> {
+  const { supabase, user } = await requireUser()
+  if (!user) {
+    return { therapists: [] }
+  }
+
+  const client = await privilegedClinicClient(supabase)
+  const { data: me } = await client
+    .from("clinic_profiles")
+    .select("clinic_name")
+    .eq("user_id", user.id)
+    .maybeSingle()
+
+  const clinicName = String(me?.clinic_name ?? "").trim()
+  if (!clinicName) {
+    return { therapists: [] }
+  }
+
+  const { data } = await client
+    .from("clinic_profiles")
+    .select("user_id, therapist_name")
+    .eq("clinic_name", clinicName)
+
+  return {
+    therapists: (data ?? [])
+      .filter((row) => typeof row.user_id === "string" && row.user_id.length > 0)
+      .map((row) => ({
+        user_id: String(row.user_id),
+        therapist_name:
+          typeof row.therapist_name === "string" && row.therapist_name.trim().length > 0
+            ? row.therapist_name.trim()
+            : "Terapeut",
+      })),
+  }
+}
+
 export async function assignPatientTherapist(
   patientId: string,
-  therapistId: string | null,
+  assignedTherapistId: string | null,
 ): Promise<{ error: string | null }> {
   const { supabase, user } = await requireUser()
   if (!user) {
     return { error: "Sesiunea a expirat. Autentifică-te din nou." }
   }
 
-  if (therapistId) {
-    const sameClinic = await shareClinicName(supabase, user.id, therapistId)
-    if (!sameClinic) {
-      return { error: "Terapeutul ales nu este disponibil în acest cabinet." }
-    }
-  }
-
-  const memberIds = await listClinicMemberUserIds(supabase, user.id)
-  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id, therapist_id")
-  if (!owned.data) {
-    return { error: "Pacientul nu a fost găsit." }
-  }
-
-  const client = await privilegedClinicClient(supabase)
-  const { error } = await client
+  const { error } = await supabase
     .from("patients")
-    .update({ assigned_therapist_id: therapistId })
+    .update({ assigned_therapist_id: assignedTherapistId })
     .eq("id", patientId)
-    .in("therapist_id", memberIds)
 
   if (error) {
     return { error: error.message }
