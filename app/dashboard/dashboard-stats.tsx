@@ -3,6 +3,7 @@
 import { Activity, AlertTriangle, ClipboardCheck, Users } from "lucide-react"
 
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
+import { formatCompliancePercent } from "@/lib/patients/compliance"
 import type { PatientListFilter } from "@/lib/patients/dashboard-filter"
 import type { DashboardStats as DashboardStatsData } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
@@ -33,7 +34,9 @@ export function DashboardStats({
       {CARDS.map((card) => {
         const Icon = card.icon
         const value =
-          card.statKey === "compliancePercent" ? `${stats[card.statKey]}%` : String(stats[card.statKey])
+          card.statKey === "compliancePercent"
+            ? formatCompliancePercent(stats[card.statKey])
+            : String(stats[card.statKey])
         const selected = filter === card.key && card.key !== "all"
 
         return (

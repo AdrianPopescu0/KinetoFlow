@@ -2,6 +2,7 @@ import { cache } from "react"
 
 import { getCachedUser } from "@/lib/auth/session"
 import { clinicIdFromUser } from "@/lib/clinics/profile"
+import { sevenDayCompliancePercent } from "@/lib/patients/compliance"
 import { startOfTodayIso } from "@/lib/patients/display"
 import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
 import type {
@@ -167,7 +168,7 @@ async function assemblePatientList(
       activePatients: list.length,
       checkInsToday,
       painAlerts,
-      compliancePercent: list.length === 0 ? 0 : Math.round((compliant / list.length) * 100),
+      compliancePercent: sevenDayCompliancePercent(compliant, list.length),
     },
     error: null,
     needsMigration: false,
