@@ -83,7 +83,7 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
     const { data: existingPhone } = await admin
       .from("clinic_profiles")
       .select("user_id")
-      .eq("clinic_name", clinicName)
+      .ilike("clinic_name", clinicName)
       .eq("phone", phone)
       .maybeSingle()
 

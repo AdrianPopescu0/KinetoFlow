@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { InviteTherapistDialog } from "@/app/dashboard/echipa/invite-therapist-dialog"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { getCachedUser } from "@/lib/auth/session"
+import { privilegedClinicClient } from "@/lib/clinics/members"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
 import { isClinicAdmin } from "@/lib/clinics/types"
 
@@ -21,11 +22,22 @@ export default async function ClinicTeamPage() {
     redirect("/dashboard")
   }
 
-  const { data: members } = await supabase
+  // Service role evită ca o politică RLS veche să ascundă colegii. `ilike`
+  // tratează identic nume precum „KInetoKlinik” și „KinetoKlinik”.
+  const clinicClient = await privilegedClinicClient(supabase)
+  const { data: memberRows } = await clinicClient
     .from("clinic_profiles")
-    .select("user_id, therapist_name, phone, role")
-    .eq("clinic_name", profile.clinic_name)
+    .select("user_id, clinic_name, therapist_name, phone, role")
+    .ilike("clinic_name", profile.clinic_name.trim())
     .order("therapist_name", { ascending: true })
+
+  const normalizedClinicName = profile.clinic_name.trim().toLocaleLowerCase("ro-RO")
+  const members = (memberRows ?? []).filter(
+    (member) =>
+      typeof member.user_id === "string" &&
+      String(member.clinic_name ?? "").trim().toLocaleLowerCase("ro-RO") === normalizedClinicName &&
+      (member.role === "admin" || member.role === "therapist"),
+  )
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-8">
