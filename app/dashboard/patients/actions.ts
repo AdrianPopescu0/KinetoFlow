@@ -190,15 +190,25 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
   }
 
   const clinicId = clinicIdFromUser(user)
+  const payload: {
+    full_name: string
+    email: string | null
+    phone: string
+    diagnosis: string | null
+    clinical_notes?: string | null
+  } = {
+    full_name: fullName,
+    email,
+    phone,
+    diagnosis: readOptional(formData, "diagnosis"),
+  }
+  if (formData.has("clinical_notes")) {
+    payload.clinical_notes = readOptional(formData, "clinical_notes")
+  }
+
   const { error } = await supabase
     .from("patients")
-    .update({
-      full_name: fullName,
-      email,
-      phone,
-      diagnosis: readOptional(formData, "diagnosis"),
-      clinical_notes: readOptional(formData, "clinical_notes"),
-    })
+    .update(payload)
     .eq("id", patientId)
     .eq("clinic_id", clinicId)
 
@@ -206,10 +216,10 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
     await supabase
       .from("patients")
       .update({
-        full_name: fullName,
-        email,
-        phone,
-        diagnosis: readOptional(formData, "diagnosis"),
+        full_name: payload.full_name,
+        email: payload.email,
+        phone: payload.phone,
+        diagnosis: payload.diagnosis,
       })
       .eq("id", patientId)
       .eq("user_id", user.id)

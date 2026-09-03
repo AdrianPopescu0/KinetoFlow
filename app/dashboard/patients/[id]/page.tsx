@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 
 import { CopyAccessLink } from "@/app/dashboard/patients/copy-access-link"
+import { ClinicalNotesEditor } from "@/app/dashboard/patients/clinical-notes-editor"
 import { ExerciseManager } from "@/app/dashboard/patients/exercise-manager"
 import { PatientFileActions } from "@/app/dashboard/patients/patient-file-actions"
 import { VasChart } from "@/app/dashboard/patients/vas-chart"
@@ -46,14 +47,21 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
                   Cod acces: {patient.access_code}
                 </p>
               ) : null}
-              {patient.clinical_notes ? (
-                <p className="mt-3 max-w-2xl text-sm text-slate-700">{patient.clinical_notes}</p>
-              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <CopyAccessLink token={patient.token} />
               <PatientFileActions patient={patient} />
             </div>
+          </div>
+        </section>
+
+        <section className={surfaceCardClassName("p-5")}>
+          <h2 className="text-base font-semibold text-slate-800">Notițe clinice</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Fișa de tratament se salvează automat în draft local la fiecare 5 secunde, apoi pe server când ești gata.
+          </p>
+          <div className="mt-4">
+            <ClinicalNotesEditor patientId={patient.id} serverNotes={patient.clinical_notes} />
           </div>
         </section>
 

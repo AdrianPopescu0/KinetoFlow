@@ -8,7 +8,6 @@ import { deletePatient, updatePatient } from "@/app/dashboard/patients/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
 import type { PatientRecord } from "@/lib/patients/types-db"
 
@@ -24,6 +23,9 @@ export function PatientFileActions({ patient }: { patient: PatientRecord }) {
       const result = await updatePatient(patient.id, formData)
       if (result.error) {
         setError(result.error)
+        if (result.error.toLowerCase().includes("expirat")) {
+          toast("Sesiunea a expirat. Datele din formular rămân pe ecran.", 8000)
+        }
         return
       }
       toast("Fișa pacientului a fost actualizată.")
@@ -99,15 +101,6 @@ export function PatientFileActions({ patient }: { patient: PatientRecord }) {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-diagnosis">Diagnostic</Label>
                 <Input id="edit-diagnosis" name="diagnosis" defaultValue={patient.diagnosis ?? ""} className="h-11" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="edit-notes">Note clinice</Label>
-                <Textarea
-                  id="edit-notes"
-                  name="clinical_notes"
-                  defaultValue={patient.clinical_notes ?? ""}
-                  className="min-h-20"
-                />
               </div>
               {error ? <p className="text-sm text-red-700">{error}</p> : null}
               <div className="flex justify-end gap-2">
