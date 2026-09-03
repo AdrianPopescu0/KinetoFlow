@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache"
 
 import { getCachedUser } from "@/lib/auth/session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
+import { newTherapistTechnicalEmail, randomAccountPassword } from "@/lib/clinics/technical-email"
 import { isClinicAdmin } from "@/lib/clinics/types"
 import { ForbiddenError } from "@/lib/http/forbidden"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
-import { publicSiteUrl } from "@/lib/patients/whatsapp"
+import { patientWhatsAppHref, publicSiteUrl } from "@/lib/patients/whatsapp"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
@@ -15,7 +16,9 @@ export type InviteTherapistState = {
   error?: string
   status?: number
   ok?: boolean
-  invitedEmail?: string
+  therapistName?: string
+  inviteLink?: string
+  whatsappHref?: string
 }
 
 function readTrimmed(formData: FormData, key: string): string {
@@ -23,24 +26,47 @@ function readTrimmed(formData: FormData, key: string): string {
   return typeof value === "string" ? value.trim() : ""
 }
 
+function therapistInviteMessage(input: {
+  therapistName: string
+  clinicName: string
+  inviteLink: string
+}): string {
+  const firstName = input.therapistName.trim().split(/\s+/)[0] ?? input.therapistName
+  return [
+    `Salut ${firstName}! Te-am adăugat în echipa clinicii ${input.clinicName} pe KinetoFlow.`,
+    "Activează-ți accesul (un tap, fără email) de pe acest link unic:",
+    input.inviteLink,
+  ].join("\n")
+}
+
+function extractActionLink(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") {
+    return null
+  }
+  const record = payload as {
+    properties?: { action_link?: string }
+    action_link?: string
+  }
+  if (typeof record.properties?.action_link === "string" && record.properties.action_link.length > 0) {
+    return record.properties.action_link
+  }
+  if (typeof record.action_link === "string" && record.action_link.length > 0) {
+    return record.action_link
+  }
+  return null
+}
+
 export async function inviteTherapistAction(formData: FormData): Promise<InviteTherapistState> {
   const therapistName = readTrimmed(formData, "therapist_name")
-  const email = readTrimmed(formData, "email").toLowerCase()
   const phoneRaw = readTrimmed(formData, "phone")
 
   if (therapistName.length < 2) {
-    return { error: "Introdu numele terapeutului." }
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { error: "Email-ul nu pare valid." }
+    return { error: "Introdu numele complet al terapeutului." }
   }
 
-  let phone: string | null = null
-  if (phoneRaw.length > 0) {
-    phone = normalizeStoredPhone(phoneRaw)
-    if (!phone) {
-      return { error: "Numărul de telefon nu este valid. Folosește un format românesc, de exemplu 07xx xxx xxx." }
-    }
+  const phone = normalizeStoredPhone(phoneRaw)
+  if (!phone) {
+    return { error: "Numărul de telefon este obligatoriu (format 07xx sau +40)." }
   }
 
   const { supabase, user } = await getCachedUser()
@@ -60,40 +86,65 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
   }
 
   const clinicId = profile.clinic_id
+  const technicalEmail = newTherapistTechnicalEmail(therapistName)
   const redirectTo = `${publicSiteUrl()}/auth/callback?next=/dashboard`
 
   try {
     const admin = createServiceRoleClient()
-    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: {
-        full_name: therapistName,
-        clinic_name: profile.clinic_name,
-        clinic_id: clinicId,
-        phone: phone ?? "",
-        invited_by: user.id,
-      },
-      redirectTo,
-    })
 
-    if (inviteError || !invited.user) {
-      const message = inviteError?.message ?? "Nu am putut trimite invitația."
-      if (message.toLowerCase().includes("already") || message.toLowerCase().includes("registered")) {
-        return { error: "Există deja un cont cu acest email." }
-      }
-      return { error: inviteError ? formatSupabaseError(inviteError) : message }
+    const { data: existingPhone } = await admin
+      .from("clinic_profiles")
+      .select("user_id")
+      .eq("clinic_id", clinicId)
+      .eq("phone", phone)
+      .maybeSingle()
+
+    if (existingPhone) {
+      return { error: "Există deja un terapeut cu acest număr de telefon în cabinet." }
     }
 
-    const invitedUserId = invited.user.id
-
-    await admin.auth.admin.updateUserById(invitedUserId, {
-      app_metadata: { clinic_id: clinicId },
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email: technicalEmail,
+      password: randomAccountPassword(),
+      email_confirm: true,
       user_metadata: {
         full_name: therapistName,
         clinic_name: profile.clinic_name,
         clinic_id: clinicId,
-        phone: phone ?? "",
+        phone,
+        invited_by: user.id,
+        role: "therapist",
+      },
+      app_metadata: {
+        clinic_id: clinicId,
+        role: "therapist",
       },
     })
+
+    if (createError || !created.user) {
+      return { error: createError ? formatSupabaseError(createError) : "Nu am putut crea contul terapeutului." }
+    }
+
+    const invitedUserId = created.user.id
+
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email: technicalEmail,
+      options: { redirectTo },
+    })
+
+    let inviteLink = extractActionLink(linkData)
+    if (linkError || !inviteLink) {
+      const recovery = await admin.auth.admin.generateLink({
+        type: "recovery",
+        email: technicalEmail,
+        options: { redirectTo },
+      })
+      inviteLink = extractActionLink(recovery.data)
+      if (!inviteLink) {
+        return { error: linkError ? formatSupabaseError(linkError) : "Nu am putut genera linkul de acces." }
+      }
+    }
 
     const { error: insertError } = await admin.from("clinic_profiles").insert({
       user_id: invitedUserId,
@@ -107,6 +158,22 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
     if (insertError) {
       return { error: formatSupabaseError(insertError) }
     }
+
+    const message = therapistInviteMessage({
+      therapistName,
+      clinicName: profile.clinic_name,
+      inviteLink,
+    })
+    const whatsappHref = patientWhatsAppHref(phone, message)
+
+    revalidatePath("/dashboard")
+    revalidatePath("/dashboard/echipa")
+    return {
+      ok: true,
+      therapistName,
+      inviteLink,
+      whatsappHref: whatsappHref ?? undefined,
+    }
   } catch (error) {
     if (error instanceof ForbiddenError) {
       throw error
@@ -117,8 +184,4 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
     }
     return { error: message }
   }
-
-  revalidatePath("/dashboard")
-  revalidatePath("/dashboard/echipa")
-  return { ok: true, invitedEmail: email }
 }
