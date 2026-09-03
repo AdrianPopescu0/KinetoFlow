@@ -24,10 +24,11 @@ export async function selectOwnPatients<T = Record<string, unknown>>(
   const memberIds = await listClinicMemberUserIds(supabase, userId)
   const client = await privilegedClinicClient(supabase)
 
+  const idList = memberIds.join(",")
   const byTherapist = await client
     .from("patients")
     .select(columns)
-    .in("therapist_id", memberIds)
+    .or(`therapist_id.in.(${idList}),assigned_therapist_id.in.(${idList})`)
     .order("created_at", { ascending: false })
 
   if (!byTherapist.error) {
@@ -59,11 +60,12 @@ export async function getOwnPatientRow(
   const memberIds = await listClinicMemberUserIds(supabase, userId)
   const client = await privilegedClinicClient(supabase)
 
+  const idList = memberIds.join(",")
   const byTherapist = await client
     .from("patients")
     .select(columns)
     .eq("id", patientId)
-    .in("therapist_id", memberIds)
+    .or(`therapist_id.in.(${idList}),assigned_therapist_id.in.(${idList})`)
     .maybeSingle()
 
   if (!byTherapist.error) {

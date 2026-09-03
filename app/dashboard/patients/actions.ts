@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache"
 
 import { createClient } from "@/utils/supabase/server"
-import { listClinicMemberUserIds, privilegedClinicClient } from "@/lib/clinics/members"
+import {
+  listClinicMemberProfiles,
+  listClinicMemberUserIds,
+  privilegedClinicClient,
+} from "@/lib/clinics/members"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
@@ -282,34 +286,13 @@ export async function listAssignableTherapists(): Promise<{
     return { therapists: [] }
   }
 
-  const { data: currentProfile } = await supabase
-    .from("clinic_profiles")
-    .select("clinic_name")
-    .eq("user_id", user.id)
-    .maybeSingle()
-
-  const clinicName = String(currentProfile?.clinic_name ?? "").trim()
-  if (!clinicName) {
-    return { therapists: [] }
-  }
-
-  const { data } = await supabase
-    .from("clinic_profiles")
-    .select("user_id, therapist_name")
-    .eq("clinic_name", clinicName)
-    .order("therapist_name", { ascending: true })
-
-  return {
-    therapists: (data ?? [])
-      .filter((therapist) => typeof therapist.user_id === "string" && therapist.user_id.length > 0)
-      .map((therapist) => ({
-        user_id: String(therapist.user_id),
-        therapist_name:
-          typeof therapist.therapist_name === "string" && therapist.therapist_name.trim().length > 0
-            ? therapist.therapist_name.trim()
-            : "Terapeut",
-      })),
-  }
+  const therapists = await listClinicMemberProfiles(supabase, user.id)
+  console.log("[assign] listAssignableTherapists", {
+    userId: user.id,
+    count: therapists.length,
+    therapists,
+  })
+  return { therapists }
 }
 
 export async function assignPatientTherapist(
@@ -326,13 +309,28 @@ export async function assignPatientTherapist(
     ? { assigned_therapist_id: targetUserId, therapist_id: targetUserId }
     : { assigned_therapist_id: null }
 
-  const { error } = await client.from("patients").update(payload).eq("id", patientId)
+  console.log("[assign] input", { patientId, targetUserId, actor: user.id, payload })
+
+  const { data, error } = await client
+    .from("patients")
+    .update(payload)
+    .eq("id", patientId)
+    .select("id, therapist_id, assigned_therapist_id")
+
+  console.log("[assign] result", { rows: data, error })
 
   if (error) {
     return { error: error.message }
   }
 
+  if (!data || data.length === 0) {
+    return {
+      error: "Update-ul nu a atins niciun rând. Verifică dacă pacientul mai există în baza de date.",
+    }
+  }
+
   revalidatePath("/dashboard")
+  revalidatePath("/dashboard/patients")
   revalidatePath(`/dashboard/patients/${patientId}`)
   return { error: null }
 }

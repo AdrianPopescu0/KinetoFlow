@@ -28,6 +28,11 @@ export async function clinicNameForUser(
   return String(me?.clinic_name ?? "").trim()
 }
 
+/** Numele de cabinet e comparat fără diacritice de caz: „KinetoKlinik” = „KInetoKlinik”. */
+function normalizeClinicName(value: unknown): string {
+  return String(value ?? "").trim().toLocaleLowerCase("ro-RO")
+}
+
 export async function listClinicMemberProfiles(
   supabase: SupabaseClient,
   userId: string,
@@ -41,30 +46,13 @@ export async function listClinicMemberProfiles(
   const { data } = await client
     .from("clinic_profiles")
     .select("user_id, therapist_name, clinic_name")
+    .ilike("clinic_name", clinicName)
     .order("therapist_name", { ascending: true })
 
+  const wanted = normalizeClinicName(clinicName)
   const members = (data ?? []).filter(
-    (row) =>
-      typeof row.user_id === "string" &&
-      String(row.clinic_name ?? "").trim() === clinicName,
+    (row) => typeof row.user_id === "string" && normalizeClinicName(row.clinic_name) === wanted,
   )
-
-  if (members.length === 0) {
-    const { data: exact } = await client
-      .from("clinic_profiles")
-      .select("user_id, therapist_name, clinic_name")
-      .eq("clinic_name", clinicName)
-      .order("therapist_name", { ascending: true })
-    return (exact ?? [])
-      .filter((row) => typeof row.user_id === "string")
-      .map((row) => ({
-        user_id: String(row.user_id),
-        therapist_name:
-          typeof row.therapist_name === "string" && row.therapist_name.trim().length > 0
-            ? row.therapist_name.trim()
-            : "Terapeut",
-      }))
-  }
 
   return members.map((row) => ({
     user_id: String(row.user_id),
