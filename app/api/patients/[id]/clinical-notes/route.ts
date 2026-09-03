@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { revalidatePath } from "next/cache"
 
+import { listClinicMemberUserIds, privilegedClinicClient } from "@/lib/clinics/members"
 import { clinicIdFromUser } from "@/lib/clinics/profile"
 import { fetchPatientFileSnapshot, isWriteConflict } from "@/lib/patients/optimistic"
 import { createClient } from "@/utils/supabase/server"
@@ -57,11 +58,14 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const trimmed = notes.trim().length > 0 ? notes : null
-  let update = supabase
+  const memberIds = await listClinicMemberUserIds(supabase, user.id)
+  const client = await privilegedClinicClient(supabase)
+
+  let update = client
     .from("patients")
     .update({ clinical_notes: trimmed })
     .eq("id", patientId)
-    .eq("clinic_id", clinicId)
+    .in("therapist_id", memberIds)
 
   if (!forceOverwrite && expected && snapshot.updated_at) {
     update = update.eq("updated_at", snapshot.updated_at)
@@ -77,11 +81,11 @@ export async function PATCH(request: Request, context: RouteContext) {
       }
     }
 
-    const fallback = await supabase
+    const fallback = await client
       .from("patients")
       .update({ clinical_notes: trimmed })
       .eq("id", patientId)
-      .eq("user_id", user.id)
+      .in("therapist_id", memberIds)
       .select("id, updated_at")
 
     if (fallback.error) {

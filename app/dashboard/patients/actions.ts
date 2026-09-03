@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache"
 
 import { createClient } from "@/utils/supabase/server"
-import { clinicIdFromUser, fetchClinicProfile } from "@/lib/clinics/profile"
+import { listClinicMemberUserIds, privilegedClinicClient, shareClinicName } from "@/lib/clinics/members"
+import { clinicIdFromUser } from "@/lib/clinics/profile"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
@@ -226,7 +227,10 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
     payload.clinical_notes = readOptional(formData, "clinical_notes")
   }
 
-  let update = supabase.from("patients").update(payload).eq("id", patientId).eq("clinic_id", clinicId)
+  const memberIds = await listClinicMemberUserIds(supabase, user.id)
+  const client = await privilegedClinicClient(supabase)
+
+  let update = client.from("patients").update(payload).eq("id", patientId).in("therapist_id", memberIds)
   if (!forceOverwrite && expectedUpdatedAt && snapshot.updated_at) {
     update = update.eq("updated_at", snapshot.updated_at)
   }
@@ -241,7 +245,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
       }
     }
 
-    const fallback = await supabase
+    const fallback = await client
       .from("patients")
       .update({
         full_name: payload.full_name,
@@ -250,7 +254,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
         diagnosis: payload.diagnosis,
       })
       .eq("id", patientId)
-      .eq("user_id", user.id)
+      .in("therapist_id", memberIds)
       .select("id, updated_at")
 
     if (fallback.error) {
@@ -282,31 +286,25 @@ export async function assignPatientTherapist(
     return { error: "Sesiunea a expirat. Autentifică-te din nou." }
   }
 
-  if (therapistId && therapistId !== user.id) {
-    const { profile: actor } = await fetchClinicProfile(supabase, user.id)
-    const clinicName = actor?.clinic_name?.trim()
-    const { data: profile } = await supabase
-      .from("clinic_profiles")
-      .select("user_id")
-      .eq("user_id", therapistId)
-      .eq("clinic_name", clinicName ?? "")
-      .maybeSingle()
-    if (!profile || !clinicName) {
+  if (therapistId) {
+    const sameClinic = await shareClinicName(supabase, user.id, therapistId)
+    if (!sameClinic) {
       return { error: "Terapeutul ales nu este disponibil în acest cabinet." }
     }
   }
 
-  const clinicId = clinicIdFromUser(user)
-  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id", clinicId)
+  const memberIds = await listClinicMemberUserIds(supabase, user.id)
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id, therapist_id")
   if (!owned.data) {
     return { error: "Pacientul nu a fost găsit." }
   }
 
-  const { error } = await supabase
+  const client = await privilegedClinicClient(supabase)
+  const { error } = await client
     .from("patients")
     .update({ assigned_therapist_id: therapistId })
     .eq("id", patientId)
-    .eq("clinic_id", clinicId)
+    .in("therapist_id", memberIds)
 
   if (error) {
     return { error: error.message }
@@ -323,29 +321,20 @@ export async function deletePatient(patientId: string): Promise<{ error: string 
     return { error: "Sesiunea a expirat. Autentifică-te din nou." }
   }
 
-  const clinicId = clinicIdFromUser(user)
-  const { data, error } = await supabase
+  const memberIds = await listClinicMemberUserIds(supabase, user.id)
+  const client = await privilegedClinicClient(supabase)
+  const { data, error } = await client
     .from("patients")
     .delete()
     .eq("id", patientId)
-    .eq("clinic_id", clinicId)
+    .in("therapist_id", memberIds)
     .select("id")
 
   if (error) {
-    const fallback = await supabase
-      .from("patients")
-      .delete()
-      .eq("id", patientId)
-      .eq("user_id", user.id)
-      .select("id")
-    if (fallback.error) {
-      return { error: fallback.error.message }
-    }
-    if (!fallback.data || fallback.data.length === 0) {
-      return { error: "Pacientul nu a fost șters. Nu aparține acestui cabinet." }
-    }
-  } else if (!data || data.length === 0) {
-    return { error: "Pacientul nu a fost șters. Verifică dacă ești autentificat și dacă politica DELETE este activă." }
+    return { error: error.message }
+  }
+  if (!data || data.length === 0) {
+    return { error: "Pacientul nu a fost șters. Nu aparține acestui cabinet." }
   }
 
   revalidatePath("/dashboard")

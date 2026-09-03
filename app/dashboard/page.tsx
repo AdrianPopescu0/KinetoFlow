@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { AddPatientDialog } from "@/app/dashboard/add-patient-dialog"
 import { DashboardOverview } from "@/app/dashboard/dashboard-overview"
 import { getCachedUser } from "@/lib/auth/session"
-import { listClinicTherapists } from "@/lib/clinics/profile"
+import { listClinicTherapistOptions } from "@/lib/clinics/members"
 import { listTherapistPatients } from "@/lib/patients/queries"
 
 export const metadata: Metadata = {
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const { patients, stats, error, needsMigration } = await listTherapistPatients()
   const { supabase, user } = await getCachedUser()
-  const therapists = user ? await listClinicTherapists(supabase, user) : []
+  const therapists = user ? await listClinicTherapistOptions(supabase, user) : []
   const currentTherapistId = user?.id ?? ""
 
   return (

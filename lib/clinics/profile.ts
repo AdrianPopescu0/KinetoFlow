@@ -10,14 +10,22 @@ export async function fetchClinicProfile(
 ): Promise<{ profile: ClinicProfile | null; error: string | null }> {
   const { data, error } = await supabase
     .from("clinic_profiles")
-    .select("id, user_id, clinic_name, therapist_name, phone, role")
+    .select("id, user_id, clinic_name, therapist_name, role")
     .eq("user_id", therapistId)
     .maybeSingle()
 
   if (error) {
+    const withPhone = await supabase
+      .from("clinic_profiles")
+      .select("id, user_id, clinic_name, therapist_name, phone, role")
+      .eq("user_id", therapistId)
+      .maybeSingle()
+    if (!withPhone.error && withPhone.data) {
+      return { profile: mapClinicProfile(withPhone.data as Record<string, unknown>, therapistId), error: null }
+    }
     const fallback = await supabase
       .from("clinic_profiles")
-      .select("user_id, clinic_name, therapist_name, phone")
+      .select("user_id, clinic_name, therapist_name")
       .eq("user_id", therapistId)
       .maybeSingle()
     if (fallback.error) {
