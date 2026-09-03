@@ -8,7 +8,7 @@ import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
 import { isEnergyLevel, isSleepQuality } from "@/lib/patients/types"
-import { composeExerciseNotes, isWeekdayId, type WeekdayId } from "@/lib/exercises/schedule"
+import { composeIntervalExerciseNotes, isDateKey } from "@/lib/exercises/schedule"
 import { startOfTodayIso, startOfTomorrowIso } from "@/lib/time/bucharest"
 import {
   patientAccessUrl,
@@ -388,15 +388,15 @@ export type AssignableExerciseInput = {
 export async function assignExercisesBatch(
   patientId: string,
   exercises: AssignableExerciseInput[],
-  days: string[],
+  interval: { startDate: string; endDate: string },
 ): Promise<{ error: string | null; inserted: number }> {
   if (!patientId || exercises.length === 0) {
     return { error: "Selectează cel puțin un exercițiu.", inserted: 0 }
   }
 
-  const weekdayIds = days.filter(isWeekdayId) as WeekdayId[]
-  if (weekdayIds.length === 0) {
-    return { error: "Selectează cel puțin o zi din săptămână.", inserted: 0 }
+  const { startDate, endDate } = interval
+  if (!isDateKey(startDate) || !isDateKey(endDate) || startDate > endDate) {
+    return { error: "Alege un interval de tratament valid.", inserted: 0 }
   }
 
   const { supabase, user } = await requireUser()
@@ -422,7 +422,7 @@ export async function assignExercisesBatch(
         video_url: exercise.videoUrl?.trim() || null,
         sets: typeof exercise.sets === "number" && Number.isFinite(exercise.sets) ? exercise.sets : null,
         reps: typeof exercise.reps === "number" && Number.isFinite(exercise.reps) ? exercise.reps : null,
-        notes: composeExerciseNotes(String(exercise.description ?? ""), weekdayIds),
+        notes: composeIntervalExerciseNotes(String(exercise.description ?? ""), startDate, endDate),
       }
     })
     .filter((row): row is NonNullable<typeof row> => row !== null)
