@@ -69,7 +69,7 @@ async function currentTherapist() {
   return {
     supabase,
     userId: user?.id ?? null,
-    clinicId: user ? clinicIdFromUser(user) : null,
+    clinicId: user?.id ?? null,
   }
 }
 
