@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
+import { InviteTherapistDialog } from "@/app/dashboard/echipa/invite-therapist-dialog"
 import { logout } from "@/app/dashboard/actions"
 import { Logo } from "@/components/Logo"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
@@ -13,12 +14,14 @@ type DashboardHeaderProps = {
   email?: string
   displayName: string
   clinicName?: string
+  isAdmin?: boolean
 }
 
-export function DashboardHeader({ email, displayName, clinicName }: DashboardHeaderProps) {
+export function DashboardHeader({ email, displayName, clinicName, isAdmin = false }: DashboardHeaderProps) {
   const pathname = usePathname()
   const patientsActive = pathname === "/dashboard" || pathname.startsWith("/dashboard/patients")
   const exercisesActive = pathname.startsWith("/dashboard/exercises")
+  const teamActive = pathname.startsWith("/dashboard/echipa")
   const label = clinicName ? `${displayName} · ${clinicName}` : displayName
 
   return (
@@ -35,9 +38,20 @@ export function DashboardHeader({ email, displayName, clinicName }: DashboardHea
             <NavLink href="/dashboard/exercises" active={exercisesActive}>
               Bibliotecă
             </NavLink>
+            {isAdmin ? (
+              <NavLink href="/dashboard/echipa" active={teamActive}>
+                Echipă
+              </NavLink>
+            ) : null}
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          {isAdmin ? (
+            <InviteTherapistDialog
+              triggerLabel="Adaugă Terapeut"
+              triggerClassName="border-white/20 bg-white text-[#042f2e] hover:bg-teal-50"
+            />
+          ) : null}
           <p className="hidden max-w-[16rem] truncate text-sm text-teal-50/85 lg:block" title={email}>
             {label}
           </p>
@@ -60,6 +74,11 @@ export function DashboardHeader({ email, displayName, clinicName }: DashboardHea
         <NavLink href="/dashboard/exercises" active={exercisesActive}>
           Bibliotecă
         </NavLink>
+        {isAdmin ? (
+          <NavLink href="/dashboard/echipa" active={teamActive}>
+            Echipă
+          </NavLink>
+        ) : null}
       </nav>
     </header>
   )

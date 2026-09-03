@@ -63,7 +63,7 @@ Tabele: `patients` (token UUID unic pentru `/patient/[token]`), `exercises` (pro
 
 Fișa clinică: `/dashboard/patients/[id]`. La salvare, aplicația compară `updated_at` cu momentul deschiderii ecranului; dacă altcineva a modificat fișa, terapeutul e avertizat și poate reîncărca datele. Rulează `supabase/migrations/009_patients_updated_at.sql`. Asignare terapeut: `010_assigned_therapist.sql` (`assigned_therapist_id`). Note clinice: `002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
-Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql` în SQL Editor. Coloane: `user_id` (= `auth.uid()`), `clinic_name`, `therapist_name`, `phone`. Fără rând în `clinic_profiles`, terapeutul e redirecționat la `/onboarding`.
+Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql` în SQL Editor. Coloane: `user_id` (= `auth.uid()`), `clinic_name`, `therapist_name`, `phone`, `role` (`admin` | `therapist`), `clinic_id`. Invitare colegi: `011_clinic_roles.sql`. Fără rând în `clinic_profiles`, terapeutul e redirecționat la `/onboarding`. Doar `admin` vede Administrare Echipă și butonul „Adaugă Terapeut”.
 
 Formularul de suport din footer: rulează `supabase/migrations/007_support_tickets.sql`. Tabela `support_tickets` (id, name, contact, message, created_at, status) primește inserări publice; citirea nu e permisă din aplicație. După salvare, serverul trimite o notificare prin [Resend](https://resend.com) către `SUPPORT_NOTIFY_EMAIL` (implicit `kinetic01flow@gmail.com`). Fără `RESEND_API_KEY`, tichetul se salvează oricum; utilizatorul vede confirmarea chiar dacă emailul eșuează.
 

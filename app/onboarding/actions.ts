@@ -56,9 +56,11 @@ export async function saveClinicProfile(formData: FormData): Promise<OnboardingS
 
   const row = {
     user_id: user.id,
+    clinic_id: user.id,
     clinic_name: clinicName,
     therapist_name: therapistName,
     phone,
+    role: "admin" as const,
   }
 
   const { error: writeError } = await supabase
@@ -68,7 +70,22 @@ export async function saveClinicProfile(formData: FormData): Promise<OnboardingS
     .maybeSingle()
 
   if (writeError) {
-    return { error: formatSupabaseError(writeError) }
+    const legacy = await supabase
+      .from("clinic_profiles")
+      .upsert(
+        {
+          user_id: user.id,
+          clinic_name: clinicName,
+          therapist_name: therapistName,
+          phone,
+        },
+        { onConflict: "user_id" },
+      )
+      .select("user_id")
+      .maybeSingle()
+    if (legacy.error) {
+      return { error: formatSupabaseError(writeError) }
+    }
   }
 
   await supabase.auth.updateUser({
