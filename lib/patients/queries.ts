@@ -1,6 +1,7 @@
 import { cache } from "react"
 
 import { getCachedUser } from "@/lib/auth/session"
+import { clinicIdFromUser } from "@/lib/clinics/profile"
 import { startOfTodayIso } from "@/lib/patients/display"
 import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
 import type {
@@ -53,9 +54,13 @@ function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
   }
 }
 
-async function currentTherapistId() {
+async function currentTherapist() {
   const { supabase, user } = await getCachedUser()
-  return { supabase, userId: user?.id ?? null }
+  return {
+    supabase,
+    userId: user?.id ?? null,
+    clinicId: user ? clinicIdFromUser(user) : null,
+  }
 }
 
 export const listTherapistPatients = cache(async (): Promise<{
@@ -71,18 +76,18 @@ export const listTherapistPatients = cache(async (): Promise<{
     compliancePercent: 0,
   }
 
-  const { supabase, userId } = await currentTherapistId()
-  if (!userId) {
+  const { supabase, userId, clinicId } = await currentTherapist()
+  if (!userId || !clinicId) {
     return { patients: [], stats: emptyStats, error: "Sesiunea a expirat.", needsMigration: false }
   }
 
-  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS)
+  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS, clinicId)
 
   if (error) {
-    const fallback = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS_PLAIN)
+    const fallback = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS_PLAIN, clinicId)
 
     if (fallback.error) {
-      const legacy = await selectOwnPatients(supabase, userId, PATIENT_COLUMNS_FALLBACK)
+      const legacy = await selectOwnPatients(supabase, userId, PATIENT_COLUMNS_FALLBACK, clinicId)
       if (legacy.error) {
         return {
           patients: [],
@@ -104,7 +109,7 @@ export const listTherapistPatients = cache(async (): Promise<{
 
 async function assemblePatientList(
   rawPatients: Record<string, unknown>[],
-  supabase: Awaited<ReturnType<typeof currentTherapistId>>["supabase"],
+  supabase: Awaited<ReturnType<typeof currentTherapist>>["supabase"],
 ) {
   const patients = rawPatients.map(withClinicalNotes)
   const hasEmbedded = rawPatients.some((row) => Array.isArray(row.check_ins))
@@ -175,15 +180,15 @@ export const getTherapistPatient = cache(async (id: string): Promise<{
   checkIns: CheckInRecord[]
   error: string | null
 }> => {
-  const { supabase, userId } = await currentTherapistId()
-  if (!userId) {
+  const { supabase, userId, clinicId } = await currentTherapist()
+  if (!userId || !clinicId) {
     return { patient: null, exercises: [], checkIns: [], error: "Sesiunea a expirat." }
   }
 
-  const { data: patientRow, error } = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS)
+  const { data: patientRow, error } = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS, clinicId)
 
   if (error || !patientRow) {
-    const fallback = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_FALLBACK)
+    const fallback = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_FALLBACK, clinicId)
 
     if (fallback.error || !fallback.data) {
       return { patient: null, exercises: [], checkIns: [], error: "Pacientul nu a fost găsit." }
@@ -196,7 +201,7 @@ export const getTherapistPatient = cache(async (id: string): Promise<{
 })
 
 async function loadPatientRelations(
-  supabase: Awaited<ReturnType<typeof currentTherapistId>>["supabase"],
+  supabase: Awaited<ReturnType<typeof currentTherapist>>["supabase"],
   patient: PatientRecord,
 ) {
   const [{ data: exercises }, { data: checkIns }] = await Promise.all([
@@ -221,15 +226,15 @@ async function loadPatientRelations(
 }
 
 export const listTherapistPatientSummaries = cache(async () => {
-  const { supabase, userId } = await currentTherapistId()
-  if (!userId) {
+  const { supabase, userId, clinicId } = await currentTherapist()
+  if (!userId || !clinicId) {
     return [] as Array<{ id: string; fullName: string; diagnosis: string | null }>
   }
 
-  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_PICKER_COLUMNS)
+  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_PICKER_COLUMNS, clinicId)
   const rows = !error
     ? data
-    : (await selectOwnPatients(supabase, userId, "id, full_name, diagnosis")).data
+    : (await selectOwnPatients(supabase, userId, "id, full_name, diagnosis", clinicId)).data
 
   return ((rows ?? []) as Record<string, unknown>[]).map((row) => ({
     id: String(row.id),

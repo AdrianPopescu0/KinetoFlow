@@ -33,6 +33,19 @@ export function clinicReadyFromUser(user: User): boolean {
   return typeof clinicName === "string" && clinicName.trim().length > 0
 }
 
+/** Identificatorul de cabinet pentru RLS / tenancy (1 terapeut = 1 clinică). */
+export function clinicIdFromUser(user: User): string {
+  const appClaim = user.app_metadata?.clinic_id
+  const userClaim = user.user_metadata?.clinic_id
+  if (typeof appClaim === "string" && appClaim.length > 0) {
+    return appClaim
+  }
+  if (typeof userClaim === "string" && userClaim.length > 0) {
+    return userClaim
+  }
+  return user.id
+}
+
 export async function therapistHasClinicProfile(
   supabase: SupabaseClient,
   therapistId: string,

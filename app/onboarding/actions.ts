@@ -75,6 +75,7 @@ export async function saveClinicProfile(formData: FormData): Promise<OnboardingS
     data: {
       full_name: therapistName,
       clinic_name: clinicName,
+      clinic_id: user.id,
       phone,
     },
   })

@@ -58,7 +58,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 În Supabase: **SQL Editor** → lipește și rulează `supabase/migrations/001_patients.sql`.
 
-Tabele: `patients` (token UUID unic pentru `/p/[token]`), `exercises` (programul pacientului), `check_ins`. Izolare pe cabinet: `user_id = auth.uid()`. Rulează și `supabase/migrations/006_tenant_isolation.sql`. Biblioteca de exerciții din aplicație (`/dashboard/exercises`) rămâne comună; tabela `exercise_library` e doar catalog, fără date de pacient.
+Tabele: `patients` (token UUID unic pentru `/p/[token]`), `exercises` (programul pacientului), `check_ins`. Izolare pe cabinet: `clinic_id` (JWT `clinic_id` verificat față de `clinic_profiles` / `auth.uid()`). Rulează `006_tenant_isolation.sql` și `008_clinic_rls.sql`. Un terapeut autentificat are SELECT/INSERT/UPDATE/DELETE doar pe rândurile clinicii sale; nu poate citi pacienții altui cabinet. Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient.
 
 Fișa clinică: `/dashboard/patients/[id]`. Note clinice: rulează și `supabase/migrations/002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
@@ -73,6 +73,7 @@ Reguli de securitate aplicate:
 - Mesaj generic la eșec: „Email sau parolă incorectă” (fără enumerarea utilizatorilor)
 - Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori și trimite la `/onboarding` dacă lipsește `clinic_profiles`
 - Verificare `getUser()` (nu `getSession()`) pentru autorizare
+- RLS pe `patients`, `exercises` (program asignat) și `check_ins`: SELECT/INSERT/UPDATE/DELETE doar unde `clinic_id = current_clinic_id()` (JWT `clinic_id` validat față de profil; altfel `clinic_profiles` / `auth.uid()`)
 
 ## Structură relevantă
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { createClient } from "@/utils/supabase/server"
+import { clinicIdFromUser } from "@/lib/clinics/profile"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
@@ -79,8 +80,9 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
   }
 
   const accessCode = await allocateAccessCode(supabase)
+  const clinicId = clinicIdFromUser(user)
   const basePayload = {
-    ...patientTenantPayload(user.id),
+    ...patientTenantPayload(user.id, clinicId),
     full_name: fullName,
     email,
     phone,
@@ -95,7 +97,7 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     const withoutNotes = await supabase
       .from("patients")
       .insert({
-        ...patientTenantPayload(user.id),
+        ...patientTenantPayload(user.id, clinicId),
         full_name: basePayload.full_name,
         email: basePayload.email,
         phone: basePayload.phone,
@@ -186,6 +188,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
     return { error: "Sesiunea a expirat.", token: null }
   }
 
+  const clinicId = clinicIdFromUser(user)
   const { error } = await supabase
     .from("patients")
     .update({
@@ -196,7 +199,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
       clinical_notes: readOptional(formData, "clinical_notes"),
     })
     .eq("id", patientId)
-    .eq("user_id", user.id)
+    .eq("clinic_id", clinicId)
 
   if (error) {
     await supabase
@@ -208,7 +211,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
         diagnosis: readOptional(formData, "diagnosis"),
       })
       .eq("id", patientId)
-      .eq("therapist_id", user.id)
+      .eq("user_id", user.id)
   }
 
   revalidatePath("/dashboard")
@@ -222,11 +225,12 @@ export async function deletePatient(patientId: string): Promise<{ error: string 
     return { error: "Sesiunea a expirat. Autentifică-te din nou." }
   }
 
+  const clinicId = clinicIdFromUser(user)
   const { data, error } = await supabase
     .from("patients")
     .delete()
     .eq("id", patientId)
-    .eq("user_id", user.id)
+    .eq("clinic_id", clinicId)
     .select("id")
 
   if (error) {
@@ -234,7 +238,7 @@ export async function deletePatient(patientId: string): Promise<{ error: string 
       .from("patients")
       .delete()
       .eq("id", patientId)
-      .eq("therapist_id", user.id)
+      .eq("user_id", user.id)
       .select("id")
     if (fallback.error) {
       return { error: fallback.error.message }
@@ -263,7 +267,7 @@ export async function addExercise(patientId: string, formData: FormData): Promis
     return { error: "Sesiunea a expirat.", token: null }
   }
 
-  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id")
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id", clinicIdFromUser(user))
   if (!owned.data) {
     return { error: "Pacientul nu aparține acestui cabinet.", token: null }
   }
@@ -297,7 +301,7 @@ export async function deleteExercise(patientId: string, exerciseId: string): Pro
     return
   }
 
-  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id")
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id", clinicIdFromUser(user))
   if (!owned.data) {
     return
   }
