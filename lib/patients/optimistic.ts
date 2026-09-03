@@ -53,7 +53,6 @@ export async function fetchPatientFileSnapshot(
   supabase: SupabaseClient,
   userId: string,
   patientId: string,
-  _unused?: string,
 ): Promise<PatientFileSnapshot | null> {
   const stamped = await getOwnPatientRow(supabase, userId, patientId, SNAPSHOT_COLUMNS)
   if (!stamped.error && stamped.data) {

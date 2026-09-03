@@ -3,11 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { createClient } from "@/utils/supabase/server"
-import {
-  listClinicMemberProfiles,
-  listClinicMemberUserIds,
-  privilegedClinicClient,
-} from "@/lib/clinics/members"
+import { listClinicMemberUserIds, privilegedClinicClient } from "@/lib/clinics/members"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
@@ -278,23 +274,6 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
   return { error: null, token: null, updatedAt: stamp }
 }
 
-export async function listAssignableTherapists(): Promise<{
-  therapists: Array<{ user_id: string; therapist_name: string }>
-}> {
-  const { supabase, user } = await requireUser()
-  if (!user) {
-    return { therapists: [] }
-  }
-
-  const therapists = await listClinicMemberProfiles(supabase, user.id)
-  console.log("[assign] listAssignableTherapists", {
-    userId: user.id,
-    count: therapists.length,
-    therapists,
-  })
-  return { therapists }
-}
-
 export async function assignPatientTherapist(
   patientId: string,
   targetUserId: string | null,
@@ -309,15 +288,11 @@ export async function assignPatientTherapist(
     ? { assigned_therapist_id: targetUserId, therapist_id: targetUserId }
     : { assigned_therapist_id: null }
 
-  console.log("[assign] input", { patientId, targetUserId, actor: user.id, payload })
-
   const { data, error } = await client
     .from("patients")
     .update(payload)
     .eq("id", patientId)
-    .select("id, therapist_id, assigned_therapist_id")
-
-  console.log("[assign] result", { rows: data, error })
+    .select("id, assigned_therapist_id")
 
   if (error) {
     return { error: error.message }
@@ -329,9 +304,8 @@ export async function assignPatientTherapist(
     }
   }
 
-  revalidatePath("/dashboard")
-  revalidatePath("/dashboard/patients")
-  revalidatePath(`/dashboard/patients/${patientId}`)
+  // Fără revalidatePath: tabelul se actualizează optimist pe client, iar /dashboard
+  // e rută dinamică (citește cookie-urile de sesiune), deci reîncarcă date proaspete.
   return { error: null }
 }
 

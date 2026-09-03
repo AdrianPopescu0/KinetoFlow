@@ -19,7 +19,6 @@ export async function selectOwnPatients<T = Record<string, unknown>>(
   supabase: SupabaseClient,
   userId: string,
   columns: string,
-  _unused?: string,
 ): Promise<{ data: T[] | null; error: { message: string; code?: string } | null }> {
   const memberIds = await listClinicMemberUserIds(supabase, userId)
   const client = await privilegedClinicClient(supabase)
@@ -55,7 +54,6 @@ export async function getOwnPatientRow(
   userId: string,
   patientId: string,
   columns: string,
-  _unused?: string,
 ): Promise<{ data: Record<string, unknown> | null; error: { message: string; code?: string } | null }> {
   const memberIds = await listClinicMemberUserIds(supabase, userId)
   const client = await privilegedClinicClient(supabase)

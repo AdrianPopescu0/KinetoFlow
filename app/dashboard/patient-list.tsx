@@ -1,14 +1,15 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { Check, Copy, FolderOpen, Search } from "lucide-react"
 
 import { AssignedTherapistSelect } from "@/app/dashboard/assigned-therapist-select"
-import { listAssignableTherapists } from "@/app/dashboard/patients/actions"
+import { assignPatientTherapist } from "@/app/dashboard/patients/actions"
 import { toast } from "@/components/ui/toaster"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import type { ClinicTherapistOption } from "@/lib/clinics/types"
 import {
   emptyAssignmentScopeMessage,
   emptyFilterMessage,
@@ -26,15 +27,25 @@ export function PatientList({
   patients,
   filter,
   currentTherapistId,
+  therapists,
 }: {
   patients: PatientListItem[]
   filter: PatientListFilter
   currentTherapistId: string
+  therapists: ClinicTherapistOption[]
 }) {
   const [query, setQuery] = useState("")
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [scope, setScope] = useState<PatientAssignmentScope>("mine")
-  const [therapists, setTherapists] = useState<Array<{ user_id: string; therapist_name: string }>>([])
+  const [assignments, setAssignments] = useState<Record<string, string | null>>({})
+  const [source, setSource] = useState(patients)
+  const [, startAssign] = useTransition()
+
+  // Datele proaspete de pe server înlocuiesc suprascrierile optimiste.
+  if (source !== patients) {
+    setSource(patients)
+    setAssignments({})
+  }
 
   useEffect(() => {
     try {
@@ -47,18 +58,6 @@ export function PatientList({
     }
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
-    void listAssignableTherapists().then((result) => {
-      if (!cancelled) {
-        setTherapists(result.therapists)
-      }
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   function selectScope(next: PatientAssignmentScope) {
     setScope(next)
     try {
@@ -68,9 +67,34 @@ export function PatientList({
     }
   }
 
+  const rows = useMemo(
+    () =>
+      patients.map((patient) =>
+        patient.id in assignments
+          ? { ...patient, assigned_therapist_id: assignments[patient.id] }
+          : patient,
+      ),
+    [assignments, patients],
+  )
+
+  function assignTherapist(patientId: string, previous: string | null, next: string | null) {
+    setAssignments((current) => ({ ...current, [patientId]: next }))
+
+    startAssign(async () => {
+      const result = await assignPatientTherapist(patientId, next)
+      if (result.error) {
+        setAssignments((current) => ({ ...current, [patientId]: previous }))
+        toast(result.error)
+        return
+      }
+      const name = therapists.find((therapist) => therapist.user_id === next)?.therapist_name
+      toast(name ? `Pacientul a fost asignat lui ${name}.` : "Pacientul este neasignat / la comun.")
+    })
+  }
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    return patients.filter((patient) => {
+    return rows.filter((patient) => {
       if (!patientMatchesAssignmentScope(patient, scope, currentTherapistId)) {
         return false
       }
@@ -80,7 +104,7 @@ export function PatientList({
       }
       return patientMatchesListFilter(patient, filter)
     })
-  }, [currentTherapistId, filter, patients, query, scope])
+  }, [currentTherapistId, filter, query, rows, scope])
 
   async function copyLink(patient: PatientListItem) {
     await navigator.clipboard.writeText(patientAccessUrl(patient.token))
@@ -175,9 +199,11 @@ export function PatientList({
                   </td>
                   <td className="px-5 py-4">
                     <AssignedTherapistSelect
-                      patientId={patient.id}
                       assignedTherapistId={patient.assigned_therapist_id}
                       therapists={therapists}
+                      onSelect={(next) =>
+                        assignTherapist(patient.id, patient.assigned_therapist_id, next)
+                      }
                     />
                   </td>
                   <td className="px-5 py-4">

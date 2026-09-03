@@ -1,17 +1,28 @@
 import "server-only"
 
+import { cache } from "react"
 import type { SupabaseClient, User } from "@supabase/supabase-js"
 
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 import type { ClinicTherapistOption } from "@/lib/clinics/types"
 import { therapistDisplayName } from "@/lib/patients/display"
 
-export async function privilegedClinicClient(userClient: SupabaseClient): Promise<SupabaseClient> {
-  try {
-    return createServiceRoleClient()
-  } catch {
-    return userClient
+let sharedServiceClient: SupabaseClient | null = null
+
+function serviceClientOrNull(): SupabaseClient | null {
+  if (sharedServiceClient) {
+    return sharedServiceClient
   }
+  try {
+    sharedServiceClient = createServiceRoleClient()
+  } catch {
+    sharedServiceClient = null
+  }
+  return sharedServiceClient
+}
+
+export async function privilegedClinicClient(userClient: SupabaseClient): Promise<SupabaseClient> {
+  return serviceClientOrNull() ?? userClient
 }
 
 export async function clinicNameForUser(
@@ -33,16 +44,22 @@ function normalizeClinicName(value: unknown): string {
   return String(value ?? "").trim().toLocaleLowerCase("ro-RO")
 }
 
-export async function listClinicMemberProfiles(
-  supabase: SupabaseClient,
+async function loadClinicMembers(
+  client: SupabaseClient,
   userId: string,
 ): Promise<ClinicTherapistOption[]> {
-  const clinicName = await clinicNameForUser(supabase, userId)
+  const { data: me } = await client
+    .from("clinic_profiles")
+    .select("clinic_name")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle()
+
+  const clinicName = String(me?.clinic_name ?? "").trim()
   if (!clinicName) {
     return []
   }
 
-  const client = await privilegedClinicClient(supabase)
   const { data } = await client
     .from("clinic_profiles")
     .select("user_id, therapist_name, clinic_name")
@@ -50,17 +67,34 @@ export async function listClinicMemberProfiles(
     .order("therapist_name", { ascending: true })
 
   const wanted = normalizeClinicName(clinicName)
-  const members = (data ?? []).filter(
-    (row) => typeof row.user_id === "string" && normalizeClinicName(row.clinic_name) === wanted,
-  )
+  return (data ?? [])
+    .filter((row) => typeof row.user_id === "string" && normalizeClinicName(row.clinic_name) === wanted)
+    .map((row) => ({
+      user_id: String(row.user_id),
+      therapist_name:
+        typeof row.therapist_name === "string" && row.therapist_name.trim().length > 0
+          ? row.therapist_name.trim()
+          : "Terapeut",
+    }))
+}
 
-  return members.map((row) => ({
-    user_id: String(row.user_id),
-    therapist_name:
-      typeof row.therapist_name === "string" && row.therapist_name.trim().length > 0
-        ? row.therapist_name.trim()
-        : "Terapeut",
-  }))
+/** Deduplică interogările de echipă în cadrul aceluiași request. */
+const cachedClinicMembers = cache(async (userId: string): Promise<ClinicTherapistOption[]> => {
+  const client = serviceClientOrNull()
+  if (!client) {
+    return []
+  }
+  return loadClinicMembers(client, userId)
+})
+
+export async function listClinicMemberProfiles(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<ClinicTherapistOption[]> {
+  if (serviceClientOrNull()) {
+    return cachedClinicMembers(userId)
+  }
+  return loadClinicMembers(supabase, userId)
 }
 
 export async function listClinicMemberUserIds(
