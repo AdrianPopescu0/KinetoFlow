@@ -22,18 +22,14 @@ export function AssignedTherapistSelect({
   const known = therapists.some((therapist) => therapist.user_id === assignedTherapistId)
 
   function onChange(value: string) {
-    const assignedTherapistIdNext = value === UNASSIGNED ? null : value
+    const targetUserId = value === UNASSIGNED ? null : value
     startTransition(async () => {
-      const result = await assignPatientTherapist(patientId, assignedTherapistIdNext)
+      const result = await assignPatientTherapist(patientId, targetUserId)
       if (result.error) {
         toast(result.error)
         return
       }
-      toast(
-        assignedTherapistIdNext
-          ? "Terapeutul responsabil a fost actualizat."
-          : "Pacientul este neasignat / la comun.",
-      )
+      toast(targetUserId ? "Terapeutul responsabil a fost actualizat." : "Pacientul este neasignat / la comun.")
       router.refresh()
     })
   }
@@ -48,7 +44,7 @@ export function AssignedTherapistSelect({
     >
       <option value={UNASSIGNED}>Neasignat / La comun</option>
       {therapists.map((therapist) => (
-        <option key={therapist.user_id} value={therapist.user_id}>
+        <option key={therapist.user_id} value={therapist.user_id} label={therapist.therapist_name}>
           {therapist.therapist_name}
         </option>
       ))}
