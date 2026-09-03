@@ -6,18 +6,20 @@ import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { VasScale } from "@/components/patient/vas-scale"
-import { SLEEP_OPTIONS } from "@/lib/patients/program"
-import type { SleepQuality } from "@/lib/patients/types"
+import { ENERGY_OPTIONS, SLEEP_OPTIONS } from "@/lib/patients/program"
+import type { EnergyLevel, SleepQuality } from "@/lib/patients/types"
 import { cn } from "@/lib/utils"
 
 type DailyCheckinFormProps = {
   pain: number
   sleep: SleepQuality | null
+  energy: EnergyLevel | null
   notes: string
   error: string | null
   pending: boolean
   onPainChange: (value: number) => void
   onSleepChange: (value: SleepQuality) => void
+  onEnergyChange: (value: EnergyLevel) => void
   onNotesChange: (value: string) => void
   onSubmit: () => void
 }
@@ -25,11 +27,13 @@ type DailyCheckinFormProps = {
 export function DailyCheckinForm({
   pain,
   sleep,
+  energy,
   notes,
   error,
   pending,
   onPainChange,
   onSleepChange,
+  onEnergyChange,
   onNotesChange,
   onSubmit,
 }: DailyCheckinFormProps) {
@@ -63,6 +67,31 @@ export function DailyCheckinForm({
                 {option.emoji}
               </span>
               <span className="text-xs font-semibold">{option.label}</span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-sm font-semibold text-slate-800">Nivel de energie</legend>
+        <div className="grid grid-cols-5 gap-1.5">
+          {ENERGY_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={energy === option.value}
+              onClick={() => onEnergyChange(option.value)}
+              className={cn(
+                "flex min-h-[4.5rem] flex-col items-center justify-center gap-1 rounded-2xl border px-1 py-2 text-center transition-colors",
+                energy === option.value
+                  ? "border-[#042f2e] bg-[#042f2e] text-white"
+                  : "border-slate-200 bg-slate-50 text-slate-700",
+              )}
+            >
+              <span className="text-xl" aria-hidden="true">
+                {option.emoji}
+              </span>
+              <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
             </button>
           ))}
         </div>

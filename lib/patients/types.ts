@@ -8,6 +8,20 @@ export function isSleepQuality(value: string | null): value is SleepQuality {
 
 export type PainKind = "efort" | "continua" | "rigiditate" | "fara"
 
+export type EnergyLevel = "epuizat" | "scazuta" | "moderata" | "buna" | "maxima"
+
+export const ENERGY_LEVEL_VALUES = ["epuizat", "scazuta", "moderata", "buna", "maxima"] as const
+
+export function isEnergyLevel(value: string | null): value is EnergyLevel {
+  return (
+    value === "epuizat" ||
+    value === "scazuta" ||
+    value === "moderata" ||
+    value === "buna" ||
+    value === "maxima"
+  )
+}
+
 export type Exercise = {
   id: string
   title: string
@@ -38,6 +52,7 @@ export type DailyCheckin = {
   pain: number
   sleep: SleepQuality
   painKind: PainKind | null
+  energy?: EnergyLevel | null
   notes: string
   completedExerciseIds: string[]
 }

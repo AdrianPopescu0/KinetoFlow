@@ -15,9 +15,6 @@ type VasScaleProps = {
   onChange: (value: number) => void
 }
 
-const CHROMATIC_TRACK =
-  "linear-gradient(90deg, #16a34a 0%, #22c55e 10%, #84cc16 22%, #eab308 40%, #f97316 62%, #ef4444 78%, #7f1d1d 100%)"
-
 export function VasScale({ value, onChange }: VasScaleProps) {
   const labelId = useId()
   const palette = vasPalette(value)
@@ -35,28 +32,13 @@ export function VasScale({ value, onChange }: VasScaleProps) {
           <p id={labelId} className="text-sm font-semibold text-slate-800">
             Durere VAS 0–10
           </p>
-          <p className="mt-0.5 text-xs text-slate-500">Cât de intensă e durerea acum? Atinge un număr.</p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Cât de intensă e durerea acum? Atinge un număr sau glisează.
+          </p>
         </div>
       </div>
 
-      <div
-        className="h-3 w-full rounded-full shadow-inner"
-        style={{ background: CHROMATIC_TRACK }}
-        aria-hidden="true"
-      />
-      <div className="flex justify-between text-[11px] font-medium text-slate-500">
-        <span>0 · Fără durere</span>
-        <span>10 · Durere maximă</span>
-      </div>
-
-      <div
-        role="radiogroup"
-        aria-labelledby={labelId}
-        aria-valuemin={0}
-        aria-valuemax={10}
-        aria-valuenow={value}
-        aria-valuetext={`${value} din 10, ${band}. ${description}`}
-      >
+      <div role="radiogroup" aria-labelledby={labelId}>
         <div className="flex flex-wrap justify-center gap-2 sm:grid sm:grid-cols-11 sm:gap-2">
           {VAS_SCORES.map((score) => {
             const selected = score === value
@@ -110,6 +92,25 @@ export function VasScale({ value, onChange }: VasScaleProps) {
               </button>
             )
           })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <input
+          type="range"
+          min={0}
+          max={10}
+          step={1}
+          value={value}
+          onChange={(event) => onChange(Number(event.target.value))}
+          aria-labelledby={labelId}
+          aria-valuetext={`${value} din 10, ${band}`}
+          className="vas-slider h-11 w-full cursor-pointer touch-manipulation appearance-none bg-transparent"
+          style={{ ["--vas-thumb" as string]: palette.hex }}
+        />
+        <div className="flex justify-between text-[11px] font-medium text-slate-500">
+          <span>0 · Fără durere</span>
+          <span>10 · Durere maximă</span>
         </div>
       </div>
 

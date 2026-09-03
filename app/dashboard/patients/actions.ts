@@ -7,7 +7,7 @@ import { listClinicMemberUserIds, privilegedClinicClient } from "@/lib/clinics/m
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
-import { isSleepQuality } from "@/lib/patients/types"
+import { isEnergyLevel, isSleepQuality } from "@/lib/patients/types"
 import { composeExerciseNotes, isWeekdayId, type WeekdayId } from "@/lib/exercises/schedule"
 import { startOfTodayIso, startOfTomorrowIso } from "@/lib/time/bucharest"
 import {
@@ -460,6 +460,8 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
   const token = readOptional(formData, "token")
   const notes = readOptional(formData, "notes")
   const sleepRaw = readOptional(formData, "sleep")
+  const energyRaw = readOptional(formData, "energy")
+  const energy = isEnergyLevel(energyRaw) ? energyRaw : null
   const vasScore = Number.parseInt(String(formData.get("vas") ?? ""), 10)
 
   if (
@@ -498,15 +500,29 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     return { error: null }
   }
 
-  const { error: insertError } = await admin.from("check_ins").insert({
+  const base: Record<string, unknown> = {
     patient_id: patient.id,
     vas_score: vasScore,
     sleep_quality: sleepQuality,
     notes,
-  })
+  }
+
+  const { error: insertError } = await admin
+    .from("check_ins")
+    .insert(energy ? { ...base, energy_level: energy } : base)
 
   if (insertError) {
-    return { error: "Nu am putut salva check-in-ul. Încearcă din nou." }
+    // Fără migrarea 014, coloana energy_level lipsește: salvăm restul check-in-ului.
+    const missingColumn =
+      insertError.code === "PGRST204" || insertError.message.toLowerCase().includes("energy_level")
+    if (!energy || !missingColumn) {
+      return { error: "Nu am putut salva check-in-ul. Încearcă din nou." }
+    }
+
+    const retry = await admin.from("check_ins").insert(base)
+    if (retry.error) {
+      return { error: "Nu am putut salva check-in-ul. Încearcă din nou." }
+    }
   }
 
   return { error: null }

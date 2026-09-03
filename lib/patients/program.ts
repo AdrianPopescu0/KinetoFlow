@@ -1,4 +1,4 @@
-import type { Exercise, PainKind, PatientProgram, SleepQuality } from "@/lib/patients/types"
+import type { EnergyLevel, Exercise, PainKind, PatientProgram, SleepQuality } from "@/lib/patients/types"
 
 const TOKEN_PATTERN = /^[a-zA-Z0-9_-]{4,64}$/
 
@@ -113,6 +113,18 @@ export const SLEEP_OPTIONS: { value: SleepQuality; emoji: string; label: string 
   { value: "moderat", emoji: "😐", label: "Moderat" },
   { value: "odihnitor", emoji: "😊", label: "Odihnitor" },
 ]
+
+export const ENERGY_OPTIONS: { value: EnergyLevel; emoji: string; label: string }[] = [
+  { value: "epuizat", emoji: "🪫", label: "Epuizat" },
+  { value: "scazuta", emoji: "📉", label: "Scăzută" },
+  { value: "moderata", emoji: "⚡", label: "Moderată" },
+  { value: "buna", emoji: "🔋", label: "Bună" },
+  { value: "maxima", emoji: "🚀", label: "Maximă" },
+]
+
+export function energyLabel(value: EnergyLevel | null | undefined): string {
+  return ENERGY_OPTIONS.find((option) => option.value === value)?.label ?? "—"
+}
 
 export const PAIN_KIND_OPTIONS: { value: PainKind; label: string }[] = [
   { value: "efort", label: "Doar la efort/mișcare" },

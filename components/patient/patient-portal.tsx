@@ -19,7 +19,7 @@ import {
   saveTodaysCheckin,
   subscribePatientStorage,
 } from "@/lib/patients/storage"
-import type { DailyCheckin, PatientProgram, SleepQuality } from "@/lib/patients/types"
+import type { DailyCheckin, EnergyLevel, PatientProgram, SleepQuality } from "@/lib/patients/types"
 
 export function PatientPortal({ program }: { program: PatientProgram }) {
   const localDate = todayInBucharest()
@@ -45,6 +45,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
   const [justSubmitted, setJustSubmitted] = useState(false)
   const [pain, setPain] = useState(3)
   const [sleep, setSleep] = useState<SleepQuality | null>(null)
+  const [energy, setEnergy] = useState<EnergyLevel | null>(null)
   const [notes, setNotes] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -79,6 +80,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         pain: vasScore,
         sleep,
         painKind: null,
+        energy,
         notes: notes.trim(),
         completedExerciseIds: completedIds,
       }
@@ -87,6 +89,9 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       formData.set("token", program.token)
       formData.set("vas", String(vasScore))
       formData.set("sleep", sleep)
+      if (energy) {
+        formData.set("energy", energy)
+      }
       formData.set("notes", notes.trim())
       const result = await submitPatientCheckin(formData)
       if (result.error) {
@@ -118,11 +123,13 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
             <DailyCheckinForm
               pain={pain}
               sleep={sleep}
+              energy={energy}
               notes={notes}
               error={error}
               pending={pending}
               onPainChange={setPain}
               onSleepChange={setSleep}
+              onEnergyChange={setEnergy}
               onNotesChange={setNotes}
               onSubmit={submitCheckin}
             />

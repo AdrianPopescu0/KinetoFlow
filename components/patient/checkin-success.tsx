@@ -2,7 +2,7 @@ import { Check } from "lucide-react"
 
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { sleepLabel } from "@/lib/patients/display"
-import { painIntensityCopy } from "@/lib/patients/program"
+import { energyLabel, painIntensityCopy } from "@/lib/patients/program"
 import type { DailyCheckin } from "@/lib/patients/types"
 
 export function CheckinSuccess({
@@ -38,6 +38,12 @@ export function CheckinSuccess({
           <dt className="text-slate-500">Somn</dt>
           <dd className="font-semibold">{sleepLabel(checkin.sleep)}</dd>
         </div>
+        {checkin.energy ? (
+          <div className="flex justify-between px-4 py-3">
+            <dt className="text-slate-500">Energie</dt>
+            <dd className="font-semibold">{energyLabel(checkin.energy)}</dd>
+          </div>
+        ) : null}
         {checkin.notes ? (
           <div className="flex flex-col gap-1 px-4 py-3">
             <dt className="text-slate-500">Notițe</dt>
