@@ -18,6 +18,11 @@ export function patientAccessUrl(): string {
   return PATIENT_ACCESS_PAGE_URL
 }
 
+/** Backticks triple = monospace în WhatsApp; codul stă singur pe linie ca să fie ușor de copiat. */
+function monospace(value: string): string {
+  return `\`\`\`${value}\`\`\``
+}
+
 export function patientWhatsAppMessage(input: {
   fullName: string
   token: string
@@ -26,7 +31,11 @@ export function patientWhatsAppMessage(input: {
   return [
     `Bună, ${input.fullName}! Sunt kinetoterapeutul tău de la KinetoFlow. Ți-am pregătit planul tău personalizat de exerciții.`,
     `Accesează aplicația aici: ${PATIENT_ACCESS_PAGE_URL}`,
-    `Introdu numărul tău de telefon și codul tău unic de 8 cifre: ${input.accessCode}`,
+    "",
+    "Codul tău unic de 8 cifre:",
+    monospace(input.accessCode),
+    "",
+    "Introdu numărul tău de telefon și codul de mai sus pentru a intra în program.",
     "Te rog să faci check-in-ul de durere înainte să începi exercițiile. Spor la recuperare!",
   ].join("\n")
 }

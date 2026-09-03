@@ -8,6 +8,7 @@ import {
   patientWhatsAppWebHref,
 } from "@/lib/patients/whatsapp"
 import { toWhatsAppNumber } from "@/lib/patients/phone"
+import { getOwnPatientRow } from "@/lib/patients/tenant"
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -31,22 +32,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Lipsește pacientul.", sent: false }, { status: 400 })
   }
 
-  const { data: patient, error } = await supabase
-    .from("patients")
-    .select("id, full_name, phone, token, access_code")
-    .eq("id", patientId)
-    .eq("user_id", user.id)
-    .maybeSingle()
-
-  const resolved =
-    error || !patient
-      ? await supabase
-          .from("patients")
-          .select("id, full_name, phone, token, access_code")
-          .eq("id", patientId)
-          .eq("therapist_id", user.id)
-          .maybeSingle()
-      : { data: patient, error: null }
+  const resolved = await getOwnPatientRow(
+    supabase,
+    user.id,
+    patientId,
+    "id, full_name, phone, token, access_code",
+  )
 
   if (resolved.error || !resolved.data) {
     return NextResponse.json({ error: "Pacientul nu a fost găsit.", sent: false }, { status: 404 })
