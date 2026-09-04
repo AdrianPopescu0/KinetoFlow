@@ -3,7 +3,7 @@ import { youtubeEmbedSrc, youtubeIdFromUrl } from "@/lib/patients/youtube"
 export function VideoPreview({ url, title }: { url: string | null; title: string }) {
   if (!url) {
     return (
-      <div className="flex h-full min-h-[10rem] w-full items-center justify-center bg-slate-100 text-sm text-slate-500">
+      <div className="flex aspect-video w-full items-center justify-center bg-slate-100 text-sm text-slate-500">
         Fără video
       </div>
     )
@@ -16,7 +16,7 @@ export function VideoPreview({ url, title }: { url: string | null; title: string
         controls
         playsInline
         preload="metadata"
-        className="absolute inset-0 h-full w-full bg-black object-cover"
+        className="aspect-video h-auto w-full bg-black object-cover"
         title={title}
       >
         <source src={url} />
@@ -33,7 +33,7 @@ export function VideoPreview({ url, title }: { url: string | null; title: string
         loading="lazy"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
         allowFullScreen
-        className="absolute inset-0 h-full w-full border-0"
+        className="aspect-video h-auto w-full border-0"
       />
     )
   }
@@ -43,7 +43,7 @@ export function VideoPreview({ url, title }: { url: string | null; title: string
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="absolute inset-0 flex items-center justify-center bg-slate-100 text-sm font-medium text-[#042f2e] underline-offset-4 hover:underline"
+      className="flex aspect-video w-full items-center justify-center bg-slate-100 text-sm font-medium text-[#042f2e] underline-offset-4 hover:underline"
     >
       Deschide video
     </a>
