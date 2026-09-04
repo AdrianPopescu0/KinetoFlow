@@ -10,7 +10,11 @@ import { ExerciseCard } from "@/components/patient/exercise-card"
 import { ExtraTipsDialog, RecoveryDrawer, RecoveryGuidePanel } from "@/components/patient/recovery-guide-panel"
 import { PatientHeader } from "@/components/patient/patient-header"
 import { PatientOnboardingModal } from "@/components/patient/patient-onboarding-modal"
-import { TherapistSupportColumn } from "@/components/patient/therapist-support-column"
+import {
+  GoldenRulesCard,
+  TherapistCard,
+  TherapistSupportColumn,
+} from "@/components/patient/therapist-support-column"
 import { isPatientUuidToken } from "@/lib/patients/session"
 import { formatRomanianDate, todayInBucharest } from "@/lib/patients/program"
 import {
@@ -185,20 +189,19 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       <PatientOnboardingModal patientKey={program.token} />
       <PatientHeader firstName={program.firstName} dateLabel={dateLabel} onOpenGuide={() => setGuideOpen(true)} />
 
-      <main className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 py-6 pb-16 sm:px-6 lg:px-8 lg:py-8">
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)] lg:gap-8 xl:gap-10">
-          {/* Coloana stângă ~34%: terapeut + reguli */}
-          <aside className="order-2 flex w-full min-w-0 flex-col gap-5 lg:sticky lg:top-24 lg:order-1 lg:self-start">
-            <TherapistSupportColumn
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 overflow-x-hidden px-4 py-6 pb-16 sm:px-6 lg:gap-10 lg:px-8 lg:py-8">
+        {/* Rând superior: terapeut | check-in | reguli */}
+        <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-3 lg:gap-6">
+          <div className="order-2 min-w-0 lg:order-1">
+            <TherapistCard
               therapistName={program.therapistName}
               therapistPhone={program.therapistPhone}
             />
-          </aside>
+          </div>
 
-          {/* Coloana dreaptă ~66%: check-in, ghid, exerciții */}
-          <div className="order-1 flex min-w-0 flex-col gap-6 lg:order-2 lg:gap-8">
+          <div className="order-1 min-w-0 lg:order-2">
             {!isClient ? (
-              <div className="h-56 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+              <div className="h-full min-h-56 animate-pulse rounded-2xl border border-slate-200 bg-white" />
             ) : storedCheckin ? (
               <CheckinSuccess checkin={storedCheckin} alreadySubmitted={!justSubmitted} />
             ) : (
@@ -216,45 +219,47 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
                 onSubmit={submitCheckin}
               />
             )}
-
-            <div className="hidden min-w-0 lg:block">
-              <RecoveryGuidePanel onReadMore={() => setTipsOpen(true)} />
-            </div>
-
-            <section className="flex min-w-0 flex-col gap-5">
-              <div className="min-w-0">
-                <h2 className="text-lg font-semibold tracking-tight text-slate-800 sm:text-xl">
-                  Exercițiile de azi
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Urmărește video-ul, apoi marchează-le ca efectuate.
-                </p>
-              </div>
-
-              {program.exercises.length === 0 ? (
-                <p className="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-sm text-slate-600 shadow-sm">
-                  Terapeutul nu a alocat încă exerciții. Completează totuși check-in-ul.
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 items-stretch gap-5 sm:gap-6 lg:grid-cols-2">
-                  {program.exercises.map((exercise) => (
-                    <ExerciseCard
-                      key={exercise.id}
-                      exercise={exercise}
-                      completed={completedIds.includes(exercise.id)}
-                      pending={pendingExerciseId === exercise.id}
-                      onToggle={toggleExercise}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <div className="min-w-0 lg:hidden">
-              <RecoveryGuidePanel onReadMore={() => setTipsOpen(true)} />
-            </div>
           </div>
-        </div>
+
+          <div className="order-3 min-w-0 lg:order-3">
+            <GoldenRulesCard />
+          </div>
+        </section>
+
+        {/* Rând mijloc: exerciții pe 3 coloane */}
+        <section className="flex min-w-0 flex-col gap-5">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-800 sm:text-xl">
+              Exercițiile de azi
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Urmărește video-ul, apoi marchează-le ca efectuate.
+            </p>
+          </div>
+
+          {program.exercises.length === 0 ? (
+            <p className="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-sm text-slate-600 shadow-sm">
+              Terapeutul nu a alocat încă exerciții. Completează totuși check-in-ul.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 items-stretch gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {program.exercises.map((exercise) => (
+                <ExerciseCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  completed={completedIds.includes(exercise.id)}
+                  pending={pendingExerciseId === exercise.id}
+                  onToggle={toggleExercise}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Rând jos: ghid educațional */}
+        <section className="min-w-0">
+          <RecoveryGuidePanel onReadMore={() => setTipsOpen(true)} />
+        </section>
       </main>
 
       {guideOpen ? (

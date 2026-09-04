@@ -40,7 +40,7 @@ export function DailyCheckinForm({
   const notesId = useId()
 
   return (
-    <section className={surfaceCardClassName("flex flex-col gap-6 p-4 sm:p-5")}>
+    <section className={surfaceCardClassName("flex h-full min-h-0 flex-col gap-6 p-4 sm:p-5")}>
       <div>
         <h2 className="text-lg font-semibold tracking-tight text-slate-800">Check-in zilnic</h2>
         <p className="mt-1 text-sm text-slate-600">Spune-i terapeutului cum te simți azi.</p>

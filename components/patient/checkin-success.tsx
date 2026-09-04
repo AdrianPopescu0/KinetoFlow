@@ -15,7 +15,7 @@ export function CheckinSuccess({
   const intensity = painIntensityCopy(checkin.pain)
 
   return (
-    <section className={surfaceCardClassName("flex flex-col items-center px-5 py-8 text-center")}>
+    <section className={surfaceCardClassName("flex h-full min-h-0 flex-col items-center px-5 py-8 text-center")}>
       <span className="flex size-14 items-center justify-center rounded-full bg-emerald-500 text-white">
         <Check className="size-8 stroke-[3]" />
       </span>
@@ -27,7 +27,7 @@ export function CheckinSuccess({
           ? "Ai trimis deja evaluarea pentru ziua de azi."
           : "Mulțumim. Răspunsul ajută la ajustarea programului."}
       </p>
-      <dl className="mt-6 w-full divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left text-sm">
+      <dl className="mt-auto w-full divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left text-sm">
         <div className="flex justify-between px-4 py-3">
           <dt className="text-slate-500">Durere</dt>
           <dd className="font-semibold">
