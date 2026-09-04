@@ -1,7 +1,5 @@
 import { toWhatsAppNumber } from "@/lib/patients/phone"
 
-export const PATIENT_ACCESS_PAGE_URL = "https://kinetoflow96.vercel.app/acces"
-
 export function publicSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
   if (fromEnv) {
@@ -10,18 +8,23 @@ export function publicSiteUrl(): string {
   return "https://kinetoflow96.vercel.app"
 }
 
+/** Pagina de acces pacient (`/acces`) pe domeniul public configurat. */
+export function patientAccessUrl(): string {
+  return `${publicSiteUrl()}/acces`
+}
+
+/** @deprecated Folosește patientAccessUrl() — păstrat pentru importuri existente. */
+export const PATIENT_ACCESS_PAGE_URL = "https://kinetoflow96.vercel.app/acces"
+
 export function patientPortalUrl(token: string): string {
   return `${publicSiteUrl()}/patient/${token}`
 }
 
-export function patientAccessUrl(): string {
-  return PATIENT_ACCESS_PAGE_URL
-}
-
-/** Link de acces cu codul precompletat: pacientul nu mai tastează cele 8 cifre. */
+/** Link de acces cu codul de 8 cifre precompletat. */
 export function patientAccessUrlWithCode(accessCode: string): string {
   const code = accessCode.trim()
-  return code ? `${PATIENT_ACCESS_PAGE_URL}?code=${encodeURIComponent(code)}` : PATIENT_ACCESS_PAGE_URL
+  const base = patientAccessUrl()
+  return code ? `${base}?code=${encodeURIComponent(code)}` : base
 }
 
 export function patientWhatsAppMessage(input: {
