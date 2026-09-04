@@ -1,5 +1,6 @@
 import type { Exercise, PatientProgram } from "@/lib/patients/types"
 import type { ExerciseRecord, PatientRecord } from "@/lib/patients/types-db"
+import { isExerciseActiveOnDate } from "@/lib/exercises/schedule"
 import { listCompletedExerciseIdsForDay } from "@/lib/patients/exercise-completions"
 import { isPatientUuidToken } from "@/lib/patients/session"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
@@ -54,12 +55,16 @@ export async function loadPatientProgramFromDatabase(
       .select("id, patient_id, title, video_url, sets, reps, notes")
       .eq("patient_id", record.id)
 
-    const exercises = mapExercises((exerciseRows ?? []) as ExerciseRecord[])
+    const today = bucharestDateKey()
+    const activeExerciseRows = ((exerciseRows ?? []) as ExerciseRecord[]).filter((exercise) =>
+      isExerciseActiveOnDate(exercise.notes, today),
+    )
+    const exercises = mapExercises(activeExerciseRows)
     const therapist = await loadTherapistProfile(supabase, record.therapist_id)
     const completedExerciseIdsToday = await listCompletedExerciseIdsForDay(
       supabase,
       record.id,
-      bucharestDateKey(),
+      today,
     )
 
     const doneCount = completedExerciseIdsToday.filter((id) =>
