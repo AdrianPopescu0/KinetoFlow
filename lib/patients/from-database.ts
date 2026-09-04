@@ -1,6 +1,8 @@
 import type { Exercise, PatientProgram } from "@/lib/patients/types"
 import type { ExerciseRecord, PatientRecord } from "@/lib/patients/types-db"
+import { listCompletedExerciseIdsForDay } from "@/lib/patients/exercise-completions"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
+import { bucharestDateKey } from "@/lib/time/bucharest"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
 const UUID_PATTERN =
@@ -58,6 +60,17 @@ export async function loadPatientProgramFromDatabase(
 
     const exercises = mapExercises((exerciseRows ?? []) as ExerciseRecord[])
     const therapist = await loadTherapistProfile(supabase, record.therapist_id)
+    const completedExerciseIdsToday = await listCompletedExerciseIdsForDay(
+      supabase,
+      record.id,
+      bucharestDateKey(),
+    )
+
+    const doneCount = completedExerciseIdsToday.filter((id) =>
+      exercises.some((exercise) => exercise.id === id),
+    ).length
+    const progressPercent =
+      exercises.length === 0 ? 0 : Math.round((doneCount / exercises.length) * 100)
 
     return {
       token: record.token,
@@ -65,8 +78,9 @@ export async function loadPatientProgramFromDatabase(
       firstName: firstNameFromFullName(record.full_name),
       fullName: record.full_name,
       programLabel: record.diagnosis?.trim() || "Programul tău de recuperare",
-      progressPercent: exercises.length > 0 ? 20 : 0,
+      progressPercent: Math.max(progressPercent, exercises.length > 0 ? 5 : 0),
       exercises,
+      completedExerciseIdsToday,
       therapistName: therapist.name,
       therapistPhone: therapist.phone,
     }

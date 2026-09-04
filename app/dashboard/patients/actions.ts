@@ -467,6 +467,10 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
   const sleepRaw = readOptional(formData, "sleep")
   const energyRaw = readOptional(formData, "energy")
   const energy = isEnergyLevel(energyRaw) ? energyRaw : null
+  const completedRaw = readOptional(formData, "completedExerciseIds")
+  const completedExerciseIds = completedRaw
+    ? completedRaw.split("|").map((id) => id.trim()).filter(Boolean)
+    : []
   const vasScore = Number.parseInt(String(formData.get("vas") ?? ""), 10)
 
   if (
@@ -482,6 +486,8 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
   const sleepQuality: "odihnitor" | "moderat" | "intrerupt" = sleepRaw
 
   const { createServiceRoleClient } = await import("@/utils/supabase/admin")
+  const { syncExerciseCompletionsForDay } = await import("@/lib/patients/exercise-completions")
+  const { bucharestDateKey } = await import("@/lib/time/bucharest")
   const admin = createServiceRoleClient()
   const { data: patient, error: patientError } = await admin
     .from("patients")
@@ -490,7 +496,7 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     .maybeSingle()
 
   if (patientError || !patient) {
-    return { error: null }
+    return { error: "Nu am găsit programul pacientului. Reîncarcă pagina din linkul de acces." }
   }
 
   const { data: existing } = await admin
@@ -502,6 +508,14 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     .limit(1)
 
   if (existing && existing.length > 0) {
+    if (completedExerciseIds.length > 0) {
+      await syncExerciseCompletionsForDay({
+        supabase: admin,
+        patientId: patient.id,
+        exerciseIds: completedExerciseIds,
+        completedOn: bucharestDateKey(),
+      })
+    }
     return { error: null }
   }
 
@@ -528,6 +542,15 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     if (retry.error) {
       return { error: "Nu am putut salva check-in-ul. Încearcă din nou." }
     }
+  }
+
+  if (completedExerciseIds.length > 0) {
+    await syncExerciseCompletionsForDay({
+      supabase: admin,
+      patientId: patient.id,
+      exerciseIds: completedExerciseIds,
+      completedOn: bucharestDateKey(),
+    })
   }
 
   return { error: null }

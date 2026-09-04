@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useSyncExternalStore, useTransition } from "react"
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react"
 
 import { submitPatientCheckin } from "@/app/dashboard/patients/actions"
+import { togglePatientExerciseCompletion } from "@/app/patient/actions"
 import { AppShell } from "@/components/brand/app-atmosphere"
 import { CheckinSuccess } from "@/components/patient/checkin-success"
 import { DailyCheckinForm } from "@/components/patient/daily-checkin-form"
@@ -20,10 +21,12 @@ import {
   subscribePatientStorage,
 } from "@/lib/patients/storage"
 import type { DailyCheckin, EnergyLevel, PatientProgram, SleepQuality } from "@/lib/patients/types"
+import { toast } from "@/components/ui/toaster"
 
 export function PatientPortal({ program }: { program: PatientProgram }) {
   const localDate = todayInBucharest()
   const dateLabel = formatRomanianDate()
+  const isDatabasePatient = Boolean(program.patientId)
 
   const isClient = useSyncExternalStore(
     () => () => undefined,
@@ -48,16 +51,60 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
   const [energy, setEnergy] = useState<EnergyLevel | null>(null)
   const [notes, setNotes] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [pendingExerciseId, setPendingExerciseId] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const [, startExerciseTransition] = useTransition()
 
   const [guideOpen, setGuideOpen] = useState(false)
   const [tipsOpen, setTipsOpen] = useState(false)
 
+  // Seed din server (Supabase) — localStorage e doar cache optimist.
+  useEffect(() => {
+    const fromServer = program.completedExerciseIdsToday ?? []
+    if (fromServer.length === 0) {
+      return
+    }
+    const local = loadCompletedExercisesSnapshot(program.token, localDate)
+      .split("|")
+      .filter(Boolean)
+    const merged = Array.from(new Set([...local, ...fromServer]))
+    if (merged.join("|") !== local.join("|")) {
+      saveCompletedExercises(program.token, localDate, merged)
+    }
+  }, [localDate, program.completedExerciseIdsToday, program.token])
+
   function toggleExercise(exerciseId: string, completed: boolean) {
+    const previous = completedIds
     const next = completed
       ? Array.from(new Set([...completedIds, exerciseId]))
       : completedIds.filter((id) => id !== exerciseId)
+
     saveCompletedExercises(program.token, localDate, next)
+
+    if (!isDatabasePatient) {
+      return
+    }
+
+    setPendingExerciseId(exerciseId)
+    startExerciseTransition(async () => {
+      const result = await togglePatientExerciseCompletion({
+        token: program.token,
+        exerciseId,
+        completed,
+        localDate,
+      })
+      setPendingExerciseId(null)
+
+      if (result.error) {
+        saveCompletedExercises(program.token, localDate, previous)
+        toast(result.error)
+        return
+      }
+
+      if (result.completedIds.length > 0 || completed === false) {
+        saveCompletedExercises(program.token, localDate, result.completedIds)
+      }
+    })
   }
 
   function submitCheckin() {
@@ -93,6 +140,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         formData.set("energy", energy)
       }
       formData.set("notes", notes.trim())
+      formData.set("completedExerciseIds", completedIds.join("|"))
       const result = await submitPatientCheckin(formData)
       if (result.error) {
         setError(result.error)
@@ -150,6 +198,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
                   key={exercise.id}
                   exercise={exercise}
                   completed={completedIds.includes(exercise.id)}
+                  pending={pendingExerciseId === exercise.id}
                   onToggle={toggleExercise}
                 />
               ))

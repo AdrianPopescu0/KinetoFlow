@@ -42,6 +42,8 @@ export type PatientProgram = {
   programLabel: string
   progressPercent: number
   exercises: Exercise[]
+  /** Exerciții marcate ca efectuate azi (din Supabase, ziua București). */
+  completedExerciseIdsToday?: string[]
   therapistName: string
   therapistPhone: string | null
 }

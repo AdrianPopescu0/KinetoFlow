@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils"
 type ExerciseCardProps = {
   exercise: Exercise
   completed: boolean
+  pending?: boolean
   onToggle: (exerciseId: string, completed: boolean) => void
 }
 
-export function ExerciseCard({ exercise, completed, onToggle }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, completed, pending = false, onToggle }: ExerciseCardProps) {
   const src = exercise.videoUrl ?? (exercise.youtubeId ? `https://www.youtube.com/watch?v=${exercise.youtubeId}` : null)
 
   return (
@@ -43,13 +44,14 @@ export function ExerciseCard({ exercise, completed, onToggle }: ExerciseCardProp
 
         <Button
           type="button"
+          disabled={pending}
           onClick={() => onToggle(exercise.id, !completed)}
           className={cn(
             "h-12 min-h-[48px] w-full rounded-xl",
             completed && "bg-emerald-600 hover:bg-emerald-600",
           )}
         >
-          {completed ? "Efectuat ✓" : "Marchează ca Efectuat"}
+          {pending ? "Se salvează…" : completed ? "Efectuat ✓" : "Marchează ca Efectuat"}
         </Button>
       </div>
     </article>
