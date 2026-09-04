@@ -25,26 +25,29 @@ export function AuthSplitLayout({
             <Logo size="md" variant="onDark" />
           </Link>
           <h1 className="mt-8 max-w-md text-4xl font-semibold tracking-tight text-balance">
-            Continuă tratamentele, fără întreruperi.
+            Gata cu hârtiile. Terapie organizată.
           </h1>
           <p className="mt-4 max-w-md text-base leading-relaxed text-teal-50/85">
-            Platforma clinică pentru kinetoterapeuți: programe, progres și comunicare cu
-            pacienții, într-un singur spațiu securizat.
+            O singură platformă rapidă unde kinetoterapeuții își programează pacienții, le
+            urmăresc progresul și țin legătura cu ei fără bătăi de cap.
           </p>
         </div>
 
         <ul className="relative space-y-3 text-sm text-teal-50/90">
           <li className="flex items-start gap-3">
             <span className="mt-1 size-1.5 shrink-0 rounded-full bg-teal-300" />
-            Autentificare cu email și parolă (Supabase Auth)
+            Securitate la standarde clinice — Datele pacienților tăi sunt mereu în
+            siguranță.
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-1 size-1.5 shrink-0 rounded-full bg-teal-300" />
-            Configurare clinică la prima autentificare
+            Totul într-un singur loc — De la primul consult și până la ultimul
+            exercițiu.
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-1 size-1.5 shrink-0 rounded-full bg-teal-300" />
-            Acces rezervat personalului clinic
+            Conexiune directă cu pacientul — Programe trimise rapid, fără
+            complicații.
           </li>
         </ul>
       </aside>
