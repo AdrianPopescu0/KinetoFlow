@@ -3,6 +3,8 @@ export const PATIENT_RESUME_COOKIE = "kf_patient_resume"
 export const PATIENT_TOKEN_STORAGE_KEY = "kf_patient_token"
 
 const TOKEN_PATTERN = /^[a-zA-Z0-9_-]{4,64}$/
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export const patientSessionCookieOptions = {
   httpOnly: true,
@@ -29,6 +31,11 @@ export const patientResumeCookieOptions = {
 
 export function looksLikePatientToken(token: string): boolean {
   return TOKEN_PATTERN.test(token)
+}
+
+/** Token UUID din tabela patients — portalul real (nu demo). */
+export function isPatientUuidToken(token: string): boolean {
+  return UUID_PATTERN.test(token)
 }
 
 export function patientPublicPath(token: string): string {

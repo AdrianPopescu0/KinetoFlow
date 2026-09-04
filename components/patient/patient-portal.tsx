@@ -3,7 +3,6 @@
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react"
 
 import { submitPatientCheckin } from "@/app/dashboard/patients/actions"
-import { togglePatientExerciseCompletion } from "@/app/patient/actions"
 import { AppShell } from "@/components/brand/app-atmosphere"
 import { CheckinSuccess } from "@/components/patient/checkin-success"
 import { DailyCheckinForm } from "@/components/patient/daily-checkin-form"
@@ -12,6 +11,7 @@ import { ExtraTipsDialog, RecoveryDrawer, RecoveryGuidePanel } from "@/component
 import { PatientHeader } from "@/components/patient/patient-header"
 import { PatientOnboardingModal } from "@/components/patient/patient-onboarding-modal"
 import { TherapistSupportColumn } from "@/components/patient/therapist-support-column"
+import { isPatientUuidToken } from "@/lib/patients/session"
 import { formatRomanianDate, todayInBucharest } from "@/lib/patients/program"
 import {
   loadCompletedExercisesSnapshot,
@@ -23,10 +23,14 @@ import {
 import type { DailyCheckin, EnergyLevel, PatientProgram, SleepQuality } from "@/lib/patients/types"
 import { toast } from "@/components/ui/toaster"
 
+function mergeIds(...lists: Array<string[] | undefined>): string[] {
+  return Array.from(new Set(lists.flatMap((list) => list ?? []).filter(Boolean)))
+}
+
 export function PatientPortal({ program }: { program: PatientProgram }) {
   const localDate = todayInBucharest()
   const dateLabel = formatRomanianDate()
-  const isDatabasePatient = Boolean(program.patientId)
+  const canPersistToServer = isPatientUuidToken(program.token)
 
   const isClient = useSyncExternalStore(
     () => () => undefined,
@@ -38,73 +42,97 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
     () => loadTodaysCheckin(program.token, localDate),
     () => null,
   )
-  const storedCompleted = useSyncExternalStore(
-    subscribePatientStorage,
-    () => loadCompletedExercisesSnapshot(program.token, localDate),
-    () => "",
-  )
-  const completedIds = storedCompleted.length > 0 ? storedCompleted.split("|") : []
 
+  const [completedIds, setCompletedIds] = useState<string[]>(() =>
+    mergeIds(program.completedExerciseIdsToday),
+  )
+  const [pendingExerciseId, setPendingExerciseId] = useState<string | null>(null)
   const [justSubmitted, setJustSubmitted] = useState(false)
   const [pain, setPain] = useState(3)
   const [sleep, setSleep] = useState<SleepQuality | null>(null)
   const [energy, setEnergy] = useState<EnergyLevel | null>(null)
   const [notes, setNotes] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [pendingExerciseId, setPendingExerciseId] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
-  const [, startExerciseTransition] = useTransition()
 
   const [guideOpen, setGuideOpen] = useState(false)
   const [tipsOpen, setTipsOpen] = useState(false)
 
-  // Seed din server (Supabase) — localStorage e doar cache optimist.
+  // Hidratează din localStorage + server după mount.
   useEffect(() => {
-    const fromServer = program.completedExerciseIdsToday ?? []
-    if (fromServer.length === 0) {
-      return
-    }
     const local = loadCompletedExercisesSnapshot(program.token, localDate)
       .split("|")
       .filter(Boolean)
-    const merged = Array.from(new Set([...local, ...fromServer]))
-    if (merged.join("|") !== local.join("|")) {
+    const merged = mergeIds(local, program.completedExerciseIdsToday)
+    setCompletedIds(merged)
+    if (merged.length > 0) {
       saveCompletedExercises(program.token, localDate, merged)
     }
   }, [localDate, program.completedExerciseIdsToday, program.token])
 
-  function toggleExercise(exerciseId: string, completed: boolean) {
+  async function toggleExercise(exerciseId: string, completed: boolean) {
     const previous = completedIds
     const next = completed
-      ? Array.from(new Set([...completedIds, exerciseId]))
+      ? mergeIds(completedIds, [exerciseId])
       : completedIds.filter((id) => id !== exerciseId)
 
+    // Feedback vizual imediat.
+    setCompletedIds(next)
+    setPendingExerciseId(exerciseId)
     saveCompletedExercises(program.token, localDate, next)
 
-    if (!isDatabasePatient) {
+    if (!canPersistToServer) {
+      setPendingExerciseId(null)
+      toast(completed ? "Marcat ca efectuat (demo)." : "Marcaj anulat (demo).")
       return
     }
 
-    setPendingExerciseId(exerciseId)
-    startExerciseTransition(async () => {
-      const result = await togglePatientExerciseCompletion({
-        token: program.token,
-        exerciseId,
-        completed,
-        localDate,
+    try {
+      const response = await fetch("/api/patient/exercise-completion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: program.token,
+          exerciseId,
+          completed,
+          localDate,
+          patientId: program.patientId ?? null,
+        }),
       })
-      setPendingExerciseId(null)
 
-      if (result.error) {
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string
+        completedIds?: string[]
+      } | null
+
+      if (!response.ok || payload?.error) {
+        const message = payload?.error || `Salvare eșuată (HTTP ${response.status}).`
+        console.error("[Marchează ca Efectuat]", message, {
+          exerciseId,
+          localDate,
+          token: program.token,
+          patientId: program.patientId,
+        })
+        setCompletedIds(previous)
         saveCompletedExercises(program.token, localDate, previous)
-        toast(result.error)
+        toast(message)
         return
       }
 
-      if (result.completedIds.length > 0 || completed === false) {
-        saveCompletedExercises(program.token, localDate, result.completedIds)
+      if (Array.isArray(payload?.completedIds)) {
+        setCompletedIds(payload.completedIds)
+        saveCompletedExercises(program.token, localDate, payload.completedIds)
       }
-    })
+
+      toast(completed ? "Exercițiu marcat ca efectuat." : "Marcaj anulat.")
+    } catch (err) {
+      console.error("[Marchează ca Efectuat] network/error", err)
+      setCompletedIds(previous)
+      saveCompletedExercises(program.token, localDate, previous)
+      toast("Nu am putut salva. Verifică conexiunea și încearcă din nou.")
+    } finally {
+      setPendingExerciseId(null)
+    }
   }
 
   function submitCheckin() {

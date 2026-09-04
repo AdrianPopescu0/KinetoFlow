@@ -68,6 +68,25 @@ function readCheckin(token: string, localDate: string): DailyCheckin | null {
   }
 }
 
+function readExercisesRaw(token: string, localDate: string): string[] | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+  try {
+    const raw = window.localStorage.getItem(exercisesKey(token, localDate))
+    if (!raw) {
+      return null
+    }
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      return null
+    }
+    return parsed.filter((id): id is string => typeof id === "string")
+  } catch {
+    return null
+  }
+}
+
 export function loadTodaysCheckin(token: string, localDate: string): DailyCheckin | null {
   return readCheckin(token, localDate)
 }
@@ -81,6 +100,11 @@ export function saveTodaysCheckin(token: string, checkin: DailyCheckin): void {
   emitChange()
 }
 
+/**
+ * Snapshot exerciții efectuate azi.
+ * Cheia dedicată `exercises` are prioritate — altfel un check-in vechi din localStorage
+ * anula „Marchează ca Efectuat” imediat după click.
+ */
 export function loadCompletedExercisesSnapshot(token: string, localDate: string): string {
   const key = exercisesKey(token, localDate)
   if (exerciseCache.has(key)) {
@@ -92,6 +116,13 @@ export function loadCompletedExercisesSnapshot(token: string, localDate: string)
     return ""
   }
 
+  const fromExercises = readExercisesRaw(token, localDate)
+  if (fromExercises) {
+    const snapshot = fromExercises.join("|")
+    exerciseCache.set(key, snapshot)
+    return snapshot
+  }
+
   const fromCheckin = readCheckin(token, localDate)
   if (fromCheckin) {
     const snapshot = fromCheckin.completedExerciseIds.join("|")
@@ -99,25 +130,21 @@ export function loadCompletedExercisesSnapshot(token: string, localDate: string)
     return snapshot
   }
 
-  try {
-    const raw = window.localStorage.getItem(key)
-    if (!raw) {
-      exerciseCache.set(key, "")
-      return ""
-    }
-    const parsed: unknown = JSON.parse(raw)
-    const snapshot = Array.isArray(parsed)
-      ? parsed.filter((id) => typeof id === "string").join("|")
-      : ""
-    exerciseCache.set(key, snapshot)
-    return snapshot
-  } catch {
-    exerciseCache.set(key, "")
-    return ""
-  }
+  exerciseCache.set(key, "")
+  return ""
 }
 
 export function saveCompletedExercises(token: string, localDate: string, ids: string[]): void {
   window.localStorage.setItem(exercisesKey(token, localDate), JSON.stringify(ids))
+
+  // Păstrează check-in-ul local aliniat, fără să blocheze toggle-ul.
+  const existing = readCheckin(token, localDate)
+  if (existing) {
+    window.localStorage.setItem(
+      storageKey(token, localDate),
+      JSON.stringify({ ...existing, completedExerciseIds: ids }),
+    )
+  }
+
   emitChange()
 }

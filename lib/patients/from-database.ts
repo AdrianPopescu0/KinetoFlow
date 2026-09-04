@@ -1,16 +1,12 @@
 import type { Exercise, PatientProgram } from "@/lib/patients/types"
 import type { ExerciseRecord, PatientRecord } from "@/lib/patients/types-db"
 import { listCompletedExerciseIdsForDay } from "@/lib/patients/exercise-completions"
+import { isPatientUuidToken } from "@/lib/patients/session"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
 import { bucharestDateKey } from "@/lib/time/bucharest"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-export function isPatientUuidToken(token: string): boolean {
-  return UUID_PATTERN.test(token)
-}
+export { isPatientUuidToken }
 
 function firstNameFromFullName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] ?? fullName
