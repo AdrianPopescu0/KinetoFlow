@@ -118,7 +118,7 @@ export function PatientList({
   }
 
   return (
-    <div>
+    <div className="min-w-0 overflow-x-hidden">
       <div className="border-b border-slate-200 px-5 py-4">
         <div
           className="mb-3 inline-flex w-full rounded-xl border border-slate-200 bg-slate-50 p-1 sm:w-auto"
@@ -171,18 +171,19 @@ export function PatientList({
         </p>
       ) : (
         <>
-          <ul className="divide-y divide-slate-100 md:hidden">
+          {/* Carduri verticale — doar mobil */}
+          <ul className="space-y-3 overflow-x-hidden px-4 py-4 md:hidden">
             {filtered.map((patient) => (
-              <li key={patient.id} className="px-4 py-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+              <li
+                key={patient.id}
+                className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-slate-800">{patient.full_name}</p>
                     <p className="mt-0.5 truncate text-xs text-slate-500">
-                      {patient.phone || patient.email || "—"}
+                      {patient.phone || "Fără telefon"}
                     </p>
-                    {patient.diagnosis ? (
-                      <p className="mt-1 truncate text-xs text-slate-600">{patient.diagnosis}</p>
-                    ) : null}
                   </div>
                   <span
                     className={cn(
@@ -194,41 +195,51 @@ export function PatientList({
                   </span>
                 </div>
 
-                <div className="mt-3 flex flex-col gap-1.5">
-                  <span className="text-xs font-medium text-slate-500">Terapeut responsabil</span>
+                <div className="mt-3 min-w-0">
+                  <span className="mb-1.5 block text-xs font-medium text-slate-500">
+                    Terapeut responsabil
+                  </span>
                   <AssignedTherapistSelect
                     assignedTherapistId={patient.assigned_therapist_id}
                     therapists={therapists}
-                    onSelect={(next) => assignTherapist(patient.id, patient.assigned_therapist_id, next)}
+                    onSelect={(next) =>
+                      assignTherapist(patient.id, patient.assigned_therapist_id, next)
+                    }
                     className="h-11 w-full max-w-none text-sm"
                   />
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid min-w-0 grid-cols-2 gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => copyLink(patient)}
-                    className="h-11 min-h-[44px] w-full rounded-xl"
+                    className="h-10 min-w-0 truncate rounded-xl px-2 text-xs sm:text-sm"
                   >
-                    {copiedId === patient.id ? <Check className="size-4" /> : <Copy className="size-4" />}
-                    Copiază Link
+                    {copiedId === patient.id ? (
+                      <Check className="size-3.5 shrink-0" />
+                    ) : (
+                      <Copy className="size-3.5 shrink-0" />
+                    )}
+                    <span className="truncate">Copiază Link</span>
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setExerciseTarget({ id: patient.id, name: patient.full_name })}
-                    className="h-11 min-h-[44px] w-full rounded-xl"
+                    onClick={() =>
+                      setExerciseTarget({ id: patient.id, name: patient.full_name })
+                    }
+                    className="h-10 min-w-0 truncate rounded-xl px-2 text-xs sm:text-sm"
                   >
-                    <Plus className="size-4" />
-                    Exerciții
+                    <Plus className="size-3.5 shrink-0" />
+                    <span className="truncate">Exerciții</span>
                   </Button>
                   <Link
                     href={`/dashboard/patients/${patient.id}`}
                     prefetch
-                    className="col-span-2 inline-flex h-11 min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
+                    className="col-span-2 inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
                   >
-                    <FolderOpen className="size-4" />
+                    <FolderOpen className="size-3.5 shrink-0" />
                     Deschide Fișa
                   </Link>
                 </div>
@@ -236,6 +247,7 @@ export function PatientList({
             ))}
           </ul>
 
+          {/* Tabel clasic — doar md+ */}
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[52rem] text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
