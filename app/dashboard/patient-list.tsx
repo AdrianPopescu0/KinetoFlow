@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
-import { Check, Copy, FolderOpen, Plus, Search } from "lucide-react"
+import { FolderOpen, Plus, Search } from "lucide-react"
 
 import { AssignExercisesModal } from "@/app/dashboard/assign-exercises-modal"
 import { AssignedTherapistSelect } from "@/app/dashboard/assigned-therapist-select"
@@ -20,7 +20,7 @@ import {
   type PatientAssignmentScope,
   type PatientListFilter,
 } from "@/lib/patients/dashboard-filter"
-import { patientAccessUrl, vasBadgeClass } from "@/lib/patients/display"
+import { vasBadgeClass } from "@/lib/patients/display"
 import type { PatientListItem } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
 
@@ -36,7 +36,6 @@ export function PatientList({
   therapists: ClinicTherapistOption[]
 }) {
   const [query, setQuery] = useState("")
-  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [scope, setScope] = useState<PatientAssignmentScope>("mine")
   const [assignments, setAssignments] = useState<Record<string, string | null>>({})
   const [source, setSource] = useState(patients)
@@ -107,15 +106,6 @@ export function PatientList({
       return patientMatchesListFilter(patient, filter)
     })
   }, [currentTherapistId, filter, query, rows, scope])
-
-  async function copyLink(patient: PatientListItem) {
-    await navigator.clipboard.writeText(patientAccessUrl(patient.token))
-    setCopiedId(patient.id)
-    toast("Linkul de acces a fost copiat.")
-    window.setTimeout(() => {
-      setCopiedId((current) => (current === patient.id ? null : current))
-    }, 2000)
-  }
 
   return (
     <div className="min-w-0 overflow-x-hidden">
@@ -213,19 +203,6 @@ export function PatientList({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => copyLink(patient)}
-                    className="h-10 min-w-0 truncate rounded-xl px-2 text-xs sm:text-sm"
-                  >
-                    {copiedId === patient.id ? (
-                      <Check className="size-3.5 shrink-0" />
-                    ) : (
-                      <Copy className="size-3.5 shrink-0" />
-                    )}
-                    <span className="truncate">Copiază Link</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
                     onClick={() =>
                       setExerciseTarget({ id: patient.id, name: patient.full_name })
                     }
@@ -237,7 +214,7 @@ export function PatientList({
                   <Link
                     href={`/dashboard/patients/${patient.id}`}
                     prefetch
-                    className="col-span-2 inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
+                    className="inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
                   >
                     <FolderOpen className="size-3.5 shrink-0" />
                     Deschide Fișa
@@ -288,15 +265,6 @@ export function PatientList({
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => copyLink(patient)}
-                          className="h-11 min-h-[44px] rounded-xl"
-                        >
-                          {copiedId === patient.id ? <Check className="size-4" /> : <Copy className="size-4" />}
-                          Copiază Link Acces
-                        </Button>
                         <Button
                           type="button"
                           variant="outline"

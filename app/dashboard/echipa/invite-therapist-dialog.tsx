@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Check, Copy, Loader2, MessageCircle, Plus, UserPlus } from "lucide-react"
+import { Loader2, MessageCircle, Plus, UserPlus } from "lucide-react"
 
 import { inviteTherapistAction } from "@/app/dashboard/echipa/actions"
 import { isForbiddenError } from "@/lib/http/forbidden"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { toast } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 
 type InviteReady = {
@@ -27,7 +26,6 @@ export function InviteTherapistDialog({
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState<InviteReady | null>(null)
-  const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function close() {
@@ -37,7 +35,6 @@ export function InviteTherapistDialog({
     setOpen(false)
     setError(null)
     setReady(null)
-    setCopied(false)
   }
 
   function handleSubmit(formData: FormData) {
@@ -66,13 +63,6 @@ export function InviteTherapistDialog({
         setError(caught instanceof Error ? caught.message : "Nu am putut crea invitația.")
       }
     })
-  }
-
-  async function copyLink(link: string) {
-    await navigator.clipboard.writeText(link)
-    setCopied(true)
-    toast("Linkul de acces a fost copiat.")
-    window.setTimeout(() => setCopied(false), 2000)
   }
 
   return (
@@ -112,18 +102,9 @@ export function InviteTherapistDialog({
                   </a>
                 ) : (
                   <p className="text-sm text-amber-800">
-                    Nu am putut construi linkul WhatsApp. Copiază linkul și trimite-l manual.
+                    Nu am putut deschide WhatsApp automat. Verifică numărul terapeutului și încearcă din nou.
                   </p>
                 )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 rounded-xl"
-                  onClick={() => void copyLink(ready.inviteLink)}
-                >
-                  {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                  Copiază linkul
-                </Button>
                 <Button type="button" variant="ghost" className="h-11 rounded-xl text-slate-600" onClick={close}>
                   Închide
                 </Button>
