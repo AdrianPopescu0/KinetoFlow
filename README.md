@@ -97,5 +97,5 @@ app/patient/page.tsx             # Recuperare token (webview fără parametri)
 app/p/[patientToken]/page.tsx    # Alias vechi al programului pacientului
 app/api/cron/reminders/route.ts  # Cron zilnic: reminder WhatsApp check-in (Bearer CRON_SECRET)
 app/api/cron/daily-update/route.ts # Recalculează zilnic exercițiile active (Bearer CRON_SECRET)
-vercel.json                      # Cron reminders + daily-update la 00:00 UTC
+vercel.json                      # Cron reminders + daily-update la 21:00 UTC (= 00:00 RO / EEST)
 ```
