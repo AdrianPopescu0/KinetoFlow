@@ -59,32 +59,30 @@ export async function saveClinicProfile(formData: FormData): Promise<OnboardingS
     clinic_name: clinicName,
     therapist_name: therapistName,
     phone,
-    role: "admin" as const,
   }
 
-  const { error: writeError } = await supabase
+  // ID-ul nu vine din formular: este preluat exclusiv din sesiunea verificată.
+  const { data: existing, error: readError } = await supabase
     .from("clinic_profiles")
-    .upsert(row, { onConflict: "user_id" })
     .select("user_id")
+    .eq("user_id", user.id)
     .maybeSingle()
 
-  if (writeError) {
-    const legacy = await supabase
-      .from("clinic_profiles")
-      .upsert(
-        {
-          user_id: user.id,
-          clinic_name: clinicName,
-          therapist_name: therapistName,
-          phone,
-        },
-        { onConflict: "user_id" },
-      )
-      .select("user_id")
-      .maybeSingle()
-    if (legacy.error) {
-      return { error: formatSupabaseError(writeError) }
-    }
+  if (readError) {
+    return { error: formatSupabaseError(readError) }
+  }
+
+  const writeResult = existing
+    ? await supabase
+        .from("clinic_profiles")
+        .update({ clinic_name: clinicName, therapist_name: therapistName, phone })
+        .eq("user_id", user.id)
+    : await supabase
+        .from("clinic_profiles")
+        .insert({ ...row, role: "admin" as const })
+
+  if (writeResult.error) {
+    return { error: formatSupabaseError(writeResult.error) }
   }
 
   await supabase.auth.updateUser({
