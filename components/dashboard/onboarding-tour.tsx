@@ -32,7 +32,7 @@ const STEPS = [
   {
     icon: MessageCircle,
     title: "Acces instant pentru pacient",
-    text: "Trimite accesul direct pe WhatsApp. Pacientul intră în program fără conturi sau parole greoaie.",
+    text: "Apasă pe „Copiază Link Acces” sau folosește opțiunea de trimitere pe WhatsApp. Pacientul intră direct pe link, fără conturi sau parole greoaie.",
   },
 ] as const
 
