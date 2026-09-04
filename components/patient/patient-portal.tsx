@@ -190,43 +190,39 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       <PatientHeader firstName={program.firstName} dateLabel={dateLabel} onOpenGuide={() => setGuideOpen(true)} />
 
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 overflow-x-hidden px-4 py-6 pb-16 sm:px-6 lg:gap-10 lg:px-8 lg:py-8">
-        {/* Rând superior: terapeut | check-in | reguli */}
-        <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-3 lg:gap-6">
-          <div className="order-2 min-w-0 lg:order-1">
-            <TherapistCard
-              therapistName={program.therapistName}
-              therapistPhone={program.therapistPhone}
+        {/* Check-in full-width */}
+        <section className="w-full min-w-0">
+          {!isClient ? (
+            <div className="h-56 w-full animate-pulse rounded-2xl border border-slate-200 bg-white" />
+          ) : storedCheckin ? (
+            <CheckinSuccess checkin={storedCheckin} alreadySubmitted={!justSubmitted} />
+          ) : (
+            <DailyCheckinForm
+              pain={pain}
+              sleep={sleep}
+              energy={energy}
+              notes={notes}
+              error={error}
+              pending={pending}
+              onPainChange={setPain}
+              onSleepChange={setSleep}
+              onEnergyChange={setEnergy}
+              onNotesChange={setNotes}
+              onSubmit={submitCheckin}
             />
-          </div>
-
-          <div className="order-1 min-w-0 lg:order-2">
-            {!isClient ? (
-              <div className="h-full min-h-56 animate-pulse rounded-2xl border border-slate-200 bg-white" />
-            ) : storedCheckin ? (
-              <CheckinSuccess checkin={storedCheckin} alreadySubmitted={!justSubmitted} />
-            ) : (
-              <DailyCheckinForm
-                pain={pain}
-                sleep={sleep}
-                energy={energy}
-                notes={notes}
-                error={error}
-                pending={pending}
-                onPainChange={setPain}
-                onSleepChange={setSleep}
-                onEnergyChange={setEnergy}
-                onNotesChange={setNotes}
-                onSubmit={submitCheckin}
-              />
-            )}
-          </div>
-
-          <div className="order-3 min-w-0 lg:order-3">
-            <GoldenRulesCard />
-          </div>
+          )}
         </section>
 
-        {/* Rând mijloc: exerciții pe 3 coloane */}
+        {/* Terapeut + Reguli — 2 coloane egale */}
+        <section className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 lg:gap-6">
+          <TherapistCard
+            therapistName={program.therapistName}
+            therapistPhone={program.therapistPhone}
+          />
+          <GoldenRulesCard />
+        </section>
+
+        {/* Exerciții pe 3 coloane */}
         <section className="flex min-w-0 flex-col gap-5">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold tracking-tight text-slate-800 sm:text-xl">
@@ -256,7 +252,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
           )}
         </section>
 
-        {/* Rând jos: ghid educațional */}
+        {/* Ghid educațional */}
         <section className="min-w-0">
           <RecoveryGuidePanel onReadMore={() => setTipsOpen(true)} />
         </section>

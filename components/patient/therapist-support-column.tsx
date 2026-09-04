@@ -14,7 +14,7 @@ export function TherapistCard({
   className?: string
 }) {
   return (
-    <section className={cn(surfaceCardClassName("flex h-full min-h-0 flex-col p-5"), className)}>
+    <section className={cn(surfaceCardClassName("flex h-full min-h-0 flex-col p-5 sm:p-6"), className)}>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Kinetoterapeutul tău</p>
       <p className="mt-2 text-lg font-semibold text-slate-900">{therapistName}</p>
       <p className="mt-1 flex-1 text-sm leading-relaxed text-slate-600">
@@ -24,7 +24,7 @@ export function TherapistCard({
         href={whatsappHref(therapistPhone)}
         target="_blank"
         rel="noreferrer"
-        className="mt-4 inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#042f2e] px-3 text-sm font-semibold text-white hover:bg-[#064e3b]"
+        className="mt-4 inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#042f2e] px-3 text-sm font-semibold text-white hover:bg-[#064e3b] sm:mt-5 sm:max-w-xs"
       >
         <MessageCircle className="size-4" />
         Scrie pe WhatsApp
@@ -35,9 +35,9 @@ export function TherapistCard({
 
 export function GoldenRulesCard({ className }: { className?: string }) {
   return (
-    <section className={cn(surfaceCardClassName("flex h-full min-h-0 flex-col p-5"), className)}>
+    <section className={cn(surfaceCardClassName("flex h-full min-h-0 flex-col p-5 sm:p-6"), className)}>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Reguli de aur</p>
-      <ol className="mt-3 flex flex-1 flex-col gap-3.5">
+      <ol className="mt-3 flex flex-1 flex-col gap-3 sm:gap-3.5">
         {GOLDEN_RULES.map((rule, index) => (
           <li key={rule.title} className="flex gap-3">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-semibold text-[#042f2e]">
