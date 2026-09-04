@@ -16,7 +16,7 @@ type PatientHeaderProps = {
 export function PatientHeader({ firstName, dateLabel, onOpenGuide }: PatientHeaderProps) {
   return (
     <header className="sticky top-0 z-20 bg-[#042f2e] text-white">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-4 lg:px-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-start justify-between gap-3">
           <Logo size="md" variant="onDark" />
           <div className="flex items-center gap-2">

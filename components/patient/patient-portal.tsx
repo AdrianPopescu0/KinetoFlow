@@ -185,20 +185,20 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       <PatientOnboardingModal patientKey={program.token} />
       <PatientHeader firstName={program.firstName} dateLabel={dateLabel} onOpenGuide={() => setGuideOpen(true)} />
 
-      <main className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 py-6 pb-16 lg:px-6">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-8">
-          {/* Coloana stângă — terapeut + reguli */}
-          <aside className="order-2 w-full shrink-0 lg:sticky lg:top-24 lg:order-1 lg:w-1/3 lg:max-w-sm">
+      <main className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 py-6 pb-16 sm:px-6 lg:px-8 lg:py-8">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)] lg:gap-8 xl:gap-10">
+          {/* Coloana stângă ~34%: terapeut + reguli */}
+          <aside className="order-2 flex w-full min-w-0 flex-col gap-5 lg:sticky lg:top-24 lg:order-1 lg:self-start">
             <TherapistSupportColumn
               therapistName={program.therapistName}
               therapistPhone={program.therapistPhone}
             />
           </aside>
 
-          {/* Coloana dreaptă — check-in, ghid, exerciții */}
-          <div className="order-1 flex min-w-0 flex-1 flex-col gap-8 lg:order-2 lg:w-2/3">
+          {/* Coloana dreaptă ~66%: check-in, ghid, exerciții */}
+          <div className="order-1 flex min-w-0 flex-col gap-6 lg:order-2 lg:gap-8">
             {!isClient ? (
-              <div className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+              <div className="h-56 animate-pulse rounded-2xl border border-slate-200 bg-white" />
             ) : storedCheckin ? (
               <CheckinSuccess checkin={storedCheckin} alreadySubmitted={!justSubmitted} />
             ) : (
@@ -217,24 +217,26 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
               />
             )}
 
-            <div className="hidden lg:block">
+            <div className="hidden min-w-0 lg:block">
               <RecoveryGuidePanel onReadMore={() => setTipsOpen(true)} />
             </div>
 
-            <section className="flex flex-col gap-5">
-              <div>
-                <h2 className="text-lg font-semibold tracking-tight text-slate-800">Exercițiile de azi</h2>
+            <section className="flex min-w-0 flex-col gap-5">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold tracking-tight text-slate-800 sm:text-xl">
+                  Exercițiile de azi
+                </h2>
                 <p className="mt-1 text-sm text-slate-600">
                   Urmărește video-ul, apoi marchează-le ca efectuate.
                 </p>
               </div>
 
               {program.exercises.length === 0 ? (
-                <p className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-600 shadow-sm">
+                <p className="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-sm text-slate-600 shadow-sm">
                   Terapeutul nu a alocat încă exerciții. Completează totuși check-in-ul.
                 </p>
               ) : (
-                <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2">
+                <div className="grid grid-cols-1 items-stretch gap-5 sm:gap-6 lg:grid-cols-2">
                   {program.exercises.map((exercise) => (
                     <ExerciseCard
                       key={exercise.id}
@@ -248,8 +250,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
               )}
             </section>
 
-            {/* Ghid educațional pe mobil, sub exerciții */}
-            <div className="lg:hidden">
+            <div className="min-w-0 lg:hidden">
               <RecoveryGuidePanel onReadMore={() => setTipsOpen(true)} />
             </div>
           </div>

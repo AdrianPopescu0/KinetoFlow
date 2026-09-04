@@ -19,20 +19,20 @@ export function ExerciseCard({ exercise, completed, pending = false, onToggle }:
   return (
     <article
       className={cn(
-        surfaceCardClassName("flex h-full min-h-0 flex-col overflow-hidden"),
+        surfaceCardClassName("flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"),
         completed && "border-teal-200 ring-1 ring-teal-100",
       )}
     >
-      <div className="w-full shrink-0 overflow-hidden bg-slate-100">
-        <VideoPreview url={src} title={exercise.title} />
+      <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-slate-100">
+        <VideoPreview url={src} title={exercise.title} fill />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+      <div className="flex min-h-[12rem] flex-1 flex-col gap-3 p-4 sm:p-5">
         <div className="min-w-0">
           <p className="truncate text-xs font-semibold tracking-wide text-[#042f2e] uppercase">
             {exercise.category}
           </p>
-          <h3 className="mt-0.5 line-clamp-2 text-base font-semibold tracking-tight text-slate-800 sm:text-lg">
+          <h3 className="mt-1 line-clamp-2 min-h-[2.75rem] text-base font-semibold tracking-tight text-slate-800">
             {exercise.title}
           </h3>
         </div>
@@ -41,11 +41,14 @@ export function ExerciseCard({ exercise, completed, pending = false, onToggle }:
           {exercise.sets} serii × {exercise.reps} repetări
         </p>
 
-        {exercise.instructions ? (
-          <p className="line-clamp-3 text-sm leading-relaxed text-slate-600">{exercise.instructions}</p>
-        ) : (
-          <p className="text-sm leading-relaxed text-slate-400">Fără instrucțiuni suplimentare.</p>
-        )}
+        <p
+          className={cn(
+            "line-clamp-3 min-h-[3.75rem] text-sm leading-relaxed",
+            exercise.instructions ? "text-slate-600" : "text-slate-400",
+          )}
+        >
+          {exercise.instructions || "Fără instrucțiuni suplimentare."}
+        </p>
 
         <div className="mt-auto pt-1">
           <Button
