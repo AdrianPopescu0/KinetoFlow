@@ -12,7 +12,7 @@ export function RecoveryGuidePanel({ onReadMore }: { onReadMore: () => void }) {
   const [openId, setOpenId] = useState<string | null>(RECOVERY_ARTICLES[0]?.id ?? null)
 
   return (
-    <section className={surfaceCardClassName("p-4")}>
+    <section className={surfaceCardClassName("p-5")}>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Hub educațional</p>
       <h2 className="mt-1 text-lg font-semibold text-slate-900">Ghidul tău de recuperare</h2>
       <p className="mt-1 text-sm text-slate-600">Răspunsuri scurte pentru zilele dintre ședințe.</p>
@@ -25,17 +25,17 @@ export function RecoveryGuidePanel({ onReadMore }: { onReadMore: () => void }) {
               <button
                 type="button"
                 onClick={() => setOpenId(open ? null : article.id)}
-                className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left"
+                className="flex w-full items-start justify-between gap-3 px-3.5 py-3 text-left hover:bg-slate-50"
                 aria-expanded={open}
               >
-                <span>
+                <span className="min-w-0">
                   <span className="block text-sm font-semibold text-slate-900">{article.title}</span>
                   {!open ? <span className="mt-1 block text-xs text-slate-500">{article.summary}</span> : null}
                 </span>
                 <ChevronDown className={cn("mt-0.5 size-4 shrink-0 text-slate-400 transition", open && "rotate-180")} />
               </button>
               {open ? (
-                <div className="space-y-2 px-3 pb-3 text-sm leading-relaxed text-slate-600">
+                <div className="space-y-2 px-3.5 pb-3.5 text-sm leading-relaxed text-slate-600">
                   {article.body.map((paragraph) => (
                     <p key={paragraph}>{paragraph}</p>
                   ))}

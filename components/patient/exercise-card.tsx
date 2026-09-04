@@ -19,18 +19,20 @@ export function ExerciseCard({ exercise, completed, pending = false, onToggle }:
   return (
     <article
       className={cn(
-        surfaceCardClassName("overflow-hidden"),
+        surfaceCardClassName("flex h-full min-h-0 flex-col overflow-hidden"),
         completed && "border-teal-200 ring-1 ring-teal-100",
       )}
     >
-      <VideoPreview url={src} title={exercise.title} />
+      <div className="w-full shrink-0 overflow-hidden bg-slate-100">
+        <VideoPreview url={src} title={exercise.title} />
+      </div>
 
-      <div className="flex flex-col gap-3 p-4">
-        <div>
-          <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold tracking-wide text-[#042f2e] uppercase">
             {exercise.category}
           </p>
-          <h3 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-800">
+          <h3 className="mt-0.5 line-clamp-2 text-base font-semibold tracking-tight text-slate-800 sm:text-lg">
             {exercise.title}
           </h3>
         </div>
@@ -38,21 +40,26 @@ export function ExerciseCard({ exercise, completed, pending = false, onToggle }:
         <p className="text-sm font-medium text-slate-800">
           {exercise.sets} serii × {exercise.reps} repetări
         </p>
-        {exercise.instructions ? (
-          <p className="text-sm leading-relaxed text-slate-600">{exercise.instructions}</p>
-        ) : null}
 
-        <Button
-          type="button"
-          disabled={pending}
-          onClick={() => onToggle(exercise.id, !completed)}
-          className={cn(
-            "h-12 min-h-[48px] w-full rounded-xl",
-            completed && "bg-emerald-600 hover:bg-emerald-600",
-          )}
-        >
-          {pending ? "Se salvează…" : completed ? "Efectuat ✓" : "Marchează ca Efectuat"}
-        </Button>
+        {exercise.instructions ? (
+          <p className="line-clamp-3 text-sm leading-relaxed text-slate-600">{exercise.instructions}</p>
+        ) : (
+          <p className="text-sm leading-relaxed text-slate-400">Fără instrucțiuni suplimentare.</p>
+        )}
+
+        <div className="mt-auto pt-1">
+          <Button
+            type="button"
+            disabled={pending}
+            onClick={() => onToggle(exercise.id, !completed)}
+            className={cn(
+              "h-11 min-h-[44px] w-full rounded-xl",
+              completed && "bg-emerald-600 hover:bg-emerald-600",
+            )}
+          >
+            {pending ? "Se salvează…" : completed ? "Efectuat ✓" : "Marchează ca Efectuat"}
+          </Button>
+        </div>
       </div>
     </article>
   )

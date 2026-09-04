@@ -11,11 +11,11 @@ export function TherapistSupportColumn({
   therapistPhone: string | null
 }) {
   return (
-    <div className="flex flex-col gap-4">
-      <section className={surfaceCardClassName("p-4")}>
+    <div className="flex flex-col gap-5">
+      <section className={surfaceCardClassName("p-5")}>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Kinetoterapeutul tău</p>
         <p className="mt-2 text-lg font-semibold text-slate-900">{therapistName}</p>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm leading-relaxed text-slate-600">
           Scrie dacă un exercițiu doare altfel decât de obicei sau dacă nu ești sigur de doză.
         </p>
         <a
@@ -29,15 +29,15 @@ export function TherapistSupportColumn({
         </a>
       </section>
 
-      <section className={surfaceCardClassName("p-4")}>
+      <section className={surfaceCardClassName("p-5")}>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Reguli de aur</p>
-        <ol className="mt-3 flex flex-col gap-3">
+        <ol className="mt-3 flex flex-col gap-3.5">
           {GOLDEN_RULES.map((rule, index) => (
             <li key={rule.title} className="flex gap-3">
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-semibold text-[#042f2e]">
                 {index + 1}
               </span>
-              <span>
+              <span className="min-w-0">
                 <span className="block text-sm font-semibold text-slate-900">{rule.title}</span>
                 <span className="mt-0.5 block text-sm leading-relaxed text-slate-600">{rule.detail}</span>
               </span>
