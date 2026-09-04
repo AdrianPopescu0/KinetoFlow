@@ -21,6 +21,8 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — cheia anonimă / publicabilă (`sb_publishable_…`)
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
 - `NEXT_PUBLIC_SITE_URL` — originea aplicației (pentru linkurile de recuperare a parolei)
+- `CRON_SECRET` — secret pentru cron-ul zilnic de reminder check-in (`Authorization: Bearer …` pe `/api/cron/reminders`); pe Vercel, dacă e setat, header-ul e trimis automat
+- Opțional: `TWILIO_*` sau `WHATSAPP_CLOUD_*` pentru trimiterea WhatsApp (altfel doar click-to-chat)
 
 În dashboard-ul Supabase, **Authentication → Providers → Email** trebuie să fie activ. Pentru fluxul de onboarding imediat după înregistrare, dezactivează „Confirm email” (sau lasă-l activ — utilizatorul confirmă din email și apoi intră în cont).
 
@@ -93,4 +95,6 @@ app/dashboard/page.tsx           # Dashboard terapeut (protejat)
 app/patient/[token]/page.tsx     # Programul public al pacientului
 app/patient/page.tsx             # Recuperare token (webview fără parametri)
 app/p/[patientToken]/page.tsx    # Alias vechi al programului pacientului
+app/api/cron/reminders/route.ts  # Cron zilnic: reminder WhatsApp check-in (Bearer CRON_SECRET)
+vercel.json                      # Schedule Vercel Cron → /api/cron/reminders (06:00 UTC ≈ 09:00 RO vara)
 ```

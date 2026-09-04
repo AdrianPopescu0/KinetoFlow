@@ -8,7 +8,7 @@ import {
   patientWhatsAppMessage,
   patientWhatsAppWebHref,
 } from "@/lib/patients/whatsapp"
-import { toWhatsAppNumber } from "@/lib/patients/phone"
+import { sendWhatsAppMessage } from "@/lib/patients/whatsapp-send"
 import { getOwnPatientRow } from "@/lib/patients/tenant"
 
 export async function POST(request: Request) {
@@ -53,71 +53,14 @@ export async function POST(request: Request) {
   const whatsappHref = phone ? patientWhatsAppHref(phone, message) : null
   const whatsappWebHref = phone ? patientWhatsAppWebHref(phone, message) : null
 
-  const sent = await sendViaProvider(phone, message)
+  const result = await sendWhatsAppMessage(phone, message)
 
   return NextResponse.json({
-    sent,
+    sent: result.sent,
     fallback: "click-to-chat",
     portalUrl: patientAccessUrl(),
     whatsappHref,
     whatsappWebHref,
     whatsappMessage: message,
   })
-}
-
-async function sendViaProvider(phone: string, message: string): Promise<boolean> {
-  const to = toWhatsAppNumber(phone)
-  if (!to) {
-    return false
-  }
-
-  const twilioSid = process.env.TWILIO_ACCOUNT_SID
-  const twilioToken = process.env.TWILIO_AUTH_TOKEN
-  const twilioFrom = process.env.TWILIO_WHATSAPP_FROM
-  if (twilioSid && twilioToken && twilioFrom) {
-    try {
-      const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`
-      const body = new URLSearchParams({
-        From: twilioFrom.startsWith("whatsapp:") ? twilioFrom : `whatsapp:${twilioFrom}`,
-        To: `whatsapp:+${to}`,
-        Body: message,
-      })
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${twilioSid}:${twilioToken}`).toString("base64")}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body,
-      })
-      return response.ok
-    } catch {
-      return false
-    }
-  }
-
-  const metaToken = process.env.WHATSAPP_CLOUD_TOKEN
-  const metaPhoneId = process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID
-  if (metaToken && metaPhoneId) {
-    try {
-      const response = await fetch(`https://graph.facebook.com/v21.0/${metaPhoneId}/messages`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${metaToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to,
-          type: "text",
-          text: { body: message },
-        }),
-      })
-      return response.ok
-    } catch {
-      return false
-    }
-  }
-
-  return false
 }

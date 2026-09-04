@@ -39,6 +39,23 @@ export function patientWhatsAppMessage(input: {
   ].join("\n")
 }
 
+/** Reminder zilnic: check-in lipsă, cu link precompletat pe codul de 8 cifre. */
+export function patientCheckinReminderMessage(input: {
+  fullName: string
+  clinicName: string
+  accessCode: string
+}): string {
+  const firstName = input.fullName.trim().split(/\s+/)[0] || input.fullName
+  return [
+    `Bună, ${firstName}! Reminder de la ${input.clinicName}: nu ai făcut încă check-in-ul de azi.`,
+    "Intră aici și notează cum te simți înainte de exerciții:",
+    `👉 ${patientAccessUrlWithCode(input.accessCode)}`,
+    "",
+    `(Codul tău de acces este ${input.accessCode} și s-a completat automat).`,
+    "Spor la recuperare!",
+  ].join("\n")
+}
+
 function encodedWhatsAppText(message: string): string {
   return encodeURIComponent(message)
 }

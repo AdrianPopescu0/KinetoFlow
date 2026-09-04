@@ -73,3 +73,53 @@ export function composeIntervalExerciseNotes(
   const body = description.trim()
   return body ? `${schedule}\n${body}` : schedule
 }
+
+const TREATMENT_INTERVAL_PATTERN =
+  /Perioadă tratament:\s*(\d{2})[./](\d{2})[./](\d{4})\s*[–—-]\s*(\d{2})[./](\d{2})[./](\d{4})/i
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0")
+}
+
+function partsToDateKey(day: string, month: string, year: string): string | null {
+  const key = `${year}-${pad2(Number(month))}-${pad2(Number(day))}`
+  return isDateKey(key) ? key : null
+}
+
+/** Extrage intervalul `YYYY-MM-DD` din notele de tip „Perioadă tratament: …”. */
+export function parseTreatmentIntervalFromNotes(
+  notes: string | null | undefined,
+): { startDate: string; endDate: string } | null {
+  if (!notes) {
+    return null
+  }
+  const match = notes.match(TREATMENT_INTERVAL_PATTERN)
+  if (!match) {
+    return null
+  }
+  const startDate = partsToDateKey(match[1], match[2], match[3])
+  const endDate = partsToDateKey(match[4], match[5], match[6])
+  if (!startDate || !endDate) {
+    return null
+  }
+  return startDate <= endDate ? { startDate, endDate } : { startDate: endDate, endDate: startDate }
+}
+
+/**
+ * Exercițiu „activ” în ziua dată:
+ * - cu perioadă în notes → ziua e în interval (inclusiv)
+ * - fără perioadă → considerat activ (exerciții vechi / fără interval)
+ */
+export function isExerciseActiveOnDate(
+  notes: string | null | undefined,
+  dateKey: string,
+): boolean {
+  if (!isDateKey(dateKey)) {
+    return false
+  }
+  const interval = parseTreatmentIntervalFromNotes(notes)
+  if (!interval) {
+    return true
+  }
+  return dateKey >= interval.startDate && dateKey <= interval.endDate
+}
