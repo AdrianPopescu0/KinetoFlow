@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { getCachedUser } from "@/lib/auth/session"
 import {
-  EXERCISE_LIBRARY_EDITOR_EMAIL,
+  EXERCISE_LIBRARY_EDITOR_EMAILS,
   LIBRARY_WRITE_FORBIDDEN,
   isExerciseLibraryEditor,
 } from "@/lib/exercises/library-admin"
@@ -155,5 +155,5 @@ export async function loadStoredLibraryExercises(): Promise<LibraryExercise[]> {
 }
 
 export function libraryEditorEmail(): string {
-  return EXERCISE_LIBRARY_EDITOR_EMAIL
+  return EXERCISE_LIBRARY_EDITOR_EMAILS.join(", ")
 }

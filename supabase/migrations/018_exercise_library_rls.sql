@@ -1,5 +1,5 @@
 -- KinetoFlow — RLS pe catalogul exercise_library
--- Citire: oricine. Scriere: kinetic01flow@gmail.com.
+-- Citire: oricine. Scriere: kinetic01flow@gmail.com, admin@kinetoflow.ro.
 -- Dacă tabela lipsește, rulează 020_create_exercise_library.sql.
 
 create table if not exists public.exercise_library (
@@ -33,12 +33,18 @@ security definer
 set search_path = public, auth
 as $$
   select
-    lower(coalesce(auth.jwt() ->> 'email', '')) = 'kinetic01flow@gmail.com'
+    lower(coalesce(auth.jwt() ->> 'email', '')) in (
+      'kinetic01flow@gmail.com',
+      'admin@kinetoflow.ro'
+    )
     or exists (
       select 1
       from auth.users u
       where u.id = auth.uid()
-        and lower(u.email) = 'kinetic01flow@gmail.com'
+        and lower(u.email) in (
+          'kinetic01flow@gmail.com',
+          'admin@kinetoflow.ro'
+        )
     );
 $$;
 
