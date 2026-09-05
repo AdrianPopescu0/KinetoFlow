@@ -4,12 +4,19 @@ import { ArrowLeft } from "lucide-react"
 
 import { ClinicalNotesEditor } from "@/app/dashboard/patients/clinical-notes-editor"
 import { ExerciseManager } from "@/app/dashboard/patients/exercise-manager"
+import { NotifyChannelActions } from "@/app/dashboard/patients/notify-channel-actions"
 import { PatientFileActions } from "@/app/dashboard/patients/patient-file-actions"
 import { PatientFileStampProvider } from "@/app/dashboard/patients/patient-file-stamp"
 import { VasChart } from "@/app/dashboard/patients/vas-chart"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { sleepLabel } from "@/lib/patients/display"
+import { notifyChannelLabel } from "@/lib/patients/notify-channel"
 import { getTherapistPatient } from "@/lib/patients/queries"
+import {
+  patientWhatsAppHref,
+  patientWhatsAppMessage,
+  patientWhatsAppWebHref,
+} from "@/lib/patients/whatsapp"
 
 type PatientFilePageProps = {
   params: Promise<{ id: string }>
@@ -21,6 +28,13 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
   if (!patient) {
     notFound()
   }
+
+  const inviteMessage = patientWhatsAppMessage({
+    fullName: patient.full_name,
+    clinicName: "KinetoFlow",
+    accessCode: patient.access_code ?? "",
+  })
+  const phone = patient.phone ?? ""
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-8">
@@ -48,11 +62,27 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
                   Cod acces: {patient.access_code}
                 </p>
               ) : null}
+              <p className="mt-2 text-sm text-slate-600">
+                Canal notificări:{" "}
+                <span className="font-medium text-slate-800">{notifyChannelLabel(patient.notify_channel)}</span>
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <PatientFileActions patient={patient} />
             </div>
           </div>
+          {phone ? (
+            <div className="mt-5 max-w-md border-t border-slate-200 pt-4">
+              <NotifyChannelActions
+                patientId={patient.id}
+                phone={phone}
+                message={inviteMessage}
+                whatsappHref={patientWhatsAppHref(phone, inviteMessage)}
+                whatsappWebHref={patientWhatsAppWebHref(phone, inviteMessage)}
+                initialChannel={patient.notify_channel}
+              />
+            </div>
+          ) : null}
         </section>
 
         <section className={surfaceCardClassName("p-5")}>

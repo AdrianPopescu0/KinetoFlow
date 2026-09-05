@@ -62,6 +62,7 @@ export type Database = {
           user_id: string | null
           clinic_id: string | null
           clinic_name: string | null
+          notify_channel: "whatsapp" | "sms" | null
         }
         Insert: {
           id?: string
@@ -79,6 +80,7 @@ export type Database = {
           user_id?: string | null
           clinic_id?: string | null
           clinic_name?: string | null
+          notify_channel?: "whatsapp" | "sms" | null
         }
         Update: Record<string, unknown>
         Relationships: []

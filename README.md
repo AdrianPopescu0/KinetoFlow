@@ -65,7 +65,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 În Supabase: **SQL Editor** → lipește și rulează `supabase/migrations/001_patients.sql`.
 
-Tabele: `patients` (token UUID unic pentru `/patient/[token]`; **fără** coloana `clinic_id` — cabinetul e `therapist_id` + `clinic_profiles.clinic_name`), `exercises`, `check_ins`, `exercise_completions` (finalizări zilnice din portalul pacientului — rulează `016_exercise_completions.sql`). Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient. Dacă lipsește tabela, rulează `sql/020_create_exercise_library.sql`, apoi `sql/021_exercise_library_editors.sql` în SQL Editor (nu la build-ul Vercel): SELECT pentru oricine; INSERT/UPDATE/DELETE doar pentru `kinetic01flow@gmail.com` și `admin@kinetoflow.ro`.
+Tabele: `patients` (token UUID unic pentru `/patient/[token]`; **fără** coloana `clinic_id` — cabinetul e `therapist_id` + `clinic_profiles.clinic_name`; `notify_channel` = WhatsApp sau SMS, rulează `sql/022_patient_notify_channel.sql`), `exercises`, `check_ins`, `exercise_completions` (finalizări zilnice din portalul pacientului — rulează `016_exercise_completions.sql`). Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient. Dacă lipsește tabela, rulează `sql/020_create_exercise_library.sql`, apoi `sql/021_exercise_library_editors.sql` în SQL Editor (nu la build-ul Vercel): SELECT pentru oricine; INSERT/UPDATE/DELETE doar pentru `kinetic01flow@gmail.com` și `admin@kinetoflow.ro`.
 
 Fișa clinică: `/dashboard/patients/[id]`. La salvare, aplicația compară `updated_at` cu momentul deschiderii ecranului; dacă altcineva a modificat fișa, terapeutul e avertizat și poate reîncărca datele. Rulează `supabase/migrations/009_patients_updated_at.sql`. Asignare terapeut: `010_assigned_therapist.sql` (`assigned_therapist_id`). Note clinice: `002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
@@ -90,7 +90,7 @@ Vercel Cron rulează doar pe UTC, deci `/api/cron/reminders` e programat la **15
 - vară (EEST, UTC+3): 15:00 UTC = 18:00 RO
 - iarnă (EET, UTC+2): 16:00 UTC = 18:00 RO
 
-Job-ul selectează pacienții cu exercițiu activ azi (perioada din `notes`) și **fără** rând în `check_ins` pentru ziua București. Canalul preferat e WhatsApp (Twilio sau Meta Cloud); dacă WhatsApp lipsește sau eșuează, se încearcă SMS (`TWILIO_SMS_FROM`).
+Job-ul selectează pacienții cu exercițiu activ azi (perioada din `notes`) și **fără** rând în `check_ins` pentru ziua București. Trimite **doar** pe canalul salvat în `patients.notify_channel` (WhatsApp sau SMS), același folosit la invitația inițială. Fără canal setat, pacientul e sărit. Rulează `sql/022_patient_notify_channel.sql` în SQL Editor.
 
 Trigger manual (ignoră ora): `GET /api/cron/reminders?force=1` cu `Authorization: Bearer ${CRON_SECRET}`. Previzualizare fără trimitere: `?dryRun=1&force=1`.
 

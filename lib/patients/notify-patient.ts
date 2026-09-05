@@ -1,9 +1,10 @@
 import "server-only"
 
+import type { PatientNotifyChannel } from "@/lib/patients/notify-channel"
 import { isTwilioSmsConfigured, sendSmsMessage } from "@/lib/patients/sms-send"
 import { sendWhatsAppMessage } from "@/lib/patients/whatsapp-send"
 
-export type PatientNotifyChannel = "whatsapp" | "sms"
+export type { PatientNotifyChannel }
 
 export type PatientNotifyResult = {
   sent: boolean
@@ -31,29 +32,27 @@ export function configuredNotifyChannels(): { whatsapp: boolean; sms: boolean } 
   }
 }
 
-/**
- * WhatsApp întâi (Twilio sau Meta Cloud), apoi SMS Twilio dacă WhatsApp
- * nu e configurat sau trimiterea a eșuat.
- */
+/** Trimite doar pe canalul cerut — fără fallback pe celălalt. */
 export async function sendPatientNotification(
   phone: string,
   message: string,
+  channel: PatientNotifyChannel,
 ): Promise<PatientNotifyResult> {
-  const whatsapp = await sendWhatsAppMessage(phone, message)
-  if (whatsapp.sent) {
-    return { sent: true, channel: "whatsapp", provider: whatsapp.provider }
+  if (channel === "whatsapp") {
+    const whatsapp = await sendWhatsAppMessage(phone, message)
+    return {
+      sent: whatsapp.sent,
+      channel: "whatsapp",
+      provider: whatsapp.provider,
+      error: whatsapp.error,
+    }
   }
 
   const sms = await sendSmsMessage(phone, message)
-  if (sms.sent) {
-    return { sent: true, channel: "sms", provider: sms.provider }
-  }
-
-  const parts = [whatsapp.error, sms.error].filter((part): part is string => Boolean(part))
   return {
-    sent: false,
-    channel: null,
-    provider: sms.provider ?? whatsapp.provider,
-    error: parts.join(" ") || "Niciun canal de notificare configurat.",
+    sent: sms.sent,
+    channel: "sms",
+    provider: sms.provider,
+    error: sms.error,
   }
 }

@@ -3,7 +3,9 @@ import "server-only"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { isExerciseActiveOnDate } from "@/lib/exercises/schedule"
+import { parseNotifyChannel } from "@/lib/patients/notify-channel"
 import { sendPatientNotification } from "@/lib/patients/notify-patient"
+import { isMissingNotifyChannelColumn } from "@/lib/patients/remember-notify-channel"
 import { patientCheckinReminderMessage } from "@/lib/patients/whatsapp"
 import {
   bucharestDateKey,
@@ -18,6 +20,7 @@ type PatientRow = {
   access_code: string | null
   therapist_id: string
   assigned_therapist_id: string | null
+  notify_channel?: string | null
 }
 
 type ExerciseRow = {
@@ -71,15 +74,21 @@ export async function runCheckinReminders(
   const todayStart = startOfTodayIso(now)
   const tomorrowStart = startOfTomorrowIso(now)
 
-  const { data: patientsRaw, error: patientsError } = await supabase
+  const withChannel = await supabase
     .from("patients")
-    .select("id, full_name, phone, access_code, therapist_id, assigned_therapist_id")
+    .select("id, full_name, phone, access_code, therapist_id, assigned_therapist_id, notify_channel")
 
-  if (patientsError) {
-    throw new Error(`Nu am putut citi pacienții: ${patientsError.message}`)
+  const patientsQuery = isMissingNotifyChannelColumn(withChannel.error)
+    ? await supabase
+        .from("patients")
+        .select("id, full_name, phone, access_code, therapist_id, assigned_therapist_id")
+    : withChannel
+
+  if (patientsQuery.error) {
+    throw new Error(`Nu am putut citi pacienții: ${patientsQuery.error.message}`)
   }
 
-  const patients = (patientsRaw ?? []) as PatientRow[]
+  const patients = (patientsQuery.data ?? []) as PatientRow[]
   if (patients.length === 0) {
     return {
       dateKey,
@@ -202,6 +211,18 @@ export async function runCheckinReminders(
       continue
     }
 
+    const channel = parseNotifyChannel(patient.notify_channel)
+    if (!channel) {
+      skipped += 1
+      outcomes.push({
+        patientId: patient.id,
+        fullName: patient.full_name,
+        status: "skipped",
+        reason: "Canal de notificare nesetat. Trimite invitația pe WhatsApp sau SMS.",
+      })
+      continue
+    }
+
     eligible += 1
     const clinicName = clinicNameForPatient(patient, clinicsByUserId)
     const message = patientCheckinReminderMessage({
@@ -216,11 +237,12 @@ export async function runCheckinReminders(
         fullName: patient.full_name,
         status: "skipped",
         reason: "dry-run",
+        channel,
       })
       continue
     }
 
-    const result = await sendPatientNotification(phone, message)
+    const result = await sendPatientNotification(phone, message, channel)
     if (result.sent) {
       sent += 1
       outcomes.push({

@@ -17,9 +17,11 @@ const PATIENT_LIST_COLUMNS =
 const PATIENT_LIST_COLUMNS_PLAIN =
   "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS_STAMPED =
-  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, updated_at"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, updated_at, notify_channel"
 const PATIENT_COLUMNS =
-  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, notify_channel"
+const PATIENT_COLUMNS_STAMPED_NO_CHANNEL =
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, updated_at"
 const PATIENT_LIST_COLUMNS_NO_ASSIGN =
   "id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
 const PATIENT_LIST_COLUMNS_PLAIN_NO_ASSIGN =
@@ -56,6 +58,7 @@ function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
     updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
     assigned_therapist_id:
       typeof row.assigned_therapist_id === "string" ? row.assigned_therapist_id : null,
+    notify_channel: row.notify_channel === "whatsapp" || row.notify_channel === "sms" ? row.notify_channel : null,
   }
 }
 
@@ -205,6 +208,11 @@ export const getTherapistPatient = cache(async (id: string): Promise<{
   const stamped = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_STAMPED)
   if (!stamped.error && stamped.data) {
     return loadPatientRelations(supabase, withClinicalNotes(stamped.data as Record<string, unknown>))
+  }
+
+  const stampedNoChannel = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_STAMPED_NO_CHANNEL)
+  if (!stampedNoChannel.error && stampedNoChannel.data) {
+    return loadPatientRelations(supabase, withClinicalNotes(stampedNoChannel.data as Record<string, unknown>))
   }
 
   const { data: patientRow, error } = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS)

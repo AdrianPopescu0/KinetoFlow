@@ -2,15 +2,15 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Copy, Loader2, MessageCircle, MessageSquareText, Plus } from "lucide-react"
+import { Check, Copy, Loader2, Plus } from "lucide-react"
 
 import { createPatient } from "@/app/dashboard/patients/actions"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
-import { openPatientSms, patientSmsHref } from "@/lib/patients/phone"
+import { NotifyChannelActions } from "@/app/dashboard/patients/notify-channel-actions"
 import { cn } from "@/lib/utils"
 
 type CreatedPatient = {
@@ -66,14 +66,6 @@ export function AddPatientDialog() {
       }
       setCreated(payload)
       router.refresh()
-
-      if (payload.patientId) {
-        void fetch("/api/patients/notify-whatsapp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ patientId: payload.patientId }),
-        }).catch(() => undefined)
-      }
     })
   }
 
@@ -90,9 +82,6 @@ export function AddPatientDialog() {
     toast("Mesajul a fost copiat. Poți da paste în WhatsApp Web.")
     window.setTimeout(() => setCopiedMessage(false), 2000)
   }
-
-  const smsBody = created ? created.whatsappMessage || created.portalUrl : ""
-  const smsHref = created ? patientSmsHref(created.phone, smsBody) : null
 
   return (
     <>
@@ -151,55 +140,15 @@ export function AddPatientDialog() {
                 {created.portalUrl ? (
                   <p className="break-all text-center text-xs text-slate-500">{created.portalUrl}</p>
                 ) : null}
-                {created.whatsappWebHref || created.whatsappHref || smsHref ? (
+                {created.patientId && (created.whatsappWebHref || created.whatsappHref || created.phone) ? (
                   <div className="flex w-full min-w-0 flex-col gap-2.5">
-                    <p className="text-sm text-slate-600">
-                      Trimite invitația pe WhatsApp sau prin SMS. Mesajul include linkul de acces.
-                    </p>
-                    {created.whatsappWebHref ? (
-                      <a
-                        href={created.whatsappWebHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          buttonVariants({ variant: "default" }),
-                          sendActionClassName,
-                          "rounded-xl bg-emerald-600 text-white hover:bg-emerald-700",
-                        )}
-                      >
-                        <MessageCircle className="size-4 shrink-0" />
-                        Deschide pe WhatsApp Web
-                      </a>
-                    ) : null}
-                    {created.whatsappHref ? (
-                      <a
-                        href={created.whatsappHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          buttonVariants({ variant: "outline" }),
-                          sendActionClassName,
-                          "rounded-xl border-emerald-600 text-emerald-800 hover:bg-emerald-50",
-                        )}
-                      >
-                        <MessageCircle className="size-4 shrink-0" />
-                        Deschide în Aplicație
-                      </a>
-                    ) : null}
-                    {smsHref ? (
-                      <a
-                        href={smsHref}
-                        onClick={(event) => openPatientSms(event, created.phone, smsBody)}
-                        className={cn(
-                          buttonVariants({ variant: "outline" }),
-                          sendActionClassName,
-                          "rounded-xl border-slate-300 text-slate-800 hover:bg-slate-50",
-                        )}
-                      >
-                        <MessageSquareText className="size-4 shrink-0" />
-                        Trimite SMS
-                      </a>
-                    ) : null}
+                    <NotifyChannelActions
+                      patientId={created.patientId}
+                      phone={created.phone}
+                      message={created.whatsappMessage || created.portalUrl}
+                      whatsappHref={created.whatsappHref}
+                      whatsappWebHref={created.whatsappWebHref}
+                    />
                     {created.whatsappMessage ? (
                       <Button
                         type="button"
@@ -240,7 +189,7 @@ export function AddPatientDialog() {
                   Adaugă pacient
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Telefonul e obligatoriu. Generăm un cod de 8 cifre pe care îl poți trimite pe WhatsApp.
+                  Telefonul e obligatoriu. Generăm un cod de 8 cifre pe care îl trimiți pe WhatsApp sau prin SMS.
                 </p>
 
                 <form action={handleSubmit} className="mt-5 flex flex-col gap-4">
