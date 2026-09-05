@@ -101,6 +101,10 @@ export async function listStoredLibraryExercises(): Promise<LibraryExercise[]> {
     )
     .order("created_at", { ascending: false })
 
+  if (full.error && /does not exist|schema cache/i.test(full.error.message)) {
+    return []
+  }
+
   const rows = full.error
     ? (
         await supabase

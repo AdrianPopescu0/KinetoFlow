@@ -1,7 +1,6 @@
 -- KinetoFlow — restricționează scrierea pe exercise_library
--- SELECT: orice utilizator autentificat
--- INSERT / UPDATE / DELETE: doar kineto01flow@gmail.com
---   (identificat prin email JWT sau prin auth.users.id)
+-- SELECT: oricine (vezi 020 pentru CREATE TABLE dacă lipsește)
+-- INSERT / UPDATE / DELETE: doar kinetic01flow@gmail.com
 
 alter table public.exercise_library enable row level security;
 alter table public.exercise_library force row level security;
@@ -14,12 +13,12 @@ security definer
 set search_path = public, auth
 as $$
   select
-    lower(coalesce(auth.jwt() ->> 'email', '')) = 'kineto01flow@gmail.com'
+    lower(coalesce(auth.jwt() ->> 'email', '')) = 'kinetic01flow@gmail.com'
     or exists (
       select 1
       from auth.users u
       where u.id = auth.uid()
-        and lower(u.email) = 'kineto01flow@gmail.com'
+        and lower(u.email) = 'kinetic01flow@gmail.com'
     );
 $$;
 

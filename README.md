@@ -65,7 +65,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 În Supabase: **SQL Editor** → lipește și rulează `supabase/migrations/001_patients.sql`.
 
-Tabele: `patients` (token UUID unic pentru `/patient/[token]`; **fără** coloana `clinic_id` — cabinetul e `therapist_id` + `clinic_profiles.clinic_name`), `exercises`, `check_ins`, `exercise_completions` (finalizări zilnice din portalul pacientului — rulează `016_exercise_completions.sql`). Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient. Rulează `018_exercise_library_rls.sql` și `019_exercise_library_editor.sql`: SELECT pentru toți terapeuții autentificați; INSERT/UPDATE/DELETE doar pentru `kineto01flow@gmail.com`.
+Tabele: `patients` (token UUID unic pentru `/patient/[token]`; **fără** coloana `clinic_id` — cabinetul e `therapist_id` + `clinic_profiles.clinic_name`), `exercises`, `check_ins`, `exercise_completions` (finalizări zilnice din portalul pacientului — rulează `016_exercise_completions.sql`). Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient. Dacă lipsește tabela, rulează `020_create_exercise_library.sql`: creează tabelul, SELECT pentru oricine, INSERT/UPDATE/DELETE doar pentru `kinetic01flow@gmail.com`.
 
 Fișa clinică: `/dashboard/patients/[id]`. La salvare, aplicația compară `updated_at` cu momentul deschiderii ecranului; dacă altcineva a modificat fișa, terapeutul e avertizat și poate reîncărca datele. Rulează `supabase/migrations/009_patients_updated_at.sql`. Asignare terapeut: `010_assigned_therapist.sql` (`assigned_therapist_id`). Note clinice: `002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
@@ -81,7 +81,7 @@ Reguli de securitate aplicate:
 - Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori și trimite la `/onboarding` dacă lipsește `clinic_profiles`
 - Verificare `getUser()` (nu `getSession()`) pentru autorizare
 - RLS pe `patients`: vizibil dacă `therapist_id` / `assigned_therapist_id` e al tău sau al unui coleg cu același `clinic_name` (`013_patients_no_clinic_id.sql`)
-- RLS pe `exercise_library`: citire pentru `authenticated`; scriere (INSERT/UPDATE/DELETE) doar `kineto01flow@gmail.com`, identificat prin email JWT sau `auth.users.id` (`018_exercise_library_rls.sql`, `019_exercise_library_editor.sql`). Backend-ul verifică același email înainte de scriere. Tabela `exercises` (programul pacientului) rămâne editabilă de terapeuții cabinetului.
+- RLS pe `exercise_library`: citire pentru oricine; scriere (INSERT/UPDATE/DELETE) doar `kinetic01flow@gmail.com` (`020_create_exercise_library.sql`). Backend-ul verifică același email înainte de scriere. Tabela `exercises` (programul pacientului) rămâne editabilă de terapeuții cabinetului.
 
 ## Structură relevantă
 

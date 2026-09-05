@@ -1,20 +1,29 @@
--- KinetoFlow — RLS pe catalogul exercise_library
--- Citire: oricine. Scriere: kinetic01flow@gmail.com.
--- Dacă tabela lipsește, rulează 020_create_exercise_library.sql.
+-- KinetoFlow — creează public.exercise_library (dacă lipsește) și RLS
+-- SELECT: oricine (anon + authenticated)
+-- INSERT / UPDATE / DELETE: doar kinetic01flow@gmail.com
 
 create table if not exists public.exercise_library (
   id uuid primary key default gen_random_uuid(),
   title text not null,
-  region text,
-  video_url text,
+  description text,
   notes text,
-  created_at timestamptz not null default now()
+  region text,
+  subcategory text,
+  difficulty text,
+  equipment text,
+  position text,
+  sets integer,
+  reps integer,
+  duration_seconds integer,
+  youtube_id text,
+  video_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
-alter table public.exercise_library enable row level security;
-alter table public.exercise_library force row level security;
-
 alter table public.exercise_library add column if not exists description text;
+alter table public.exercise_library add column if not exists notes text;
+alter table public.exercise_library add column if not exists region text;
 alter table public.exercise_library add column if not exists subcategory text;
 alter table public.exercise_library add column if not exists difficulty text;
 alter table public.exercise_library add column if not exists equipment text;
@@ -23,7 +32,12 @@ alter table public.exercise_library add column if not exists sets integer;
 alter table public.exercise_library add column if not exists reps integer;
 alter table public.exercise_library add column if not exists duration_seconds integer;
 alter table public.exercise_library add column if not exists youtube_id text;
+alter table public.exercise_library add column if not exists video_url text;
+alter table public.exercise_library add column if not exists created_at timestamptz not null default now();
 alter table public.exercise_library add column if not exists updated_at timestamptz not null default now();
+
+alter table public.exercise_library enable row level security;
+alter table public.exercise_library force row level security;
 
 create or replace function public.is_exercise_library_editor()
 returns boolean
@@ -46,16 +60,17 @@ revoke all on function public.is_exercise_library_editor() from public, anon;
 grant execute on function public.is_exercise_library_editor() to authenticated;
 
 drop policy if exists "Authenticated read exercise library" on public.exercise_library;
+drop policy if exists "Anyone can read exercise library" on public.exercise_library;
 drop policy if exists "Library editor inserts exercises" on public.exercise_library;
 drop policy if exists "Library editor updates exercises" on public.exercise_library;
 drop policy if exists "Library editor deletes exercises" on public.exercise_library;
 drop policy if exists "Only kineto01flow writes exercise library" on public.exercise_library;
 drop policy if exists "Only kinetic01flow writes exercise library" on public.exercise_library;
 
-create policy "Authenticated read exercise library"
+create policy "Anyone can read exercise library"
   on public.exercise_library
   for select
-  to authenticated
+  to anon, authenticated
   using (true);
 
 create policy "Library editor inserts exercises"
@@ -77,7 +92,8 @@ create policy "Library editor deletes exercises"
   to authenticated
   using (public.is_exercise_library_editor());
 
-grant select, insert, update, delete on public.exercise_library to authenticated;
-revoke all on public.exercise_library from anon, public;
+grant select on public.exercise_library to anon, authenticated;
+grant insert, update, delete on public.exercise_library to authenticated;
+revoke all on public.exercise_library from public;
 
 notify pgrst, 'reload schema';
