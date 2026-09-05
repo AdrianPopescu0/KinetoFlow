@@ -1,8 +1,9 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import { Check, Loader2, Search, X } from "lucide-react"
 
+import { loadStoredLibraryExercises } from "@/app/dashboard/exercises/actions"
 import { assignExercisesBatch } from "@/app/dashboard/patients/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -74,7 +75,7 @@ function AssignExercisesModalContent({
   const [startDate, setStartDate] = useState(initialInterval.startDate)
   const [endDate, setEndDate] = useState(initialInterval.endDate)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [catalog] = useState<LibraryExercise[]>(() => [...loadCustomExercises(), ...LIBRARY_EXERCISES])
+  const [catalog, setCatalog] = useState<LibraryExercise[]>(() => [...loadCustomExercises(), ...LIBRARY_EXERCISES])
   const [doses, setDoses] = useState<Record<string, Dose>>(() =>
     Object.fromEntries(
       [...loadCustomExercises(), ...LIBRARY_EXERCISES].map((exercise) => [
@@ -84,6 +85,25 @@ function AssignExercisesModalContent({
     ),
   )
   const [isPending, startTransition] = useTransition()
+
+  useEffect(() => {
+    void loadStoredLibraryExercises().then((stored) => {
+      if (stored.length === 0) {
+        return
+      }
+      setCatalog((current) => {
+        const ids = new Set(stored.map((item) => item.id))
+        return [...stored, ...current.filter((item) => !ids.has(item.id))]
+      })
+      setDoses((current) => {
+        const next = { ...current }
+        for (const exercise of stored) {
+          next[exercise.id] = current[exercise.id] ?? { sets: exercise.sets, reps: exercise.reps }
+        }
+        return next
+      })
+    })
+  }, [])
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("ro-RO")

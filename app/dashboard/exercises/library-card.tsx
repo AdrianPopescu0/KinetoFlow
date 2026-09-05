@@ -1,6 +1,6 @@
 "use client"
 
-import { Play } from "lucide-react"
+import { Play, Trash2 } from "lucide-react"
 
 import {
   difficultyLabel,
@@ -24,10 +24,12 @@ export function LibraryCard({
   exercise,
   onPreview,
   onAssign,
+  onDelete,
 }: {
   exercise: LibraryExercise
   onPreview: () => void
   onAssign: () => void
+  onDelete?: () => void
 }) {
   const thumb = youtubeThumbnailUrl(exercise.youtubeId)
   const region = regionById(exercise.region)
@@ -93,6 +95,17 @@ export function LibraryCard({
             + Asignează
           </Button>
         </div>
+        {onDelete ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onDelete}
+            className="h-11 min-h-[44px] rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="size-4" />
+            Șterge din bibliotecă
+          </Button>
+        ) : null}
       </div>
     </article>
   )

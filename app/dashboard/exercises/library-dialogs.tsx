@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition, type ReactNode } from "react"
 import { Loader2 } from "lucide-react"
 
+import { createLibraryExercise } from "@/app/dashboard/exercises/actions"
 import { addExercise } from "@/app/dashboard/patients/actions"
 import { VideoPreview } from "@/components/media/video-preview"
 import { Button } from "@/components/ui/button"
@@ -21,8 +22,7 @@ import {
   positionLabel,
   subcategoryLabel,
 } from "@/lib/exercises/taxonomy"
-import type { AssignablePatient, LibraryExercise, TherapeuticObjective } from "@/lib/exercises/types"
-import { youtubeIdFromUrl } from "@/lib/patients/youtube"
+import type { AssignablePatient, LibraryExercise } from "@/lib/exercises/types"
 
 function Overlay({
   title,
@@ -183,6 +183,7 @@ export function AddExerciseDialog({
   onClose: () => void
   onCreated: (exercise: LibraryExercise) => void
 }) {
+  const [isPending, startCreate] = useTransition()
   const [region, setRegion] = useState(REGIONS[0].id)
   const subcategories = useMemo(
     () => REGIONS.find((item) => item.id === region)?.subcategories ?? [],
@@ -190,41 +191,26 @@ export function AddExerciseDialog({
   )
 
   function handleSubmit(formData: FormData) {
-    const title = String(formData.get("title") ?? "").trim()
-    const description = String(formData.get("description") ?? "").trim()
-    if (!title || !description) {
-      toast("Completează titlul și descrierea.")
-      return
-    }
-    const videoUrl = String(formData.get("video_url") ?? "").trim() || null
-    const youtubeId = youtubeIdFromUrl(videoUrl)
-    const created: LibraryExercise = {
-      id: crypto.randomUUID(),
-      title,
-      description,
-      region,
-      subcategory: (String(formData.get("subcategory") || subcategories[0]?.id || "shoulder") as TherapeuticObjective),
-      difficulty: (formData.get("difficulty") as LibraryExercise["difficulty"]) || "usor",
-      equipment: (formData.get("equipment") as LibraryExercise["equipment"]) || "none",
-      position: (formData.get("position") as LibraryExercise["position"]) || "sitting",
-      sets: Number(formData.get("sets")) || 3,
-      reps: Number(formData.get("reps")) || 10,
-      durationSeconds: Number(formData.get("duration")) || 90,
-      youtubeId,
-      videoUrl,
-      custom: true,
-    }
-    onCreated(created)
-    toast("Exercițiul a fost adăugat în bibliotecă.")
-    onClose()
+    formData.set("region", region)
+    startCreate(async () => {
+      const result = await createLibraryExercise(formData)
+      if (result.error || !result.exercise) {
+        toast(result.error ?? "Nu am putut salva exercițiul în bibliotecă.")
+        return
+      }
+      onCreated(result.exercise)
+      toast("Exercițiul a fost adăugat în bibliotecă.")
+      onClose()
+    })
   }
 
   return (
     <Overlay title="Adaugă exercițiu" onClose={onClose}>
       <p className="mt-1 text-sm text-slate-600">
-        Intrarea se salvează local în bibliotecă, ca să poți filtra și asigna imediat.
+        Doar administratorul bibliotecii poate salva exerciții. Scrierea e verificată pe server și prin RLS.
       </p>
       <form action={handleSubmit} className="mt-5 flex flex-col gap-4">
+        <input type="hidden" name="region" value={region} />
         <div className="flex flex-col gap-2">
           <Label htmlFor="title">Titlu</Label>
           <Input id="title" name="title" required placeholder="Retracție cervicală" className="h-11" />
@@ -313,11 +299,18 @@ export function AddExerciseDialog({
           <Input id="duration" name="duration" type="number" min={15} defaultValue={90} className="h-11" />
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={onClose} className="h-11 rounded-xl">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isPending} className="h-11 rounded-xl">
             Anulează
           </Button>
-          <Button type="submit" className="h-11 rounded-xl">
-            Salvează în bibliotecă
+          <Button type="submit" disabled={isPending} className="h-11 rounded-xl">
+            {isPending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Se salvează…
+              </>
+            ) : (
+              "Salvează în bibliotecă"
+            )}
           </Button>
         </div>
       </form>

@@ -1,12 +1,14 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { Search, X } from "lucide-react"
+import { useMemo, useState, useTransition } from "react"
+import { Plus, Search, X } from "lucide-react"
 
+import { deleteLibraryExercise } from "@/app/dashboard/exercises/actions"
 import { LibraryCard } from "@/app/dashboard/exercises/library-card"
-import { AssignDialog, PreviewDialog } from "@/app/dashboard/exercises/library-dialogs"
+import { AddExerciseDialog, AssignDialog, PreviewDialog } from "@/app/dashboard/exercises/library-dialogs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { toast } from "@/components/ui/toaster"
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
 import { EMPTY_FILTERS, filterLibrary, regionCounts, subcategoriesForRegion } from "@/lib/exercises/filter"
 import {
@@ -32,11 +34,25 @@ import type {
 } from "@/lib/exercises/types"
 import { cn } from "@/lib/utils"
 
-export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] }) {
+export function ExerciseLibrary({
+  patients,
+  storedExercises,
+  canEditLibrary,
+}: {
+  patients: AssignablePatient[]
+  storedExercises: LibraryExercise[]
+  canEditLibrary: boolean
+}) {
   const [filters, setFilters] = useState<LibraryFilters>(EMPTY_FILTERS)
   const [preview, setPreview] = useState<LibraryExercise | null>(null)
   const [assign, setAssign] = useState<LibraryExercise | null>(null)
-  const catalog = LIBRARY_EXERCISES
+  const [adding, setAdding] = useState(false)
+  const [extras, setExtras] = useState(storedExercises)
+  const [, startDelete] = useTransition()
+  const catalog = useMemo(() => {
+    const storedIds = new Set(extras.map((item) => item.id))
+    return [...extras, ...LIBRARY_EXERCISES.filter((item) => !storedIds.has(item.id))]
+  }, [extras])
   const visible = useMemo(() => filterLibrary(catalog, filters), [catalog, filters])
   const counts = useMemo(
     () =>
@@ -99,10 +115,18 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
     <div className="flex w-full max-w-full flex-1 flex-col overflow-x-hidden">
       <div className="shrink-0">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Bibliotecă Exerciții</h1>
-        <p className="mt-1 max-w-xl text-sm text-slate-600">
-          Catalog clinic după regiune anatomică și obiectiv terapeutic. Caută, filtrează și asignează direct pe fișa
-          pacientului.
-        </p>
+        <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <p className="max-w-xl text-sm text-slate-600">
+            Catalog clinic după regiune anatomică și obiectiv terapeutic. Caută, filtrează și asignează direct pe fișa
+            pacientului.
+          </p>
+          {canEditLibrary ? (
+            <Button type="button" onClick={() => setAdding(true)} className="h-11 shrink-0 rounded-xl">
+              <Plus className="size-4" />
+              Adaugă exercițiu
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-6 flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
@@ -227,6 +251,21 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
               exercise={exercise}
               onPreview={() => setPreview(exercise)}
               onAssign={() => setAssign(exercise)}
+              onDelete={
+                canEditLibrary && exercise.custom
+                  ? () => {
+                      startDelete(async () => {
+                        const result = await deleteLibraryExercise(exercise.id)
+                        if (result.error) {
+                          toast(result.error)
+                          return
+                        }
+                        setExtras((current) => current.filter((item) => item.id !== exercise.id))
+                        toast("Exercițiul a fost șters din bibliotecă.")
+                      })
+                    }
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -244,6 +283,12 @@ export function ExerciseLibrary({ patients }: { patients: AssignablePatient[] })
       ) : null}
       {assign ? (
         <AssignDialog exercise={assign} patients={patients} onClose={() => setAssign(null)} />
+      ) : null}
+      {adding && canEditLibrary ? (
+        <AddExerciseDialog
+          onClose={() => setAdding(false)}
+          onCreated={(exercise) => setExtras((current) => [exercise, ...current])}
+        />
       ) : null}
     </div>
   )
