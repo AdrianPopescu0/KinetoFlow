@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Copy, Loader2, MessageCircle, Plus } from "lucide-react"
+import { Check, Copy, Loader2, MessageCircle, MessageSquareText, Plus } from "lucide-react"
 
 import { createPatient } from "@/app/dashboard/patients/actions"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
+import { toWhatsAppNumber } from "@/lib/patients/phone"
 import { cn } from "@/lib/utils"
 
 type CreatedPatient = {
@@ -17,9 +18,21 @@ type CreatedPatient = {
   fullName: string
   accessCode: string
   portalUrl: string
+  phone: string | null
   whatsappHref: string | null
   whatsappWebHref: string | null
   whatsappMessage: string
+}
+
+const sendActionClassName =
+  "h-12 w-full min-w-0 shrink justify-center whitespace-normal px-3 text-center"
+
+function patientSmsHref(phone: string | null, message: string): string | null {
+  const digits = phone ? toWhatsAppNumber(phone) : null
+  if (!digits || !message.trim()) {
+    return null
+  }
+  return `sms:+${digits}?body=${encodeURIComponent(message)}`
 }
 
 export function AddPatientDialog() {
@@ -53,6 +66,7 @@ export function AddPatientDialog() {
         fullName: result.fullName,
         accessCode: result.accessCode,
         portalUrl: result.portalUrl ?? "",
+        phone: result.phone ?? null,
         whatsappHref: result.whatsappHref ?? null,
         whatsappWebHref: result.whatsappWebHref ?? null,
         whatsappMessage: result.whatsappMessage ?? "",
@@ -111,10 +125,10 @@ export function AddPatientDialog() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-patient-title"
-            className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6"
+            className="relative max-h-[90vh] w-full max-w-md min-w-0 overflow-x-hidden overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6"
           >
             {created ? (
-              <div className="flex flex-col gap-4">
+              <div className="flex min-w-0 flex-col gap-4">
                 <div>
                   <h2 id="add-patient-title" className="text-lg font-semibold text-slate-800">
                     Pacient adăugat
@@ -141,40 +155,60 @@ export function AddPatientDialog() {
                 {created.portalUrl ? (
                   <p className="break-all text-center text-xs text-slate-500">{created.portalUrl}</p>
                 ) : null}
-                {created.whatsappWebHref && created.whatsappHref ? (
-                  <div className="flex flex-col gap-2">
+                {created.whatsappWebHref || created.whatsappHref || patientSmsHref(created.phone, created.whatsappMessage) ? (
+                  <div className="flex w-full min-w-0 flex-col gap-2.5">
                     <p className="text-sm text-slate-600">
-                      Trimite invitația pe WhatsApp fără pop-up-ul sistemului: Web pe PC, aplicație dacă e deja instalată.
+                      Trimite invitația pe WhatsApp sau prin SMS. Mesajul include linkul de acces.
                     </p>
-                    <a
-                      href={created.whatsappWebHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        buttonVariants({ variant: "default" }),
-                        "h-12 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700",
-                      )}
-                    >
-                      <MessageCircle className="size-4" />
-                      Deschide pe WhatsApp Web
-                    </a>
-                    <a
-                      href={created.whatsappHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        buttonVariants({ variant: "outline" }),
-                        "h-12 rounded-xl border-emerald-600 text-emerald-800 hover:bg-emerald-50",
-                      )}
-                    >
-                      Deschide în Aplicație
-                    </a>
+                    {created.whatsappWebHref ? (
+                      <a
+                        href={created.whatsappWebHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          buttonVariants({ variant: "default" }),
+                          sendActionClassName,
+                          "rounded-xl bg-emerald-600 text-white hover:bg-emerald-700",
+                        )}
+                      >
+                        <MessageCircle className="size-4 shrink-0" />
+                        Deschide pe WhatsApp Web
+                      </a>
+                    ) : null}
+                    {created.whatsappHref ? (
+                      <a
+                        href={created.whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          buttonVariants({ variant: "outline" }),
+                          sendActionClassName,
+                          "rounded-xl border-emerald-600 text-emerald-800 hover:bg-emerald-50",
+                        )}
+                      >
+                        <MessageCircle className="size-4 shrink-0" />
+                        Deschide în Aplicație
+                      </a>
+                    ) : null}
+                    {patientSmsHref(created.phone, created.whatsappMessage) ? (
+                      <a
+                        href={patientSmsHref(created.phone, created.whatsappMessage) ?? undefined}
+                        className={cn(
+                          buttonVariants({ variant: "outline" }),
+                          sendActionClassName,
+                          "rounded-xl border-slate-300 text-slate-800 hover:bg-slate-50",
+                        )}
+                      >
+                        <MessageSquareText className="size-4 shrink-0" />
+                        Trimite SMS
+                      </a>
+                    ) : null}
                     {created.whatsappMessage ? (
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => copyMessage(created.whatsappMessage)}
-                        className="h-11 rounded-xl border-slate-300 text-slate-700"
+                        className={cn(sendActionClassName, "rounded-xl border-slate-300 text-slate-700")}
                       >
                         {copiedMessage ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
                         {copiedMessage ? "Copiat!" : "Copiază mesajul"}
@@ -183,21 +217,21 @@ export function AddPatientDialog() {
                   </div>
                 ) : (
                   <p className="text-sm text-amber-800">
-                    Numărul nu a putut fi convertit pentru WhatsApp. Copiază mesajul sau codul și trimite-le manual.
+                    Numărul nu a putut fi convertit. Copiază mesajul sau codul și trimite-le manual.
                   </p>
                 )}
-                {!created.whatsappWebHref && created.whatsappMessage ? (
+                {!created.whatsappWebHref && !created.whatsappHref && created.whatsappMessage ? (
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => copyMessage(created.whatsappMessage)}
-                    className="h-11 rounded-xl"
+                    className={cn(sendActionClassName, "rounded-xl")}
                   >
                     {copiedMessage ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
                     {copiedMessage ? "Copiat!" : "Copiază mesajul"}
                   </Button>
                 ) : null}
-                <Button type="button" variant="outline" onClick={reset} className="h-11 rounded-xl">
+                <Button type="button" variant="outline" onClick={reset} className="h-11 w-full rounded-xl">
                   Închide
                 </Button>
               </div>
