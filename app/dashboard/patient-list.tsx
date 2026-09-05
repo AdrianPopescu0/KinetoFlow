@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
-import { FolderOpen, Plus, Search } from "lucide-react"
+import { FolderOpen, MessageSquareText, Plus, Search } from "lucide-react"
 
 import { AssignExercisesModal } from "@/app/dashboard/assign-exercises-modal"
 import { AssignedTherapistSelect } from "@/app/dashboard/assigned-therapist-select"
@@ -20,9 +20,25 @@ import {
   type PatientAssignmentScope,
   type PatientListFilter,
 } from "@/lib/patients/dashboard-filter"
-import { vasBadgeClass } from "@/lib/patients/display"
+import { patientAccessUrl, vasBadgeClass } from "@/lib/patients/display"
+import { toWhatsAppNumber } from "@/lib/patients/phone"
 import type { PatientListItem } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
+
+function patientSmsHref(patient: PatientListItem): string | null {
+  const phone = patient.phone ? toWhatsAppNumber(patient.phone) : null
+  if (!phone) {
+    return null
+  }
+
+  const message = [
+    `Bună, ${patient.full_name}!`,
+    "Poți accesa programul tău de recuperare KinetoFlow aici:",
+    patientAccessUrl(patient.token),
+  ].join("\n")
+
+  return `sms:+${phone}?body=${encodeURIComponent(message)}`
+}
 
 export function PatientList({
   patients,
@@ -200,6 +216,15 @@ export function PatientList({
                 </div>
 
                 <div className="mt-3 grid min-w-0 grid-cols-2 gap-2">
+                  {patientSmsHref(patient) ? (
+                    <a
+                      href={patientSmsHref(patient) ?? undefined}
+                      className="inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2 text-xs font-medium text-slate-800 hover:bg-slate-50 sm:text-sm"
+                    >
+                      <MessageSquareText className="size-3.5 shrink-0" />
+                      <span className="truncate">Trimite SMS</span>
+                    </a>
+                  ) : null}
                   <Button
                     type="button"
                     variant="outline"
@@ -214,7 +239,7 @@ export function PatientList({
                   <Link
                     href={`/dashboard/patients/${patient.id}`}
                     prefetch
-                    className="inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
+                    className="col-span-2 inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
                   >
                     <FolderOpen className="size-3.5 shrink-0" />
                     Deschide Fișa
@@ -265,6 +290,15 @@ export function PatientList({
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap justify-end gap-2">
+                        {patientSmsHref(patient) ? (
+                          <a
+                            href={patientSmsHref(patient) ?? undefined}
+                            className="inline-flex h-11 min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                          >
+                            <MessageSquareText className="size-4" />
+                            Trimite SMS
+                          </a>
+                        ) : null}
                         <Button
                           type="button"
                           variant="outline"
