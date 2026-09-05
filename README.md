@@ -21,8 +21,8 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — cheia anonimă / publicabilă (`sb_publishable_…`)
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
 - `NEXT_PUBLIC_SITE_URL` — originea publică a aplicației (invitații terapeuți `/auth/activare` și recuperare parolă). Nu folosi un URL de preview Vercel (`*-git-*.vercel.app`).
-- `CRON_SECRET` — secret pentru cron-ul zilnic de reminder check-in (`Authorization: Bearer …` pe `/api/cron/reminders`); pe Vercel, dacă e setat, header-ul e trimis automat
-- Opțional: `TWILIO_*` sau `WHATSAPP_CLOUD_*` pentru trimiterea WhatsApp (altfel doar click-to-chat)
+- `CRON_SECRET` — secret pentru cron-uri (`Authorization: Bearer …` pe `/api/cron/reminders` și `/api/cron/daily-update`); pe Vercel, dacă e setat, header-ul e trimis automat
+- Opțional: `TWILIO_WHATSAPP_FROM` / `WHATSAPP_CLOUD_*` pentru WhatsApp; `TWILIO_SMS_FROM` pentru SMS de rezervă la reminder-ul de check-in (altfel invitațiile rămân click-to-chat)
 
 În dashboard-ul Supabase, **Authentication → Providers → Email** trebuie să fie activ. Pentru fluxul de onboarding imediat după înregistrare, dezactivează „Confirm email” (sau lasă-l activ — utilizatorul confirmă din email și apoi intră în cont).
 
@@ -83,6 +83,17 @@ Reguli de securitate aplicate:
 - RLS pe `patients`: vizibil dacă `therapist_id` / `assigned_therapist_id` e al tău sau al unui coleg cu același `clinic_name` (`013_patients_no_clinic_id.sql`)
 - RLS pe `exercise_library`: citire pentru oricine; scriere (INSERT/UPDATE/DELETE) doar `kinetic01flow@gmail.com` și `admin@kinetoflow.ro` (email exact). Scripturile sunt în `sql/`, nu se aplică automat pe Vercel. Tabela `exercises` (programul pacientului) rămâne editabilă de terapeuții cabinetului.
 
+## Reminder check-in (18:00 România)
+
+Vercel Cron rulează doar pe UTC, deci `/api/cron/reminders` e programat la **15:00 și 16:00 UTC**. Handler-ul trimite mesaje **doar când ceasul din `Europe/Bucharest` e 18:00**:
+
+- vară (EEST, UTC+3): 15:00 UTC = 18:00 RO
+- iarnă (EET, UTC+2): 16:00 UTC = 18:00 RO
+
+Job-ul selectează pacienții cu exercițiu activ azi (perioada din `notes`) și **fără** rând în `check_ins` pentru ziua București. Canalul preferat e WhatsApp (Twilio sau Meta Cloud); dacă WhatsApp lipsește sau eșuează, se încearcă SMS (`TWILIO_SMS_FROM`).
+
+Trigger manual (ignoră ora): `GET /api/cron/reminders?force=1` cu `Authorization: Bearer ${CRON_SECRET}`. Previzualizare fără trimitere: `?dryRun=1&force=1`.
+
 ## Structură relevantă
 
 ```
@@ -97,7 +108,7 @@ app/dashboard/page.tsx           # Dashboard terapeut (protejat)
 app/patient/[token]/page.tsx     # Programul public al pacientului
 app/patient/page.tsx             # Recuperare token (webview fără parametri)
 app/p/[patientToken]/page.tsx    # Alias vechi al programului pacientului
-app/api/cron/reminders/route.ts  # Cron zilnic: reminder WhatsApp check-in (Bearer CRON_SECRET)
+app/api/cron/reminders/route.ts  # Reminder check-in la 18:00 Europe/Bucharest (Bearer CRON_SECRET)
 app/api/cron/daily-update/route.ts # Recalculează zilnic exercițiile active (Bearer CRON_SECRET)
-vercel.json                      # Cron reminders + daily-update la 21:00 UTC (= 00:00 RO / EEST)
+vercel.json                      # reminders: 15:00+16:00 UTC (doar 18:00 RO trimite); daily-update: 21:00 UTC (= 00:00 RO)
 ```

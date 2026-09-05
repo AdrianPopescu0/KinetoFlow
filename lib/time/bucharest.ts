@@ -42,13 +42,26 @@ function pad2(value: number): string {
   return String(value).padStart(2, "0")
 }
 
-/** Calendar date `YYYY-MM-DD` in Europe/Bucharest. */
-export function bucharestDateKey(input: Date | string = new Date()): string {
+/** Wall-clock parts for an instant, in Europe/Bucharest. */
+export function bucharestWallClock(input: Date | string = new Date()): TzWallClock | null {
   const date = asDate(input)
   if (Number.isNaN(date.getTime())) {
+    return null
+  }
+  return wallClockInTimeZone(date, BUCHAREST_TIME_ZONE)
+}
+
+/** Hour 0–23 on the Bucharest wall clock. */
+export function bucharestHour(input: Date | string = new Date()): number | null {
+  return bucharestWallClock(input)?.hour ?? null
+}
+
+/** Calendar date `YYYY-MM-DD` in Europe/Bucharest. */
+export function bucharestDateKey(input: Date | string = new Date()): string {
+  const wall = bucharestWallClock(input)
+  if (!wall) {
     return ""
   }
-  const wall = wallClockInTimeZone(date, BUCHAREST_TIME_ZONE)
   return `${wall.year}-${pad2(wall.month)}-${pad2(wall.day)}`
 }
 

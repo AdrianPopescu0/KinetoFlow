@@ -3,7 +3,7 @@ import "server-only"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { isExerciseActiveOnDate } from "@/lib/exercises/schedule"
-import { sendWhatsAppMessage } from "@/lib/patients/whatsapp-send"
+import { sendPatientNotification } from "@/lib/patients/notify-patient"
 import { patientCheckinReminderMessage } from "@/lib/patients/whatsapp"
 import {
   bucharestDateKey,
@@ -35,6 +35,7 @@ export type ReminderSendOutcome = {
   fullName: string
   status: "sent" | "skipped" | "failed"
   reason?: string
+  channel?: "whatsapp" | "sms" | null
   provider?: string | null
 }
 
@@ -219,13 +220,14 @@ export async function runCheckinReminders(
       continue
     }
 
-    const result = await sendWhatsAppMessage(phone, message)
+    const result = await sendPatientNotification(phone, message)
     if (result.sent) {
       sent += 1
       outcomes.push({
         patientId: patient.id,
         fullName: patient.full_name,
         status: "sent",
+        channel: result.channel,
         provider: result.provider,
       })
     } else {
@@ -235,6 +237,7 @@ export async function runCheckinReminders(
         fullName: patient.full_name,
         status: "failed",
         reason: result.error ?? "Trimitere eșuată.",
+        channel: result.channel,
         provider: result.provider,
       })
     }
