@@ -86,7 +86,7 @@ export async function GET(request: Request) {
   return handleReminders(request)
 }
 
-/** Permite și POST pentru trigger manual / teste (`?force=1` ignoră fereastra 18:00). */
+/** Permite și POST pentru trigger manual / teste (`?force=1` ignoră fereastra 18:30). */
 export async function POST(request: Request) {
   return handleReminders(request)
 }
