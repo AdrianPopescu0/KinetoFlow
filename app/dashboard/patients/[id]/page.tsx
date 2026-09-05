@@ -2,7 +2,6 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 
-import { CopyAccessLink } from "@/app/dashboard/patients/copy-access-link"
 import { ClinicalNotesEditor } from "@/app/dashboard/patients/clinical-notes-editor"
 import { ExerciseManager } from "@/app/dashboard/patients/exercise-manager"
 import { PatientFileActions } from "@/app/dashboard/patients/patient-file-actions"
@@ -51,7 +50,6 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              <CopyAccessLink token={patient.token} />
               <PatientFileActions patient={patient} />
             </div>
           </div>
