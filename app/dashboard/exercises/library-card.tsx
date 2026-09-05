@@ -45,12 +45,12 @@ export function LibraryCard({
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-slate-500">Fără thumbnail</div>
         )}
-        <span className="absolute right-2 top-2 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-white">
+        <span className="absolute right-2 top-2 rounded-md bg-slate-900/75 px-2 py-1 text-xs font-medium tabular-nums text-white">
           {formatDuration(exercise.durationSeconds)}
         </span>
-        <span className="absolute inset-0 flex items-center justify-center bg-slate-900/0 transition group-hover:bg-slate-900/35">
-          <span className="flex size-12 items-center justify-center rounded-full bg-white/90 text-[#042f2e] opacity-0 shadow-sm transition group-hover:opacity-100">
-            <Play className="size-5 fill-current" />
+        <span className="absolute inset-0 flex items-center justify-center bg-slate-900/25 transition group-hover:bg-slate-900/35">
+          <span className="flex size-16 min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-white/95 text-[#042f2e] shadow-md">
+            <Play className="size-7 fill-current" />
           </span>
         </span>
       </button>

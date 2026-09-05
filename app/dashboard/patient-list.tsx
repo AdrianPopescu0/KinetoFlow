@@ -202,44 +202,43 @@ export function PatientList({
             {filtered.map((patient) => (
               <li
                 key={patient.id}
-                className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="flex min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
               >
-                <div className="flex min-w-0 items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-slate-800">{patient.full_name}</p>
-                    <p className="mt-0.5 truncate text-xs text-slate-500">
-                      {patient.phone || "Fără telefon"}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
-                      vasBadgeClass(patient.lastVas),
-                    )}
-                  >
-                    {patient.lastVas === null ? "Fără scor" : `VAS ${patient.lastVas}`}
-                  </span>
+                <div className="min-w-0">
+                  <p className="break-words font-medium text-slate-800">{patient.full_name}</p>
+                  <p className="mt-0.5 break-words text-xs text-slate-500">
+                    {patient.phone || "Fără telefon"}
+                  </p>
                 </div>
 
-                <div className="mt-3 min-w-0">
-                  <span className="mb-1.5 block text-xs font-medium text-slate-500">
+                <span
+                  className={cn(
+                    "inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+                    vasBadgeClass(patient.lastVas),
+                  )}
+                >
+                  {patient.lastVas === null ? "Fără scor" : `VAS ${patient.lastVas}`}
+                </span>
+
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <span className="text-xs font-medium text-slate-500">
                     Terapeut responsabil
                   </span>
                   <AssignedTherapistSelect
+                    fullWidth
                     assignedTherapistId={patient.assigned_therapist_id}
                     therapists={therapists}
                     onSelect={(next) =>
                       assignTherapist(patient.id, patient.assigned_therapist_id, next)
                     }
-                    className="h-11 w-full max-w-none text-sm"
                   />
                 </div>
 
-                <div className="mt-3 grid min-w-0 grid-cols-2 gap-2">
+                <div className="grid min-w-0 grid-cols-2 gap-2">
                   <PatientSmsLink
                     patient={patient}
                     iconClassName="size-3.5 shrink-0"
-                    className="inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2 text-xs font-medium text-slate-800 hover:bg-slate-50 sm:text-sm"
+                    className="inline-flex h-11 min-h-[44px] min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2 text-xs font-medium text-slate-800 hover:bg-slate-50 sm:text-sm"
                   />
                   <Button
                     type="button"
@@ -247,7 +246,7 @@ export function PatientList({
                     onClick={() =>
                       setExerciseTarget({ id: patient.id, name: patient.full_name })
                     }
-                    className="h-10 min-w-0 truncate rounded-xl px-2 text-xs sm:text-sm"
+                    className="h-11 min-h-[44px] min-w-0 truncate rounded-xl px-2 text-xs sm:text-sm"
                   >
                     <Plus className="size-3.5 shrink-0" />
                     <span className="truncate">Exerciții</span>
@@ -255,7 +254,7 @@ export function PatientList({
                   <Link
                     href={`/dashboard/patients/${patient.id}`}
                     prefetch
-                    className="col-span-2 inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
+                    className="col-span-2 inline-flex h-11 min-h-[44px] min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
                   >
                     <FolderOpen className="size-3.5 shrink-0" />
                     Deschide Fișa

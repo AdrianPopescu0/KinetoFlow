@@ -7,13 +7,16 @@ export function youtubeThumbnailUrl(youtubeId: string | null): string | null {
   return `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`
 }
 
-export function youtubeEmbedSrc(youtubeId: string): string {
+export function youtubeEmbedSrc(youtubeId: string, options?: { autoplay?: boolean }): string {
   const params = new URLSearchParams({
     enablejsapi: "1",
     playsinline: "1",
     rel: "0",
     modestbranding: "1",
   })
+  if (options?.autoplay) {
+    params.set("autoplay", "1")
+  }
   return `https://www.youtube-nocookie.com/embed/${youtubeId}?${params.toString()}`
 }
 

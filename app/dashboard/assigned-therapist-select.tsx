@@ -10,11 +10,13 @@ export function AssignedTherapistSelect({
   therapists,
   onSelect,
   className,
+  fullWidth = false,
 }: {
   assignedTherapistId: string | null
   therapists: ClinicTherapistOption[]
   onSelect: (assignedTherapistId: string | null) => void
   className?: string
+  fullWidth?: boolean
 }) {
   const value = assignedTherapistId ?? UNASSIGNED
   const isAssigned = value !== UNASSIGNED
@@ -26,7 +28,10 @@ export function AssignedTherapistSelect({
       value={value}
       onChange={(event) => onSelect(event.target.value === UNASSIGNED ? null : event.target.value)}
       className={cn(
-        "h-9 max-w-[11.5rem] rounded-lg border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 outline-none focus-visible:border-[#042f2e]",
+        "min-w-0 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 outline-none focus-visible:border-[#042f2e]",
+        fullWidth
+          ? "block h-11 min-h-[44px] w-full max-w-full px-3 text-sm"
+          : "h-9 max-w-[11.5rem] px-2 text-xs",
         className,
       )}
     >

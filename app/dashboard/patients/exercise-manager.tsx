@@ -67,7 +67,7 @@ export function ExerciseManager({
                     variant="outline"
                     onClick={() => remove(exercise.id)}
                     disabled={isPending}
-                    className="h-10 rounded-xl border-red-200 text-red-700"
+                    className="h-11 min-h-[44px] rounded-xl border-red-200 text-red-700"
                   >
                     <Trash2 className="size-4" />
                     Șterge
