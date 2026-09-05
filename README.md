@@ -20,7 +20,7 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_URL` — URL-ul proiectului (Settings → API)
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — cheia anonimă / publicabilă (`sb_publishable_…`)
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
-- `NEXT_PUBLIC_SITE_URL` — originea aplicației (pentru linkurile de recuperare a parolei)
+- `NEXT_PUBLIC_SITE_URL` — originea publică a aplicației (invitații terapeuți `/auth/activare` și recuperare parolă). Nu folosi un URL de preview Vercel (`*-git-*.vercel.app`).
 - `CRON_SECRET` — secret pentru cron-ul zilnic de reminder check-in (`Authorization: Bearer …` pe `/api/cron/reminders`); pe Vercel, dacă e setat, header-ul e trimis automat
 - Opțional: `TWILIO_*` sau `WHATSAPP_CLOUD_*` pentru trimiterea WhatsApp (altfel doar click-to-chat)
 
@@ -32,6 +32,7 @@ Adaugă URL-urile de redirect pentru recuperarea parolei și invitațiile WhatsA
 - `http://127.0.0.1:43123/auth/callback`
 - domeniul de producție + `/auth/callback`
 - domeniul de producție + `/auth/callback?next=/auth/set-password`
+- domeniul de producție + `/auth/activare`
 
 3. Instalează dependențele și pornește serverul de dezvoltare:
 

@@ -1,19 +1,52 @@
+import { appOrigin } from "@/lib/auth/origin"
 import { SET_PASSWORD_PATH } from "@/lib/auth/paths"
-
-const SITE_URL_FALLBACK = "https://kinetoflow96-git-main-kinetic-fl-ow.vercel.app"
 
 export const ACTIVARE_PATH = "/auth/activare"
 
-export function inviteSiteUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
-  if (fromEnv) {
-    return fromEnv
+function stripTrailingSlash(value: string): string {
+  return value.replace(/\/$/, "")
+}
+
+/** Preview-urile Vercel pe branch nu sunt domeniul aplicației. */
+export function isUnusableInviteOrigin(value: string): boolean {
+  try {
+    const host = new URL(value).hostname.toLowerCase()
+    return host.endsWith(".vercel.app") && host.includes("-git-")
+  } catch {
+    return value.includes("-git-") && value.includes("vercel.app")
   }
-  return SITE_URL_FALLBACK
+}
+
+export function inviteSiteUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+  if (fromEnv) {
+    const origin = stripTrailingSlash(fromEnv)
+    if (!isUnusableInviteOrigin(origin)) {
+      return origin
+    }
+  }
+  return "http://127.0.0.1:43123"
+}
+
+/** Originea reală a request-ului (domeniul pe care rulează aplicația), nu un fallback Vercel. */
+export async function resolveInviteSiteUrl(): Promise<string> {
+  const origin = await appOrigin()
+  if (!isUnusableInviteOrigin(origin)) {
+    return stripTrailingSlash(origin)
+  }
+  return inviteSiteUrl()
 }
 
 export function recoveryRedirectTo(siteUrl = inviteSiteUrl()): string {
-  return `${siteUrl}/auth/callback?next=${SET_PASSWORD_PATH}`
+  return `${stripTrailingSlash(siteUrl)}/auth/callback?next=${SET_PASSWORD_PATH}`
+}
+
+export function therapistInviteUrl(siteUrl: string, tokenHash: string): string {
+  const params = new URLSearchParams({
+    token_hash: tokenHash,
+    type: "recovery",
+  })
+  return `${stripTrailingSlash(siteUrl)}${ACTIVARE_PATH}?${params.toString()}`
 }
 
 type GenerateLinkPayload = {
@@ -50,16 +83,17 @@ function readHashedToken(payload: unknown, actionLink: string | null): string | 
     return null
   }
   try {
-    const token = new URL(actionLink).searchParams.get("token")
-    return token && token.length > 0 ? token : null
+    const params = new URL(actionLink).searchParams
+    const fromHash = params.get("token_hash") ?? params.get("token")
+    return fromHash && fromHash.length > 0 ? fromHash : null
   } catch {
     return null
   }
 }
 
 /**
- * Supabase `action_link` pointează spre `/auth/v1/verify` (OTP se arde la preview WhatsApp / 403 PKCE).
- * Păstrăm tokenul din `properties.action_link` / `hashed_token` pe domeniul aplicației.
+ * Nu trimitem `action_link` Supabase (`/auth/v1/verify` + redirect Vercel).
+ * Construim `/auth/activare?token_hash=…` pe domeniul aplicației.
  */
 export function whatsAppInviteUrlFromGenerateLink(payload: unknown, siteUrl = inviteSiteUrl()): string | null {
   const actionLink = readActionLink(payload)
@@ -67,9 +101,5 @@ export function whatsAppInviteUrlFromGenerateLink(payload: unknown, siteUrl = in
   if (!hashedToken) {
     return null
   }
-  const params = new URLSearchParams({
-    token_hash: hashedToken,
-    type: "recovery",
-  })
-  return `${siteUrl}${ACTIVARE_PATH}?${params.toString()}`
+  return therapistInviteUrl(siteUrl, hashedToken)
 }

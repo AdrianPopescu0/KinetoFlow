@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache"
 
 import { getCachedUser } from "@/lib/auth/session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
-import { recoveryRedirectTo, whatsAppInviteUrlFromGenerateLink } from "@/lib/auth/invite-link"
+import {
+  recoveryRedirectTo,
+  resolveInviteSiteUrl,
+  whatsAppInviteUrlFromGenerateLink,
+} from "@/lib/auth/invite-link"
 import { newTherapistTechnicalEmail, randomAccountPassword } from "@/lib/clinics/technical-email"
 import { isClinicAdmin } from "@/lib/clinics/types"
 import { ForbiddenError } from "@/lib/http/forbidden"
@@ -75,7 +79,8 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
   }
   const clinicOwnerId = profile.user_id
   const technicalEmail = newTherapistTechnicalEmail(therapistName)
-  const redirectTo = recoveryRedirectTo()
+  const siteUrl = await resolveInviteSiteUrl()
+  const redirectTo = recoveryRedirectTo(siteUrl)
 
   try {
     const admin = createServiceRoleClient()
@@ -121,7 +126,7 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
       options: { redirectTo },
     })
 
-    const inviteLink = whatsAppInviteUrlFromGenerateLink(linkData)
+    const inviteLink = whatsAppInviteUrlFromGenerateLink(linkData, siteUrl)
     if (linkError || !inviteLink) {
       return { error: linkError ? formatSupabaseError(linkError) : "Nu am putut genera linkul de acces." }
     }
