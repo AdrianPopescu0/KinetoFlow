@@ -100,12 +100,6 @@ function AssignExercisesModalContent({
   const intervalValid = Boolean(startDate && endDate && startDate <= endDate)
   const intervalLabel = intervalValid ? formatTreatmentInterval(startDate, endDate) : "interval invalid"
 
-  function setShortcut(days: number) {
-    const interval = intervalFromToday(days)
-    setStartDate(interval.startDate)
-    setEndDate(interval.endDate)
-  }
-
   function toggleExercise(id: string) {
     setSelectedIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
@@ -186,23 +180,9 @@ function AssignExercisesModalContent({
 
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           <section>
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                Perioadă de tratament
-              </p>
-              <div className="flex gap-1.5">
-                {[7, 14, 30].map((days) => (
-                  <button
-                    key={days}
-                    type="button"
-                    onClick={() => setShortcut(days)}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-teal-600 hover:bg-teal-50"
-                  >
-                    {days} zile
-                  </button>
-                ))}
-              </div>
-            </div>
+            <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              Perioadă de tratament
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
                 De la

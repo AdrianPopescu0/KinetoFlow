@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
-import { FolderOpen, MessageSquareText, Plus, Search } from "lucide-react"
+import { FolderOpen, Plus, Search } from "lucide-react"
 
 import { AssignExercisesModal } from "@/app/dashboard/assign-exercises-modal"
 import { AssignedTherapistSelect } from "@/app/dashboard/assigned-therapist-select"
@@ -20,45 +20,9 @@ import {
   type PatientAssignmentScope,
   type PatientListFilter,
 } from "@/lib/patients/dashboard-filter"
-import { patientAccessUrl, vasBadgeClass } from "@/lib/patients/display"
-import { openPatientSms, patientSmsHref } from "@/lib/patients/phone"
+import { vasBadgeClass } from "@/lib/patients/display"
 import type { PatientListItem } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
-
-function listPatientSmsMessage(patient: PatientListItem): string {
-  return [
-    `Bună, ${patient.full_name}!`,
-    "Poți accesa programul tău de recuperare KinetoFlow aici:",
-    patientAccessUrl(patient.token),
-  ].join("\n")
-}
-
-function PatientSmsLink({
-  patient,
-  className,
-  iconClassName,
-}: {
-  patient: PatientListItem
-  className: string
-  iconClassName: string
-}) {
-  const message = listPatientSmsMessage(patient)
-  const href = patientSmsHref(patient.phone, message)
-  if (!href) {
-    return null
-  }
-
-  return (
-    <a
-      href={href}
-      onClick={(event) => openPatientSms(event, patient.phone, message)}
-      className={className}
-    >
-      <MessageSquareText className={iconClassName} />
-      <span className="truncate">Trimite SMS</span>
-    </a>
-  )
-}
 
 export function PatientList({
   patients,
@@ -234,27 +198,22 @@ export function PatientList({
                   />
                 </div>
 
-                <div className="grid min-w-0 grid-cols-2 gap-2">
-                  <PatientSmsLink
-                    patient={patient}
-                    iconClassName="size-3.5 shrink-0"
-                    className="inline-flex h-11 min-h-[44px] min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2 text-xs font-medium text-slate-800 hover:bg-slate-50 sm:text-sm"
-                  />
+                <div className="flex min-w-0 flex-col gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() =>
                       setExerciseTarget({ id: patient.id, name: patient.full_name })
                     }
-                    className="h-11 min-h-[44px] min-w-0 truncate rounded-xl px-2 text-xs sm:text-sm"
+                    className="h-11 min-h-[44px] w-full min-w-0 rounded-xl"
                   >
                     <Plus className="size-3.5 shrink-0" />
-                    <span className="truncate">Exerciții</span>
+                    Exerciții
                   </Button>
                   <Link
                     href={`/dashboard/patients/${patient.id}`}
                     prefetch
-                    className="col-span-2 inline-flex h-11 min-h-[44px] min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
+                    className="inline-flex h-11 min-h-[44px] w-full min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
                   >
                     <FolderOpen className="size-3.5 shrink-0" />
                     Deschide Fișa
@@ -305,11 +264,6 @@ export function PatientList({
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap justify-end gap-2">
-                        <PatientSmsLink
-                          patient={patient}
-                          iconClassName="size-4 shrink-0"
-                          className="inline-flex h-11 min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
-                        />
                         <Button
                           type="button"
                           variant="outline"
