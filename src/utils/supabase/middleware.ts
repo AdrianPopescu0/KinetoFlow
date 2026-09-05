@@ -12,6 +12,7 @@ import {
   patientTokenFromPath,
   patientUrlAccessCookieOptions,
 } from "@/lib/patients/session"
+import type { Database } from "@/lib/supabase/database.types"
 import { getSupabasePublicEnv, isUnconfiguredSupabaseUrl } from "@/utils/supabase/env"
 
 const PROTECTED_PREFIX = "/dashboard"
@@ -83,7 +84,7 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  const supabase = createServerClient(url, anonKey, {
+  const supabase = createServerClient<Database>(url, anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll()

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 
 import { ExerciseLibrary } from "@/app/dashboard/exercises/exercise-library"
 import { getCachedUser } from "@/lib/auth/session"
-import { isExerciseLibraryEditor } from "@/lib/exercises/library-admin"
+import { authUserCanEditLibrary } from "@/lib/exercises/library-admin"
 import { listStoredLibraryExercises } from "@/lib/exercises/library-store"
 import { listTherapistPatientSummaries } from "@/lib/patients/queries"
 
@@ -22,7 +22,8 @@ export default async function ExercisesPage() {
       <ExerciseLibrary
         patients={patients}
         storedExercises={storedExercises}
-        canEditLibrary={isExerciseLibraryEditor(user?.email)}
+        canEditLibrary={authUserCanEditLibrary(user)}
+        viewerEmail={user?.email ?? null}
       />
     </main>
   )

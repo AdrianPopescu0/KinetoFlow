@@ -22,6 +22,7 @@ import {
   regionById,
   subcategoryLabel,
 } from "@/lib/exercises/taxonomy"
+import { isExerciseLibraryEditor } from "@/lib/exercises/library-admin"
 import type {
   AnatomicalRegion,
   AssignablePatient,
@@ -38,11 +39,14 @@ export function ExerciseLibrary({
   patients,
   storedExercises,
   canEditLibrary,
+  viewerEmail,
 }: {
   patients: AssignablePatient[]
   storedExercises: LibraryExercise[]
   canEditLibrary: boolean
+  viewerEmail?: string | null
 }) {
+  const canModifyLibrary = canEditLibrary || isExerciseLibraryEditor(viewerEmail)
   const [filters, setFilters] = useState<LibraryFilters>(EMPTY_FILTERS)
   const [preview, setPreview] = useState<LibraryExercise | null>(null)
   const [assign, setAssign] = useState<LibraryExercise | null>(null)
@@ -120,7 +124,7 @@ export function ExerciseLibrary({
             Catalog clinic după regiune anatomică și obiectiv terapeutic. Caută, filtrează și asignează direct pe fișa
             pacientului.
           </p>
-          {canEditLibrary ? (
+          {canModifyLibrary ? (
             <Button type="button" onClick={() => setAdding(true)} className="h-11 shrink-0 rounded-xl">
               <Plus className="size-4" />
               Adaugă exercițiu
@@ -252,7 +256,7 @@ export function ExerciseLibrary({
               onPreview={() => setPreview(exercise)}
               onAssign={() => setAssign(exercise)}
               onDelete={
-                canEditLibrary && exercise.custom
+                canModifyLibrary && exercise.custom
                   ? () => {
                       startDelete(async () => {
                         const result = await deleteLibraryExercise(exercise.id)
@@ -284,7 +288,7 @@ export function ExerciseLibrary({
       {assign ? (
         <AssignDialog exercise={assign} patients={patients} onClose={() => setAssign(null)} />
       ) : null}
-      {adding && canEditLibrary ? (
+      {adding && canModifyLibrary ? (
         <AddExerciseDialog
           onClose={() => setAdding(false)}
           onCreated={(exercise) => setExtras((current) => [exercise, ...current])}

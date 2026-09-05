@@ -1,0 +1,10 @@
+# KinetoFlow — schema-ul live se aplică din Supabase SQL Editor.
+# Integrarea Vercel nu trebuie să re-ruleze scripturile de bibliotecă la fiecare deploy.
+
+project_id = "sadwgiqugazcflnwiwew"
+
+[db.migrations]
+enabled = false
+
+[db.seed]
+enabled = false

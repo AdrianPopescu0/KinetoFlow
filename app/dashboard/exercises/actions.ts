@@ -3,11 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { getCachedUser } from "@/lib/auth/session"
-import {
-  EXERCISE_LIBRARY_EDITOR_EMAILS,
-  LIBRARY_WRITE_FORBIDDEN,
-  isExerciseLibraryEditor,
-} from "@/lib/exercises/library-admin"
+import { LIBRARY_WRITE_FORBIDDEN, authUserCanEditLibrary } from "@/lib/exercises/library-admin"
 import { libraryExerciseToRow, listStoredLibraryExercises } from "@/lib/exercises/library-store"
 import { objectiveBelongsToRegion } from "@/lib/exercises/taxonomy"
 import type {
@@ -31,7 +27,7 @@ async function requireLibraryEditor() {
   if (!user) {
     return { error: "Sesiunea a expirat. Autentifică-te din nou.", supabase, user: null }
   }
-  if (!isExerciseLibraryEditor(user.email)) {
+  if (!authUserCanEditLibrary(user)) {
     return { error: LIBRARY_WRITE_FORBIDDEN, supabase, user }
   }
   return { error: null, supabase, user }
@@ -152,8 +148,4 @@ export async function deleteLibraryExercise(exerciseId: string): Promise<Library
 
 export async function loadStoredLibraryExercises(): Promise<LibraryExercise[]> {
   return listStoredLibraryExercises()
-}
-
-export function libraryEditorEmail(): string {
-  return EXERCISE_LIBRARY_EDITOR_EMAILS.join(", ")
 }

@@ -519,16 +519,17 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     return { error: null }
   }
 
-  const base: Record<string, unknown> = {
+  const base = {
     patient_id: patient.id,
     vas_score: vasScore,
     sleep_quality: sleepQuality,
     notes,
   }
 
-  const { error: insertError } = await admin
-    .from("check_ins")
-    .insert(energy ? { ...base, energy_level: energy } : base)
+  const { error: insertError } = await admin.from("check_ins").insert({
+    ...base,
+    energy_level: energy,
+  })
 
   if (insertError) {
     // Fără migrarea 014, coloana energy_level lipsește: salvăm restul check-in-ului.
