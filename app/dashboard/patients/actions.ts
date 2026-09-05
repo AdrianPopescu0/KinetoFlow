@@ -157,7 +157,7 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     token,
     patientId: String(row.id),
     accessCode: code,
-    phone,
+    phone: typeof row.phone === "string" && row.phone.trim() ? row.phone : phone,
     fullName,
     portalUrl: patientAccessUrl(),
     whatsappHref: patientWhatsAppHref(phone, message),

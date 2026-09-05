@@ -30,3 +30,45 @@ export function phonesMatch(stored: string | null, input: string): boolean {
   const b = toWhatsAppNumber(input)
   return Boolean(a && b && a === b)
 }
+
+/**
+ * Link nativ SMS: `sms:+NUMAR_TELEFON?body=...`
+ * Numărul vine din obiectul pacientului (normalizat 40xxxxxxxxxx).
+ * Pe iOS, `patientSmsHrefForDevice` folosește `&body=` ca să completeze destinatarul.
+ */
+export function patientSmsHref(phone: string | null | undefined, body: string): string | null {
+  const digits = phone ? toWhatsAppNumber(phone) : null
+  if (!digits || !body.trim()) {
+    return null
+  }
+
+  return `sms:+${digits}?body=${encodeURIComponent(body)}`
+}
+
+export function patientSmsHrefForDevice(phone: string | null | undefined, body: string): string | null {
+  const href = patientSmsHref(phone, body)
+  if (!href) {
+    return null
+  }
+
+  const isIos =
+    typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent)
+  return isIos ? href.replace("?body=", "&body=") : href
+}
+
+export function openPatientSms(
+  event: { preventDefault: () => void },
+  phone: string | null | undefined,
+  body: string,
+) {
+  const href = patientSmsHrefForDevice(phone, body)
+  if (!href) {
+    event.preventDefault()
+    return
+  }
+
+  if (href.includes("&body=")) {
+    event.preventDefault()
+    window.location.href = href
+  }
+}

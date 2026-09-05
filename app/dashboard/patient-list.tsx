@@ -21,23 +21,43 @@ import {
   type PatientListFilter,
 } from "@/lib/patients/dashboard-filter"
 import { patientAccessUrl, vasBadgeClass } from "@/lib/patients/display"
-import { toWhatsAppNumber } from "@/lib/patients/phone"
+import { openPatientSms, patientSmsHref } from "@/lib/patients/phone"
 import type { PatientListItem } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
 
-function patientSmsHref(patient: PatientListItem): string | null {
-  const phone = patient.phone ? toWhatsAppNumber(patient.phone) : null
-  if (!phone) {
-    return null
-  }
-
-  const message = [
+function listPatientSmsMessage(patient: PatientListItem): string {
+  return [
     `Bună, ${patient.full_name}!`,
     "Poți accesa programul tău de recuperare KinetoFlow aici:",
     patientAccessUrl(patient.token),
   ].join("\n")
+}
 
-  return `sms:+${phone}?body=${encodeURIComponent(message)}`
+function PatientSmsLink({
+  patient,
+  className,
+  iconClassName,
+}: {
+  patient: PatientListItem
+  className: string
+  iconClassName: string
+}) {
+  const message = listPatientSmsMessage(patient)
+  const href = patientSmsHref(patient.phone, message)
+  if (!href) {
+    return null
+  }
+
+  return (
+    <a
+      href={href}
+      onClick={(event) => openPatientSms(event, patient.phone, message)}
+      className={className}
+    >
+      <MessageSquareText className={iconClassName} />
+      <span className="truncate">Trimite SMS</span>
+    </a>
+  )
 }
 
 export function PatientList({
@@ -216,15 +236,11 @@ export function PatientList({
                 </div>
 
                 <div className="mt-3 grid min-w-0 grid-cols-2 gap-2">
-                  {patientSmsHref(patient) ? (
-                    <a
-                      href={patientSmsHref(patient) ?? undefined}
-                      className="inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2 text-xs font-medium text-slate-800 hover:bg-slate-50 sm:text-sm"
-                    >
-                      <MessageSquareText className="size-3.5 shrink-0" />
-                      <span className="truncate">Trimite SMS</span>
-                    </a>
-                  ) : null}
+                  <PatientSmsLink
+                    patient={patient}
+                    iconClassName="size-3.5 shrink-0"
+                    className="inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2 text-xs font-medium text-slate-800 hover:bg-slate-50 sm:text-sm"
+                  />
                   <Button
                     type="button"
                     variant="outline"
@@ -290,15 +306,11 @@ export function PatientList({
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap justify-end gap-2">
-                        {patientSmsHref(patient) ? (
-                          <a
-                            href={patientSmsHref(patient) ?? undefined}
-                            className="inline-flex h-11 min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
-                          >
-                            <MessageSquareText className="size-4" />
-                            Trimite SMS
-                          </a>
-                        ) : null}
+                        <PatientSmsLink
+                          patient={patient}
+                          iconClassName="size-4 shrink-0"
+                          className="inline-flex h-11 min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                        />
                         <Button
                           type="button"
                           variant="outline"
