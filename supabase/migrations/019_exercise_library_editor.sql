@@ -1,21 +1,10 @@
--- KinetoFlow — RLS pe catalogul exercise_library
--- Citire: orice terapeut autentificat.
--- Scriere (INSERT/UPDATE/DELETE): doar kineto01flow@gmail.com.
--- 019_exercise_library_editor.sql actualizează aceeași regulă dacă 018 a fost deja rulat.
+-- KinetoFlow — restricționează scrierea pe exercise_library
+-- SELECT: orice utilizator autentificat
+-- INSERT / UPDATE / DELETE: doar kineto01flow@gmail.com
+--   (identificat prin email JWT sau prin auth.users.id)
 
 alter table public.exercise_library enable row level security;
 alter table public.exercise_library force row level security;
-
-alter table public.exercise_library add column if not exists description text;
-alter table public.exercise_library add column if not exists subcategory text;
-alter table public.exercise_library add column if not exists difficulty text;
-alter table public.exercise_library add column if not exists equipment text;
-alter table public.exercise_library add column if not exists position text;
-alter table public.exercise_library add column if not exists sets integer;
-alter table public.exercise_library add column if not exists reps integer;
-alter table public.exercise_library add column if not exists duration_seconds integer;
-alter table public.exercise_library add column if not exists youtube_id text;
-alter table public.exercise_library add column if not exists updated_at timestamptz not null default now();
 
 create or replace function public.is_exercise_library_editor()
 returns boolean
