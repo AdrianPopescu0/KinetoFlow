@@ -22,7 +22,7 @@ cp .env.example .env.local
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
 - `NEXT_PUBLIC_SITE_URL` — originea publică a aplicației (invitații terapeuți `/auth/activare` și recuperare parolă). Nu folosi un URL de preview Vercel (`*-git-*.vercel.app`).
 - `CRON_SECRET` — secret pentru cron-uri (`Authorization: Bearer …` pe `/api/cron/reminders` și `/api/cron/daily-update`); pe Vercel, dacă e setat, header-ul e trimis automat
-- Opțional: `TWILIO_WHATSAPP_FROM` / `WHATSAPP_CLOUD_*` pentru WhatsApp; `TWILIO_SMS_FROM` pentru SMS de rezervă la reminder-ul de check-in (altfel invitațiile rămân click-to-chat)
+- Opțional: `TWILIO_SMS_FROM` sau `TWILIO_WHATSAPP_FROM` în format E.164 (`+4915888623971`, fără `whatsapp:`) pentru SMS Twilio; `WHATSAPP_CLOUD_*` rămâne doar pentru Meta Cloud
 
 În dashboard-ul Supabase, **Authentication → Providers → Email** trebuie să fie activ. Pentru fluxul de onboarding imediat după înregistrare, dezactivează „Confirm email” (sau lasă-l activ — utilizatorul confirmă din email și apoi intră în cont).
 

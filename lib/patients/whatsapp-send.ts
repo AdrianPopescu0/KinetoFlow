@@ -1,6 +1,6 @@
 import "server-only"
 
-import { toWhatsAppNumber } from "@/lib/patients/phone"
+import { toTwilioE164, toWhatsAppNumber } from "@/lib/patients/phone"
 
 export type WhatsAppSendResult = {
   sent: boolean
@@ -21,13 +21,13 @@ export async function sendWhatsAppMessage(
 
   const twilioSid = process.env.TWILIO_ACCOUNT_SID
   const twilioToken = process.env.TWILIO_AUTH_TOKEN
-  const twilioFrom = process.env.TWILIO_WHATSAPP_FROM
+  const twilioFrom = toTwilioE164(process.env.TWILIO_SMS_FROM) ?? toTwilioE164(process.env.TWILIO_WHATSAPP_FROM)
   if (twilioSid && twilioToken && twilioFrom) {
     try {
       const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`
       const body = new URLSearchParams({
-        From: twilioFrom.startsWith("whatsapp:") ? twilioFrom : `whatsapp:${twilioFrom}`,
-        To: `whatsapp:+${to}`,
+        From: twilioFrom,
+        To: `+${to}`,
         Body: message,
       })
       const response = await fetch(endpoint, {

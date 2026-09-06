@@ -45,8 +45,7 @@ export function providerFlags(): {
     twilioSms: Boolean(
       process.env.TWILIO_ACCOUNT_SID?.trim() &&
         process.env.TWILIO_AUTH_TOKEN?.trim() &&
-        process.env.TWILIO_SMS_FROM?.trim() &&
-        !process.env.TWILIO_SMS_FROM.trim().startsWith("whatsapp:"),
+        (process.env.TWILIO_SMS_FROM?.trim() || process.env.TWILIO_WHATSAPP_FROM?.trim()),
     ),
   }
 }

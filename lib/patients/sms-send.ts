@@ -1,6 +1,6 @@
 import "server-only"
 
-import { toWhatsAppNumber } from "@/lib/patients/phone"
+import { toTwilioE164, toWhatsAppNumber } from "@/lib/patients/phone"
 
 export type SmsSendResult = {
   sent: boolean
@@ -8,16 +8,9 @@ export type SmsSendResult = {
   error?: string
 }
 
-function twilioSmsFrom(): string | null {
-  const raw = process.env.TWILIO_SMS_FROM?.trim()
-  if (!raw || raw.startsWith("whatsapp:")) {
-    return null
-  }
-  if (raw.startsWith("+")) {
-    return raw
-  }
-  const digits = toWhatsAppNumber(raw)
-  return digits ? `+${digits}` : null
+/** From SMS: TWILIO_SMS_FROM sau TWILIO_WHATSAPP_FROM, fără prefix whatsapp:. */
+export function twilioSmsFrom(): string | null {
+  return toTwilioE164(process.env.TWILIO_SMS_FROM) ?? toTwilioE164(process.env.TWILIO_WHATSAPP_FROM)
 }
 
 export function isTwilioSmsConfigured(): boolean {

@@ -25,6 +25,22 @@ export function normalizeStoredPhone(phone: string): string | null {
   return toWhatsAppNumber(phone)
 }
 
+/**
+ * Număr E.164 pentru Twilio SMS: `+4915888623971`.
+ * Scoate prefixul `whatsapp:` dacă e prezent (migrare de la WhatsApp la SMS).
+ */
+export function toTwilioE164(phone: string | null | undefined): string | null {
+  if (!phone) {
+    return null
+  }
+  let value = phone.trim()
+  if (value.toLowerCase().startsWith("whatsapp:")) {
+    value = value.slice("whatsapp:".length).trim()
+  }
+  const digits = toWhatsAppNumber(value)
+  return digits ? `+${digits}` : null
+}
+
 export function phonesMatch(stored: string | null, input: string): boolean {
   const a = stored ? toWhatsAppNumber(stored) : null
   const b = toWhatsAppNumber(input)
