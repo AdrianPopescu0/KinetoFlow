@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { isExerciseActiveOnDate } from "@/lib/exercises/schedule"
 import { resolveNotifyChannel } from "@/lib/patients/notify-channel"
 import { sendPatientNotification } from "@/lib/patients/notify-patient"
+import { twilioSmsFrom } from "@/lib/patients/sms-send"
 import { toWhatsAppNumber } from "@/lib/patients/phone"
 import { isMissingNotifyChannelColumn } from "@/lib/patients/remember-notify-channel"
 import { patientCheckinReminderMessage } from "@/lib/patients/whatsapp"
@@ -84,6 +85,7 @@ export async function runCheckinReminders(
     todayStart,
     tomorrowStart,
     providers,
+    smsFromReady: Boolean(twilioSmsFrom()),
   })
 
   const withChannel = await supabase
@@ -194,13 +196,16 @@ export async function runCheckinReminders(
   for (const patient of patients) {
     const phone = typeof patient.phone === "string" ? patient.phone.trim() : ""
     const accessCode = typeof patient.access_code === "string" ? patient.access_code.trim() : ""
-    const channel = resolveNotifyChannel(patient.notify_channel)
+    const storedNotifyChannel = patient.notify_channel ?? null
+    // Preferința veche `whatsapp` din DB este ignorată: trimitem doar SMS.
+    const channel = resolveNotifyChannel(storedNotifyChannel)
     const base = {
       patientId: patient.id,
       fullName: patient.full_name,
       phone: maskPhone(phone),
       notifyChannel: channel,
-      storedNotifyChannel: patient.notify_channel ?? null,
+      storedNotifyChannel,
+      ignoredWhatsAppPreference: storedNotifyChannel === "whatsapp",
     }
 
     if (!activePatientIds.has(patient.id)) {

@@ -1,3 +1,5 @@
+import { isTwilioSmsConfigured } from "@/lib/patients/sms-send"
+
 const PREFIX = "[checkin-reminders]"
 
 export function reminderLog(event: string, details?: Record<string, unknown>): void {
@@ -34,18 +36,8 @@ export function providerFlags(): {
   twilioSms: boolean
 } {
   return {
-    twilioWhatsApp: Boolean(
-      process.env.TWILIO_ACCOUNT_SID?.trim() &&
-        process.env.TWILIO_AUTH_TOKEN?.trim() &&
-        process.env.TWILIO_WHATSAPP_FROM?.trim(),
-    ),
-    metaWhatsApp: Boolean(
-      process.env.WHATSAPP_CLOUD_TOKEN?.trim() && process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID?.trim(),
-    ),
-    twilioSms: Boolean(
-      process.env.TWILIO_ACCOUNT_SID?.trim() &&
-        process.env.TWILIO_AUTH_TOKEN?.trim() &&
-        (process.env.TWILIO_SMS_FROM?.trim() || process.env.TWILIO_WHATSAPP_FROM?.trim()),
-    ),
+    twilioWhatsApp: false,
+    metaWhatsApp: false,
+    twilioSms: isTwilioSmsConfigured(),
   }
 }

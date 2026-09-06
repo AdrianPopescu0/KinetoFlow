@@ -21,7 +21,10 @@ export async function sendWhatsAppMessage(
 
   const twilioSid = process.env.TWILIO_ACCOUNT_SID
   const twilioToken = process.env.TWILIO_AUTH_TOKEN
-  const twilioFrom = toTwilioE164(process.env.TWILIO_SMS_FROM) ?? toTwilioE164(process.env.TWILIO_WHATSAPP_FROM)
+  const twilioFrom =
+    toTwilioE164(process.env.TWILIO_SMS_FROM) ??
+    toTwilioE164(process.env.TWILIO_FROM) ??
+    toTwilioE164(process.env.TWILIO_WHATSAPP_FROM)
   if (twilioSid && twilioToken && twilioFrom) {
     try {
       const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`

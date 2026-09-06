@@ -8,9 +8,13 @@ export type SmsSendResult = {
   error?: string
 }
 
-/** From SMS: TWILIO_SMS_FROM sau TWILIO_WHATSAPP_FROM, fără prefix whatsapp:. */
+/** From SMS: orice număr Twilio E.164, fără prefix whatsapp:. */
 export function twilioSmsFrom(): string | null {
-  return toTwilioE164(process.env.TWILIO_SMS_FROM) ?? toTwilioE164(process.env.TWILIO_WHATSAPP_FROM)
+  return (
+    toTwilioE164(process.env.TWILIO_SMS_FROM) ??
+    toTwilioE164(process.env.TWILIO_FROM) ??
+    toTwilioE164(process.env.TWILIO_WHATSAPP_FROM)
+  )
 }
 
 export function isTwilioSmsConfigured(): boolean {

@@ -10,6 +10,7 @@ declare namespace NodeJS {
     TWILIO_AUTH_TOKEN?: string
     TWILIO_WHATSAPP_FROM?: string
     TWILIO_SMS_FROM?: string
+    TWILIO_FROM?: string
     WHATSAPP_CLOUD_TOKEN?: string
     WHATSAPP_CLOUD_PHONE_NUMBER_ID?: string
     CRON_SECRET?: string
