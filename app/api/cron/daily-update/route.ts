@@ -8,9 +8,7 @@ export const dynamic = "force-dynamic"
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim()
-  return Boolean(
-    secret && request.headers.get("authorization") === `Bearer ${secret}`,
-  )
+  return Boolean(secret && request.headers.get("authorization") === `Bearer ${secret}`)
 }
 
 async function handleDailyUpdate(request: Request) {
@@ -22,19 +20,17 @@ async function handleDailyUpdate(request: Request) {
     const summary = await runDailyExerciseUpdate(createServiceRoleClient())
     return NextResponse.json({ ok: true, ...summary })
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Eroare necunoscută."
+    const message = error instanceof Error ? error.message : "Eroare necunoscută."
     console.error("[cron/daily-update]", message)
     return NextResponse.json({ ok: false, error: message }, { status: 500 })
   }
 }
 
-/** Vercel Cron apelează GET. */
+/** Trigger manual / alias. Cron-ul Hobby apelează `/api/cron/daily`. */
 export async function GET(request: Request) {
   return handleDailyUpdate(request)
 }
 
-/** Trigger manual pentru verificări operaționale. */
 export async function POST(request: Request) {
   return handleDailyUpdate(request)
 }

@@ -105,10 +105,59 @@ export function parseTreatmentIntervalFromNotes(
   return startDate <= endDate ? { startDate, endDate } : { startDate: endDate, endDate: startDate }
 }
 
+const PROGRAM_LINE_PATTERN = /Program:\s*(.+)/i
+
+const WEEKDAY_FROM_LONG: Record<string, WeekdayId> = {
+  sunday: "du",
+  monday: "lu",
+  tuesday: "ma",
+  wednesday: "mi",
+  thursday: "jo",
+  friday: "vi",
+  saturday: "sa",
+}
+
+/** Ziua săptămânii pentru o dată `YYYY-MM-DD` (calendar, nu DST). */
+export function weekdayIdFromDateKey(dateKey: string): WeekdayId | null {
+  if (!isDateKey(dateKey)) {
+    return null
+  }
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  })
+    .format(new Date(`${dateKey}T12:00:00Z`))
+    .toLowerCase()
+  return WEEKDAY_FROM_LONG[weekday] ?? null
+}
+
+/**
+ * Zilele din prefixul `Program: Luni, Marți` / `Program: toată săptămâna`.
+ * Fără prefix → null (nu restricționează).
+ */
+export function parseScheduledWeekdaysFromNotes(
+  notes: string | null | undefined,
+): WeekdayId[] | null {
+  if (!notes) {
+    return null
+  }
+  const match = notes.match(PROGRAM_LINE_PATTERN)
+  if (!match) {
+    return null
+  }
+  const body = match[1].trim().toLocaleLowerCase("ro-RO")
+  if (body.startsWith("toată") || body.startsWith("toata")) {
+    return [...ALL_WEEKDAY_IDS]
+  }
+  const found = WEEKDAY_OPTIONS.filter((day) => body.includes(day.label.toLocaleLowerCase("ro-RO")))
+  return found.length > 0 ? found.map((day) => day.id) : null
+}
+
 /**
  * Exercițiu „activ” în ziua dată:
- * - cu perioadă în notes → ziua e în interval (inclusiv)
- * - fără perioadă → considerat activ (exerciții vechi / fără interval)
+ * - cu perioadă în notes → ziua e în interval (inclusiv) — ex. 5 zile consecutive
+ * - cu `Program: …` → ziua săptămânii e permisă
+ * - fără perioadă și fără program → considerat activ (exerciții vechi)
  */
 export function isExerciseActiveOnDate(
   notes: string | null | undefined,
@@ -118,8 +167,15 @@ export function isExerciseActiveOnDate(
     return false
   }
   const interval = parseTreatmentIntervalFromNotes(notes)
-  if (!interval) {
-    return true
+  if (interval && (dateKey < interval.startDate || dateKey > interval.endDate)) {
+    return false
   }
-  return dateKey >= interval.startDate && dateKey <= interval.endDate
+  const weekdays = parseScheduledWeekdaysFromNotes(notes)
+  if (weekdays) {
+    const weekday = weekdayIdFromDateKey(dateKey)
+    if (!weekday || !weekdays.includes(weekday)) {
+      return false
+    }
+  }
+  return true
 }

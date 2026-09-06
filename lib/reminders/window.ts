@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { bucharestHour } from "@/lib/time/bucharest"
 
 /** Ora locală România la care se trimit reminder-ele de check-in. */
@@ -10,3 +11,9 @@ export const CHECKIN_REMINDER_HOUR_BUCHAREST = 18
 export function isCheckinReminderWindow(now: Date = new Date()): boolean {
   return bucharestHour(now) === CHECKIN_REMINDER_HOUR_BUCHAREST
 }
+=======
+export {
+  CHECKIN_REMINDER_HOUR_BUCHAREST,
+  isCheckinReminderWindow,
+} from "@/lib/cron/windows"
+>>>>>>> 36d2560 (Unifică cron-ul Hobby la miezul nopții pentru programul zilei.)

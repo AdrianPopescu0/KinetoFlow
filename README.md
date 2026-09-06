@@ -83,16 +83,23 @@ Reguli de securitate aplicate:
 - RLS pe `patients`: vizibil dacă `therapist_id` / `assigned_therapist_id` e al tău sau al unui coleg cu același `clinic_name` (`013_patients_no_clinic_id.sql`)
 - RLS pe `exercise_library`: citire pentru oricine; scriere (INSERT/UPDATE/DELETE) doar `kinetic01flow@gmail.com` și `admin@kinetoflow.ro` (email exact). Scripturile sunt în `sql/`, nu se aplică automat pe Vercel. Tabela `exercises` (programul pacientului) rămâne editabilă de terapeuții cabinetului.
 
-## Reminder check-in (18:00 România)
+## Cron zilnic (Hobby: un singur job)
 
-Vercel Cron rulează doar pe UTC, deci `/api/cron/reminders` e programat la **15:00 și 16:00 UTC**. Handler-ul trimite mesaje **doar când ceasul din `Europe/Bucharest` e 18:00**:
+Planul Vercel Hobby permite **un singur cron, o dată pe zi**. `vercel.json` are deci o singură rută: `/api/cron/daily` la **22:00 UTC**.
 
-- vară (EEST, UTC+3): 15:00 UTC = 18:00 RO
-- iarnă (EET, UTC+2): 16:00 UTC = 18:00 RO
+- iarnă (EET, UTC+2): 22:00 UTC = **00:00** România
+- vară (EEST, UTC+3): 22:00 UTC = **01:00** România (ziua nouă a început deja)
 
-Job-ul selectează pacienții cu exercițiu activ azi (perioada din `notes`) și **fără** rând în `check_ins` pentru ziua București. Trimite **doar** pe canalul salvat în `patients.notify_channel` (WhatsApp sau SMS), același folosit la invitația inițială. Fără canal setat, pacientul e sărit. Rulează `sql/022_patient_notify_channel.sql` în SQL Editor.
+La această oră job-ul **pregătește programul zilei**:
 
-Trigger manual (ignoră ora): `GET /api/cron/reminders?force=1` cu `Authorization: Bearer ${CRON_SECRET}`. Previzualizare fără trimitere: `?dryRun=1&force=1`.
+- Exercițiile stau în `exercises`; perioada (ex. 5 zile consecutive) e în `notes` (`Perioadă tratament: DD.MM.YYYY – DD.MM.YYYY`).
+- Portalul arată doar exercițiile active pe `dateKey`-ul București. La miezul nopții se schimbă ziua, deci schema zilei 2/3/… apare automat — nu se copiază rânduri noi.
+- Finalizările (`exercise_completions.completed_on`) sunt pe dată, deci ziua nouă pornește fără „efectuat”.
+- Job-ul recalculează setul activ, numără schemele care încep/se termină azi și șterge finalizările legate de exerciții inactive.
+
+Reminder-ul de check-in de la 18:00 **nu** poate rula în același cron Hobby (ar trebui o a doua declanșare). Rămâne pe `/api/cron/reminders` (sau `?task=reminders` pe `/api/cron/daily`) pentru trigger manual, cron extern sau plan Pro.
+
+Trigger manual program: `GET /api/cron/daily?task=program&force=1` cu `Authorization: Bearer ${CRON_SECRET}`. Alias: `/api/cron/daily-update`. Reminder: `?task=reminders&force=1` sau `/api/cron/reminders?force=1`. Previzualizare reminder: `?dryRun=1`.
 
 ## Structură relevantă
 
@@ -108,7 +115,8 @@ app/dashboard/page.tsx           # Dashboard terapeut (protejat)
 app/patient/[token]/page.tsx     # Programul public al pacientului
 app/patient/page.tsx             # Recuperare token (webview fără parametri)
 app/p/[patientToken]/page.tsx    # Alias vechi al programului pacientului
-app/api/cron/reminders/route.ts  # Reminder check-in la 18:00 Europe/Bucharest (Bearer CRON_SECRET)
-app/api/cron/daily-update/route.ts # Recalculează zilnic exercițiile active (Bearer CRON_SECRET)
-vercel.json                      # reminders: 15:00+16:00 UTC (doar 18:00 RO trimite); daily-update: 21:00 UTC (= 00:00 RO)
+app/api/cron/daily/route.ts      # Cron Hobby: rollover program la ~00:00 RO (Bearer CRON_SECRET)
+app/api/cron/reminders/route.ts  # Reminder check-in 18:00 (manual / Pro / cron extern)
+app/api/cron/daily-update/route.ts # Alias manual pentru rollover-ul de program
+vercel.json                      # un singur cron: 22:00 UTC → /api/cron/daily
 ```

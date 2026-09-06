@@ -70,7 +70,7 @@ export function isBucharestToday(input: Date | string, now = new Date()): boolea
   return key.length > 0 && key === bucharestDateKey(now)
 }
 
-function addCalendarDays(ymd: string, days: number): string {
+export function addBucharestCalendarDays(ymd: string, days: number): string {
   const [year, month, day] = ymd.split("-").map(Number)
   const utcNoon = new Date(Date.UTC(year, month - 1, day + days, 12, 0, 0))
   return `${utcNoon.getUTCFullYear()}-${pad2(utcNoon.getUTCMonth() + 1)}-${pad2(utcNoon.getUTCDate())}`
@@ -99,7 +99,7 @@ export function startOfBucharestDay(now = new Date()): Date {
 }
 
 export function startOfNextBucharestDay(now = new Date()): Date {
-  return bucharestWallTimeToUtc(addCalendarDays(bucharestDateKey(now), 1), 0, 0, 0, 0)
+  return bucharestWallTimeToUtc(addBucharestCalendarDays(bucharestDateKey(now), 1), 0, 0, 0, 0)
 }
 
 /** Inclusive start of “today” in Bucharest, as UTC ISO — safe for timestamptz filters. */
