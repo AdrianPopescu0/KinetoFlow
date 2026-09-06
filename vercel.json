@@ -1,17 +1,8 @@
 {
   "crons": [
     {
-<<<<<<< HEAD
-      "path": "/api/cron/reminders",
-      "schedule": "30 16 * * *"
-    },
-    {
-      "path": "/api/cron/daily-update",
-      "schedule": "0 21 * * *"
-=======
       "path": "/api/cron/daily",
       "schedule": "0 22 * * *"
->>>>>>> 36d2560 (Unifică cron-ul Hobby la miezul nopții pentru programul zilei.)
     }
   ]
 }
