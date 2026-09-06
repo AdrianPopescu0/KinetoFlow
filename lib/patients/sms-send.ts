@@ -1,6 +1,10 @@
 import "server-only"
 
-import { toTwilioE164, toWhatsAppNumber } from "@/lib/patients/phone"
+import { toWhatsAppNumber } from "@/lib/patients/phone"
+import {
+  isTwilioSmsConfigured,
+  resolveTwilioSmsFrom,
+} from "@/lib/patients/twilio-sms-config"
 
 export type SmsSendResult = {
   sent: boolean
@@ -8,24 +12,14 @@ export type SmsSendResult = {
   error?: string
 }
 
-/** From SMS: orice număr Twilio E.164, fără prefix whatsapp:. */
+export { isTwilioSmsConfigured, resolveTwilioSmsFrom }
+
+/** From SMS: TWILIO_PHONE_NUMBER sau alias-urile vechi, fără prefix whatsapp:. */
 export function twilioSmsFrom(): string | null {
-  return (
-    toTwilioE164(process.env.TWILIO_SMS_FROM) ??
-    toTwilioE164(process.env.TWILIO_FROM) ??
-    toTwilioE164(process.env.TWILIO_WHATSAPP_FROM)
-  )
+  return resolveTwilioSmsFrom()
 }
 
-export function isTwilioSmsConfigured(): boolean {
-  return Boolean(
-    process.env.TWILIO_ACCOUNT_SID?.trim() &&
-      process.env.TWILIO_AUTH_TOKEN?.trim() &&
-      twilioSmsFrom(),
-  )
-}
-
-/** Trimite SMS prin Twilio. Fără TWILIO_SMS_FROM → sent: false. */
+/** Trimite SMS prin Twilio. Fără număr From (TWILIO_PHONE_NUMBER) → sent: false. */
 export async function sendSmsMessage(phone: string, message: string): Promise<SmsSendResult> {
   const to = toWhatsAppNumber(phone)
   if (!to) {
@@ -40,7 +34,11 @@ export async function sendSmsMessage(phone: string, message: string): Promise<Sm
     console.warn("[checkin-reminders] Niciun provider SMS configurat.", {
       hasTwilioSid: Boolean(twilioSid),
       hasTwilioToken: Boolean(twilioToken),
-      hasTwilioSmsFrom: Boolean(twilioFrom),
+      hasTwilioPhoneNumber: Boolean(process.env.TWILIO_PHONE_NUMBER?.trim()),
+      hasTwilioSmsFrom: Boolean(process.env.TWILIO_SMS_FROM?.trim()),
+      hasTwilioFrom: Boolean(process.env.TWILIO_FROM?.trim()),
+      hasResolvedFrom: Boolean(twilioFrom),
+      twilioSms: isTwilioSmsConfigured(),
     })
     return { sent: false, provider: null, error: "Niciun provider SMS configurat." }
   }

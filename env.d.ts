@@ -8,6 +8,7 @@ declare namespace NodeJS {
     NEXT_PUBLIC_SITE_URL?: string
     TWILIO_ACCOUNT_SID?: string
     TWILIO_AUTH_TOKEN?: string
+    TWILIO_PHONE_NUMBER?: string
     TWILIO_WHATSAPP_FROM?: string
     TWILIO_SMS_FROM?: string
     TWILIO_FROM?: string

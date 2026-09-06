@@ -1,4 +1,4 @@
-import { isTwilioSmsConfigured } from "@/lib/patients/sms-send"
+import { twilioSmsProviderFlags } from "@/lib/patients/twilio-sms-config"
 
 const PREFIX = "[checkin-reminders]"
 
@@ -35,9 +35,5 @@ export function providerFlags(): {
   metaWhatsApp: boolean
   twilioSms: boolean
 } {
-  return {
-    twilioWhatsApp: false,
-    metaWhatsApp: false,
-    twilioSms: isTwilioSmsConfigured(),
-  }
+  return twilioSmsProviderFlags()
 }
