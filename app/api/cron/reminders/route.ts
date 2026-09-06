@@ -27,6 +27,10 @@ function authorizeCron(request: Request): boolean {
 
 async function handleReminders(request: Request) {
   if (!authorizeCron(request)) {
+    console.warn("[checkin-reminders] Cerere respinsă: secret cron lipsă sau header Authorization greșit.", {
+      hasCronSecret: Boolean(process.env.CRON_SECRET?.trim()),
+      hasAuthorization: Boolean(request.headers.get("authorization")),
+    })
     return NextResponse.json({ error: "Neautorizat." }, { status: 401 })
   }
 
@@ -36,8 +40,26 @@ async function handleReminders(request: Request) {
   const now = new Date()
   const hour = bucharestHour(now)
   const dateKey = bucharestDateKey(now)
+  const inWindow = isCheckinReminderWindow(now)
+  const channels = configuredNotifyChannels()
 
-  if (!force && !isCheckinReminderWindow(now)) {
+  console.info("[checkin-reminders] Cron /api/cron/reminders apelat.", {
+    dateKey,
+    bucharestHour: hour,
+    reminderHour: CHECKIN_REMINDER_HOUR_BUCHAREST,
+    inWindow,
+    force,
+    dryRun,
+    channels,
+  })
+
+  if (!force && !inWindow) {
+    console.warn("[checkin-reminders] Nu trimit: în afara ferestrei orare.", {
+      dateKey,
+      bucharestHour: hour,
+      reminderHour: CHECKIN_REMINDER_HOUR_BUCHAREST,
+      reason: `Ora București e ${hour}:00, reminder-ele pleacă doar la ${CHECKIN_REMINDER_HOUR_BUCHAREST}:00 (sau ?force=1).`,
+    })
     return NextResponse.json({
       ok: true,
       skipped: true,
@@ -45,7 +67,7 @@ async function handleReminders(request: Request) {
       dateKey,
       bucharestHour: hour,
       reminderHour: CHECKIN_REMINDER_HOUR_BUCHAREST,
-      channels: configuredNotifyChannels(),
+      channels,
     })
   }
 
@@ -59,7 +81,7 @@ async function handleReminders(request: Request) {
       forced: force,
       dateKey: summary.dateKey,
       bucharestHour: hour,
-      channels: configuredNotifyChannels(),
+      channels,
       scanned: summary.scanned,
       eligible: summary.eligible,
       sent: summary.sent,

@@ -71,6 +71,13 @@ async function handleDailyCron(request: Request) {
   const dateKey = bucharestDateKey(now)
 
   if (!planned.program && !planned.reminders) {
+    console.warn("[checkin-reminders] Cron /api/cron/daily: în afara ferestrei orare.", {
+      dateKey,
+      bucharestHour: hour,
+      force,
+      task,
+      reason: planned.skippedReason,
+    })
     return NextResponse.json({
       ok: true,
       skipped: true,
@@ -79,6 +86,16 @@ async function handleDailyCron(request: Request) {
       bucharestHour: hour,
     })
   }
+
+  console.info("[checkin-reminders] Cron /api/cron/daily pornește task-urile.", {
+    dateKey,
+    bucharestHour: hour,
+    force,
+    dryRun,
+    task,
+    ran: { program: planned.program, reminders: planned.reminders },
+    channels: configuredNotifyChannels(),
+  })
 
   try {
     const supabase = createServiceRoleClient()
