@@ -1,6 +1,6 @@
 import { handlePatientInviteNotify } from "@/lib/patients/notify-invite"
 
-/** Compat: invitația implicită rămâne WhatsApp. */
+/** Compat: invitația se trimite și se salvează ca SMS. */
 export async function POST(request: Request) {
-  return handlePatientInviteNotify(request, "whatsapp")
+  return handlePatientInviteNotify(request, "sms")
 }

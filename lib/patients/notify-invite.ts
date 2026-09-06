@@ -3,7 +3,7 @@ import "server-only"
 import { NextResponse } from "next/server"
 
 import { clinicNameForUser } from "@/lib/clinics/members"
-import { parseNotifyChannel, type PatientNotifyChannel } from "@/lib/patients/notify-channel"
+import { resolveNotifyChannel, type PatientNotifyChannel } from "@/lib/patients/notify-channel"
 import { sendPatientNotification } from "@/lib/patients/notify-patient"
 import { rememberPatientNotifyChannel } from "@/lib/patients/remember-notify-channel"
 import { getOwnPatientRow } from "@/lib/patients/tenant"
@@ -38,10 +38,7 @@ export async function handlePatientInviteNotify(
     return NextResponse.json({ error: "Payload invalid.", sent: false }, { status: 400 })
   }
 
-  const channel = forcedChannel ?? parseNotifyChannel(channelRaw)
-  if (!channel) {
-    return NextResponse.json({ error: "Alege WhatsApp sau SMS.", sent: false }, { status: 400 })
-  }
+  const channel = resolveNotifyChannel(forcedChannel ?? channelRaw)
 
   if (typeof patientId !== "string" || patientId.length < 8) {
     return NextResponse.json({ error: "Lipsește pacientul.", sent: false }, { status: 400 })

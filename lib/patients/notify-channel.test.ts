@@ -1,18 +1,30 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { notifyChannelLabel, parseNotifyChannel } from "./notify-channel.ts"
+import {
+  DEFAULT_NOTIFY_CHANNEL,
+  notifyChannelLabel,
+  parseNotifyChannel,
+  resolveNotifyChannel,
+} from "./notify-channel.ts"
 
-test("acceptă doar whatsapp și sms", () => {
+test("parsează valorile stocate", () => {
   assert.equal(parseNotifyChannel("whatsapp"), "whatsapp")
   assert.equal(parseNotifyChannel("sms"), "sms")
   assert.equal(parseNotifyChannel("email"), null)
   assert.equal(parseNotifyChannel(null), null)
-  assert.equal(parseNotifyChannel(""), null)
 })
 
-test("etichetele sunt în română", () => {
-  assert.equal(notifyChannelLabel("whatsapp"), "WhatsApp")
+test("trimiterea efectivă e mereu SMS", () => {
+  assert.equal(DEFAULT_NOTIFY_CHANNEL, "sms")
+  assert.equal(resolveNotifyChannel("whatsapp"), "sms")
+  assert.equal(resolveNotifyChannel("sms"), "sms")
+  assert.equal(resolveNotifyChannel(null), "sms")
+  assert.equal(resolveNotifyChannel(undefined), "sms")
+})
+
+test("etichetele arată SMS după migrare", () => {
+  assert.equal(notifyChannelLabel("whatsapp"), "SMS")
   assert.equal(notifyChannelLabel("sms"), "SMS")
   assert.equal(notifyChannelLabel(null), "Nesetat")
 })

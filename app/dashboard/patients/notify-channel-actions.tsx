@@ -31,28 +31,24 @@ export function NotifyChannelActions({
   const sendActionClassName =
     "h-12 w-full min-w-0 shrink justify-center whitespace-normal px-3 text-center rounded-xl"
 
-  async function remember(next: PatientNotifyChannel) {
+  async function remember() {
     try {
       const response = await fetch("/api/patients/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ patientId, channel: next }),
+        body: JSON.stringify({ patientId, channel: "sms" }),
       })
       const data = (await response.json()) as { saved?: boolean; missingColumn?: boolean }
-      setChannel(next)
+      setChannel("sms")
       if (data.saved) {
-        toast(
-          next === "whatsapp"
-            ? "Canal salvat: WhatsApp. Reminder-ele vor folosi WhatsApp."
-            : "Canal salvat: SMS. Reminder-ele vor folosi SMS.",
-        )
+        toast("Canal salvat: SMS. Reminder-ele vor folosi SMS.")
         return
       }
       if (data.missingColumn) {
         toast("Rulează sql/022_patient_notify_channel.sql în Supabase ca să salvăm canalul.")
       }
     } catch {
-      setChannel(next)
+      setChannel("sms")
     }
   }
 
@@ -69,7 +65,7 @@ export function NotifyChannelActions({
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => {
-            void remember("whatsapp")
+            void remember()
           }}
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -87,7 +83,7 @@ export function NotifyChannelActions({
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => {
-            void remember("whatsapp")
+            void remember()
           }}
           className={cn(
             buttonVariants({ variant: "outline" }),
@@ -103,7 +99,7 @@ export function NotifyChannelActions({
         <a
           href={smsHref}
           onClick={(event) => {
-            void remember("sms")
+            void remember()
             openPatientSms(event, phone, message)
           }}
           className={cn(

@@ -58,7 +58,8 @@ function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
     updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
     assigned_therapist_id:
       typeof row.assigned_therapist_id === "string" ? row.assigned_therapist_id : null,
-    notify_channel: row.notify_channel === "whatsapp" || row.notify_channel === "sms" ? row.notify_channel : null,
+    notify_channel:
+      row.notify_channel === "sms" || row.notify_channel === "whatsapp" ? "sms" : null,
   }
 }
 

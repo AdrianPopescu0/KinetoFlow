@@ -3,7 +3,7 @@ import "server-only"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { isExerciseActiveOnDate } from "@/lib/exercises/schedule"
-import { parseNotifyChannel } from "@/lib/patients/notify-channel"
+import { resolveNotifyChannel } from "@/lib/patients/notify-channel"
 import { sendPatientNotification } from "@/lib/patients/notify-patient"
 import { toWhatsAppNumber } from "@/lib/patients/phone"
 import { isMissingNotifyChannelColumn } from "@/lib/patients/remember-notify-channel"
@@ -40,7 +40,7 @@ export type ReminderSendOutcome = {
   fullName: string
   status: "sent" | "skipped" | "failed"
   reason?: string
-  channel?: "whatsapp" | "sms" | null
+  channel?: "sms" | "whatsapp" | null
   provider?: string | null
 }
 
@@ -194,12 +194,13 @@ export async function runCheckinReminders(
   for (const patient of patients) {
     const phone = typeof patient.phone === "string" ? patient.phone.trim() : ""
     const accessCode = typeof patient.access_code === "string" ? patient.access_code.trim() : ""
-    const channel = parseNotifyChannel(patient.notify_channel)
+    const channel = resolveNotifyChannel(patient.notify_channel)
     const base = {
       patientId: patient.id,
       fullName: patient.full_name,
       phone: maskPhone(phone),
-      notifyChannel: patient.notify_channel ?? null,
+      notifyChannel: channel,
+      storedNotifyChannel: patient.notify_channel ?? null,
     }
 
     if (!activePatientIds.has(patient.id)) {
@@ -256,21 +257,8 @@ export async function runCheckinReminders(
       continue
     }
 
-    if (!channel) {
-      skipped += 1
-      reminderWarn("Sărit: canal de notificare nesetat (WhatsApp sau SMS).", base)
-      outcomes.push({
-        patientId: patient.id,
-        fullName: patient.full_name,
-        status: "skipped",
-        reason: "Canal de notificare nesetat. Trimite invitația pe WhatsApp sau SMS.",
-      })
-      continue
-    }
-
-    const channelReady = channel === "whatsapp" ? providers.twilioWhatsApp || providers.metaWhatsApp : providers.twilioSms
-    if (!channelReady) {
-      reminderWarn("Canal ales, dar furnizorul nu e configurat.", {
+    if (!providers.twilioSms) {
+      reminderWarn("Canal SMS, dar Twilio SMS nu e configurat.", {
         ...base,
         channel,
         providers,
