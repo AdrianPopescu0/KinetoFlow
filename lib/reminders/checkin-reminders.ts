@@ -286,7 +286,7 @@ export async function runCheckinReminders(
     })
 
     if (options.dryRun) {
-      reminderLog("Dry-run: aș trimite, dar nu trimit.", { ...base, channel })
+      reminderLog("Dry-run: aș trimite, dar nu trimit.", { ...base, channel, message })
       outcomes.push({
         patientId: patient.id,
         fullName: patient.full_name,
@@ -297,11 +297,11 @@ export async function runCheckinReminders(
       continue
     }
 
-    reminderLog("Trimit reminder.", { ...base, channel, clinicName })
+    reminderLog("Trimit reminder.", { ...base, channel, clinicName, message })
     const result = await sendPatientNotification(phone, message, channel)
     if (result.sent) {
       sent += 1
-      reminderLog("Trimis.", { ...base, channel: result.channel, provider: result.provider })
+      reminderLog("Trimis.", { ...base, channel: result.channel, provider: result.provider, message })
       outcomes.push({
         patientId: patient.id,
         fullName: patient.full_name,
@@ -317,6 +317,7 @@ export async function runCheckinReminders(
         provider: result.provider,
         error: result.error ?? "Trimitere eșuată.",
         providers,
+        message,
       })
       outcomes.push({
         patientId: patient.id,
