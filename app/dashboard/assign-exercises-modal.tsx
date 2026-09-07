@@ -11,7 +11,7 @@ import { toast } from "@/components/ui/toaster"
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
 import { loadCustomExercises } from "@/lib/exercises/extras"
 import { formatTreatmentInterval } from "@/lib/exercises/schedule"
-import { regionById } from "@/lib/exercises/taxonomy"
+import { regionById, regionLabels } from "@/lib/exercises/taxonomy"
 import type { LibraryExercise } from "@/lib/exercises/types"
 import { cn } from "@/lib/utils"
 
@@ -111,7 +111,7 @@ function AssignExercisesModalContent({
       return catalog
     }
     return catalog.filter((exercise) =>
-      `${exercise.title} ${exercise.description} ${regionById(exercise.region).label}`
+      `${exercise.title} ${exercise.description} ${regionLabels(exercise.regions)}`
         .toLocaleLowerCase("ro-RO")
         .includes(needle),
     )
@@ -285,7 +285,7 @@ function AssignExercisesModalContent({
                           {exercise.title}
                         </span>
                         <span className="mt-0.5 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                          {regionById(exercise.region).shortLabel}
+                          {exercise.regions.map((id) => regionById(id).shortLabel).join(" · ")}
                         </span>
                       </button>
 

@@ -18,10 +18,11 @@ import {
   POSITIONS,
   REGIONS,
   difficultyLabel,
-  equipmentLabel,
+  equipmentLabels,
   formatDuration,
+  objectiveLabels,
   positionLabel,
-  subcategoryLabel,
+  regionLabels,
 } from "@/lib/exercises/taxonomy"
 import type { AssignablePatient, LibraryExercise } from "@/lib/exercises/types"
 
@@ -69,8 +70,12 @@ export function PreviewDialog({
       <p className="mt-4 text-sm leading-relaxed text-slate-700">{exercise.description}</p>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div>
-          <dt className="text-slate-500">Obiectiv</dt>
-          <dd className="font-medium text-slate-900">{subcategoryLabel(exercise.subcategory)}</dd>
+          <dt className="text-slate-500">Regiuni</dt>
+          <dd className="font-medium text-slate-900">{regionLabels(exercise.regions)}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Obiective</dt>
+          <dd className="font-medium text-slate-900">{objectiveLabels(exercise.objectives)}</dd>
         </div>
         <div>
           <dt className="text-slate-500">Nivel</dt>
@@ -87,7 +92,7 @@ export function PreviewDialog({
         <div>
           <dt className="text-slate-500">Doza recomandată</dt>
           <dd className="font-medium text-slate-900">
-            {exercise.sets} × {exercise.reps} · {equipmentLabel(exercise.equipment)}
+            {exercise.sets} × {exercise.reps} · {equipmentLabels(exercise.equipments)}
           </dd>
         </div>
       </dl>
@@ -185,10 +190,11 @@ export function AddExerciseDialog({
   onCreated: (exercise: LibraryExercise) => void
 }) {
   const [isPending, startCreate] = useTransition()
-  const [region, setRegion] = useState(REGIONS[0].id)
+  const [regions, setRegions] = useState<string[]>([REGIONS[0].id])
+  const [objectives, setObjectives] = useState<string[]>([OBJECTIVES[0].id])
+  const [equipments, setEquipments] = useState<string[]>(["none"])
 
   function handleSubmit(formData: FormData) {
-    formData.set("region", region)
     startCreate(async () => {
       const result = await createLibraryExercise(formData)
       if (result.error || !result.exercise) {
@@ -204,10 +210,10 @@ export function AddExerciseDialog({
   return (
     <Overlay title="Adaugă exercițiu" onClose={onClose}>
       <p className="mt-1 text-sm text-slate-600">
-        Doar administratorul bibliotecii poate salva exerciții. Scrierea e verificată pe server și prin RLS.
+        Doar administratorul bibliotecii poate salva exerciții. Bifează una sau mai multe regiuni, obiective și
+        echipamente.
       </p>
       <form action={handleSubmit} className="mt-5 flex flex-col gap-4">
-        <input type="hidden" name="region" value={region} />
         <div className="flex flex-col gap-2">
           <Label htmlFor="title">Titlu</Label>
           <Input id="title" name="title" required placeholder="Retracție cervicală" className="h-11" />
@@ -216,37 +222,21 @@ export function AddExerciseDialog({
           <Label htmlFor="description">Descriere / instrucțiuni</Label>
           <Textarea id="description" name="description" required className="min-h-24" placeholder="Cues clinice, precauții..." />
         </div>
+        <MultiCheckField
+          legend="Regiune anatomică"
+          name="region"
+          options={REGIONS}
+          values={regions}
+          onChange={setRegions}
+        />
+        <MultiCheckField
+          legend="Obiectiv terapeutic"
+          name="subcategory"
+          options={OBJECTIVES}
+          values={objectives}
+          onChange={setObjectives}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="region">Regiune anatomică</Label>
-            <select
-              id="region"
-              className="h-11 rounded-lg border border-slate-300 bg-white px-2.5 text-sm"
-              value={region}
-              onChange={(event) => setRegion(event.target.value as typeof region)}
-            >
-              {REGIONS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="subcategory">Obiectiv terapeutic</Label>
-            <select
-              id="subcategory"
-              name="subcategory"
-              className="h-11 rounded-lg border border-slate-300 bg-white px-2.5 text-sm"
-              defaultValue={OBJECTIVES[0].id}
-            >
-              {OBJECTIVES.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="difficulty">Nivel</Label>
             <select id="difficulty" name="difficulty" className="h-11 rounded-lg border border-slate-300 bg-white px-2.5 text-sm">
@@ -257,15 +247,20 @@ export function AddExerciseDialog({
               ))}
             </select>
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="equipment">Echipament</Label>
-            <select id="equipment" name="equipment" className="h-11 rounded-lg border border-slate-300 bg-white px-2.5 text-sm">
-              {EQUIPMENT.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <MultiCheckField
+              legend="Echipament"
+              name="equipment"
+              options={EQUIPMENT}
+              values={equipments}
+              onChange={(next) => {
+                if (next.includes("none") && next.length > 1) {
+                  setEquipments(next[next.length - 1] === "none" ? ["none"] : next.filter((id) => id !== "none"))
+                  return
+                }
+                setEquipments(next.length > 0 ? next : ["none"])
+              }}
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="position">Poziție</Label>
@@ -298,7 +293,11 @@ export function AddExerciseDialog({
           <Button type="button" variant="outline" onClick={onClose} disabled={isPending} className="h-11 rounded-xl">
             Anulează
           </Button>
-          <Button type="submit" disabled={isPending} className="h-11 rounded-xl">
+          <Button
+            type="submit"
+            disabled={isPending || regions.length === 0 || objectives.length === 0}
+            className="h-11 rounded-xl"
+          >
             {isPending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
@@ -311,5 +310,55 @@ export function AddExerciseDialog({
         </div>
       </form>
     </Overlay>
+  )
+}
+
+function MultiCheckField({
+  legend,
+  name,
+  options,
+  values,
+  onChange,
+}: {
+  legend: string
+  name: string
+  options: Array<{ id: string; label: string }>
+  values: string[]
+  onChange: (next: string[]) => void
+}) {
+  function toggle(id: string) {
+    onChange(values.includes(id) ? values.filter((item) => item !== id) : [...values, id])
+  }
+
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="text-sm font-medium text-slate-900">{legend}</legend>
+      <p className="text-xs text-slate-500">Poți bifa mai multe opțiuni.</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const checked = values.includes(option.id)
+          return (
+            <label
+              key={option.id}
+              className={
+                checked
+                  ? "inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-[#042f2e] bg-[#042f2e] px-3 text-sm font-medium text-white"
+                  : "inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:border-slate-400"
+              }
+            >
+              <input
+                type="checkbox"
+                name={name}
+                value={option.id}
+                checked={checked}
+                onChange={() => toggle(option.id)}
+                className="sr-only"
+              />
+              {option.label}
+            </label>
+          )
+        })}
+      </div>
+    </fieldset>
   )
 }

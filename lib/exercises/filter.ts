@@ -23,16 +23,16 @@ export function filterLibrary(exercises: LibraryExercise[], filters: LibraryFilt
     if (!matchesQuery(exercise, filters.query)) {
       return false
     }
-    if (filters.region !== "all" && exercise.region !== filters.region) {
+    if (filters.region !== "all" && !exercise.regions.includes(filters.region)) {
       return false
     }
-    if (filters.subcategory !== "all" && exercise.subcategory !== filters.subcategory) {
+    if (filters.subcategory !== "all" && !exercise.objectives.includes(filters.subcategory)) {
       return false
     }
     if (filters.difficulty !== "all" && exercise.difficulty !== filters.difficulty) {
       return false
     }
-    if (filters.equipment !== "all" && exercise.equipment !== filters.equipment) {
+    if (filters.equipment !== "all" && !exercise.equipments.includes(filters.equipment)) {
       return false
     }
     if (filters.position !== "all" && exercise.position !== filters.position) {
@@ -62,7 +62,9 @@ export function regionCounts(
   } as Record<AnatomicalRegion | "all", number>
 
   for (const exercise of matched) {
-    counts[exercise.region] += 1
+    for (const region of exercise.regions) {
+      counts[region] += 1
+    }
   }
   return counts
 }

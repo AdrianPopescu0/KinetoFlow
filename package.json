@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test lib/reminders/window.test.ts lib/patients/notify-channel.test.ts lib/patients/phone.test.ts lib/patients/twilio-sms-config.test.ts lib/patients/fcm-web-config.test.ts lib/patients/reminder-delivery.test.ts lib/exercises/schedule.test.ts lib/exercises/reset-daily-progress.test.ts lib/exercises/taxonomy.test.ts lib/cron/windows.test.ts lib/cron/authorize.test.ts lib/pwa/before-install-prompt.test.ts lib/pwa/install-guide.test.ts lib/auth/email-confirmed.test.ts"
+    "test": "node --experimental-strip-types --test lib/reminders/window.test.ts lib/patients/notify-channel.test.ts lib/patients/phone.test.ts lib/patients/twilio-sms-config.test.ts lib/patients/fcm-web-config.test.ts lib/patients/reminder-delivery.test.ts lib/exercises/schedule.test.ts lib/exercises/reset-daily-progress.test.ts lib/exercises/taxonomy.test.ts lib/exercises/tags.test.ts lib/cron/windows.test.ts lib/cron/authorize.test.ts lib/pwa/before-install-prompt.test.ts lib/pwa/install-guide.test.ts lib/auth/email-confirmed.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

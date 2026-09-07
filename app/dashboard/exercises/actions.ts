@@ -5,12 +5,9 @@ import { revalidatePath } from "next/cache"
 import { getCachedUser } from "@/lib/auth/session"
 import { LIBRARY_WRITE_FORBIDDEN, authUserCanEditLibrary } from "@/lib/exercises/library-admin"
 import { libraryExerciseToRow, listStoredLibraryExercises } from "@/lib/exercises/library-store"
-import { isAnatomicalRegion, isExercisePosition, isTherapeuticObjective } from "@/lib/exercises/taxonomy"
-import type {
-  Difficulty,
-  Equipment,
-  LibraryExercise,
-} from "@/lib/exercises/types"
+import { hydrateLibraryExercise } from "@/lib/exercises/hydrate"
+import { isAnatomicalRegion, isEquipment, isExercisePosition, isTherapeuticObjective } from "@/lib/exercises/taxonomy"
+import type { LibraryExercise } from "@/lib/exercises/types"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 
@@ -35,6 +32,14 @@ function readText(formData: FormData, key: string): string {
   return typeof value === "string" ? value.trim() : ""
 }
 
+function readList(formData: FormData, key: string): string[] {
+  return formData
+    .getAll(key)
+    .flatMap((value) => (typeof value === "string" ? value.split(/[,;|]/) : []))
+    .map((value) => value.trim())
+    .filter(Boolean)
+}
+
 function readNumber(formData: FormData, key: string, fallback: number): number {
   const parsed = Number(readText(formData, key))
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
@@ -47,13 +52,13 @@ function exerciseFromForm(formData: FormData, id?: string): LibraryExercise | { 
     return { error: "Completează titlul și descrierea." }
   }
 
-  const region = readText(formData, "region") || "lumbar"
-  if (!isAnatomicalRegion(region)) {
-    return { error: "Alege o regiune anatomică validă." }
+  const regions = readList(formData, "region").filter(isAnatomicalRegion)
+  if (regions.length === 0) {
+    return { error: "Alege cel puțin o regiune anatomică." }
   }
-  const subcategory = readText(formData, "subcategory") || "mobility"
-  if (!isTherapeuticObjective(subcategory)) {
-    return { error: "Alege un obiectiv terapeutic valid." }
+  const objectives = readList(formData, "subcategory").filter(isTherapeuticObjective)
+  if (objectives.length === 0) {
+    return { error: "Alege cel puțin un obiectiv terapeutic." }
   }
 
   const position = readText(formData, "position") || "sitting"
@@ -61,15 +66,17 @@ function exerciseFromForm(formData: FormData, id?: string): LibraryExercise | { 
     return { error: "Alege o poziție validă." }
   }
 
+  const equipments = readList(formData, "equipment").filter(isEquipment)
+  const difficultyRaw = readText(formData, "difficulty")
   const videoUrl = readText(formData, "video_url") || null
-  return {
+  return hydrateLibraryExercise({
     id: id ?? crypto.randomUUID(),
     title,
     description,
-    region,
-    subcategory,
-    difficulty: (readText(formData, "difficulty") || "usor") as Difficulty,
-    equipment: (readText(formData, "equipment") || "none") as Equipment,
+    regions,
+    objectives,
+    difficulty: difficultyRaw === "mediu" || difficultyRaw === "avansat" ? difficultyRaw : "usor",
+    equipments: equipments.length > 0 ? equipments : ["none"],
     position,
     sets: readNumber(formData, "sets", 3),
     reps: readNumber(formData, "reps", 10),
@@ -77,7 +84,7 @@ function exerciseFromForm(formData: FormData, id?: string): LibraryExercise | { 
     youtubeId: youtubeIdFromUrl(videoUrl),
     videoUrl,
     custom: true,
-  }
+  })
 }
 
 export async function createLibraryExercise(formData: FormData): Promise<LibraryMutationState> {

@@ -1,16 +1,8 @@
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
-import {
-  DIFFICULTIES,
-  EQUIPMENT,
-  normalizeObjective,
-  normalizePosition,
-  normalizeRegion,
-} from "@/lib/exercises/taxonomy"
-import type {
-  Difficulty,
-  Equipment,
-  LibraryExercise,
-} from "@/lib/exercises/types"
+import { hydrateLibraryExercise } from "@/lib/exercises/hydrate"
+import { serializeTagList } from "@/lib/exercises/tags"
+import { normalizePosition } from "@/lib/exercises/taxonomy"
+import type { LibraryExercise } from "@/lib/exercises/types"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
 import { getCachedUser } from "@/lib/auth/session"
 
@@ -19,10 +11,10 @@ type LibraryRow = {
   title: string
   description?: string | null
   notes?: string | null
-  region?: string | null
-  subcategory?: string | null
+  region?: string | string[] | null
+  subcategory?: string | string[] | null
   difficulty?: string | null
-  equipment?: string | null
+  equipment?: string | string[] | null
   position?: string | null
   sets?: number | null
   reps?: number | null
@@ -31,45 +23,28 @@ type LibraryRow = {
   video_url?: string | null
 }
 
-function isDifficulty(value: string): value is Difficulty {
-  return DIFFICULTIES.some((item) => item.id === value)
-}
-
-function isEquipment(value: string): value is Equipment {
-  return EQUIPMENT.some((item) => item.id === value)
-}
-
 export function mapLibraryRow(row: LibraryRow): LibraryExercise | null {
-  const region = normalizeRegion(row.region)
-  const subcategory = normalizeObjective(row.subcategory)
-  const difficulty =
-    typeof row.difficulty === "string" && isDifficulty(row.difficulty) ? row.difficulty : "usor"
-  const equipment =
-    typeof row.equipment === "string" && isEquipment(row.equipment) ? row.equipment : "none"
-  const position = normalizePosition(row.position)
-  const videoUrl = row.video_url?.trim() || null
-  const youtubeId = row.youtube_id?.trim() || youtubeIdFromUrl(videoUrl)
-
   if (!row.id || !row.title?.trim()) {
     return null
   }
 
-  return {
+  const videoUrl = row.video_url?.trim() || null
+  return hydrateLibraryExercise({
     id: row.id,
     title: row.title.trim(),
     description: (row.description ?? row.notes ?? "").trim(),
-    region,
-    subcategory,
-    difficulty,
-    equipment,
-    position,
+    region: row.region,
+    subcategory: row.subcategory,
+    difficulty: row.difficulty === "mediu" || row.difficulty === "avansat" ? row.difficulty : "usor",
+    equipment: row.equipment,
+    position: normalizePosition(row.position),
     sets: row.sets && row.sets > 0 ? row.sets : 3,
     reps: row.reps && row.reps > 0 ? row.reps : 10,
     durationSeconds: row.duration_seconds && row.duration_seconds > 0 ? row.duration_seconds : 90,
-    youtubeId,
+    youtubeId: row.youtube_id?.trim() || youtubeIdFromUrl(videoUrl),
     videoUrl,
     custom: true,
-  }
+  })
 }
 
 export async function listStoredLibraryExercises(): Promise<LibraryExercise[]> {
@@ -118,10 +93,10 @@ export function libraryExerciseToRow(exercise: LibraryExercise) {
     title: exercise.title,
     description: exercise.description,
     notes: exercise.description,
-    region: exercise.region,
-    subcategory: exercise.subcategory,
+    region: serializeTagList(exercise.regions),
+    subcategory: serializeTagList(exercise.objectives),
     difficulty: exercise.difficulty,
-    equipment: exercise.equipment,
+    equipment: serializeTagList(exercise.equipments),
     position: exercise.position,
     sets: exercise.sets,
     reps: exercise.reps,

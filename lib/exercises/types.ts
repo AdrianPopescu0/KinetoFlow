@@ -19,9 +19,12 @@ export type LibraryExercise = {
   title: string
   description: string
   region: AnatomicalRegion
+  regions: AnatomicalRegion[]
   subcategory: TherapeuticObjective
+  objectives: TherapeuticObjective[]
   difficulty: Difficulty
   equipment: Equipment
+  equipments: Equipment[]
   position: ExercisePosition
   sets: number
   reps: number

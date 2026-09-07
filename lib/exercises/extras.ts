@@ -1,4 +1,6 @@
-import { normalizeObjective, normalizePosition, normalizeRegion, objectiveBelongsToRegion } from "@/lib/exercises/taxonomy"
+import { hydrateLibraryExercise } from "@/lib/exercises/hydrate"
+import { parseTagList } from "@/lib/exercises/tags"
+import { objectiveBelongsToRegion } from "@/lib/exercises/taxonomy"
 import type { AnatomicalRegion, LibraryExercise } from "@/lib/exercises/types"
 
 const STORAGE_KEY = "kinetoflow.exercise-library.extra.v1"
@@ -16,12 +18,7 @@ export function loadCustomExercises(): LibraryExercise[] {
     if (!Array.isArray(parsed)) {
       return []
     }
-    return parsed.filter(isLibraryExercise).map((exercise) => ({
-      ...exercise,
-      region: normalizeRegion(exercise.region),
-      subcategory: normalizeObjective(exercise.subcategory),
-      position: normalizePosition(exercise.position),
-    }))
+    return parsed.filter(isLibraryExercise).map((exercise) => hydrateLibraryExercise(exercise))
   } catch {
     return []
   }
@@ -35,12 +32,18 @@ function isLibraryExercise(value: unknown): value is LibraryExercise {
   if (!value || typeof value !== "object") {
     return false
   }
-  const item = value as Partial<LibraryExercise>
+  const item = value as Partial<LibraryExercise> & {
+    region?: unknown
+    subcategory?: unknown
+    objectives?: unknown
+  }
   if (typeof item.id !== "string" || typeof item.title !== "string") {
     return false
   }
-  if (typeof item.region !== "string" || typeof item.subcategory !== "string") {
+  const region = parseTagList(item.regions ?? item.region)[0]
+  const objective = parseTagList(item.objectives ?? item.subcategory)[0]
+  if (!region || !objective) {
     return false
   }
-  return objectiveBelongsToRegion(item.region as AnatomicalRegion, item.subcategory)
+  return objectiveBelongsToRegion(region as AnatomicalRegion, objective)
 }

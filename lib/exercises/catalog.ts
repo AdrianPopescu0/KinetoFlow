@@ -1,3 +1,4 @@
+import { hydrateLibraryExercises } from "@/lib/exercises/hydrate"
 import { assertCatalogMatchesTaxonomy } from "@/lib/exercises/taxonomy"
 import type { LibraryExercise } from "@/lib/exercises/types"
 
@@ -8,7 +9,7 @@ function video(youtubeId: string): Pick<LibraryExercise, "youtubeId" | "videoUrl
   }
 }
 
-export const LIBRARY_EXERCISES: LibraryExercise[] = [
+const CATALOG_DRAFT: Array<Omit<LibraryExercise, "regions" | "objectives" | "equipments">> = [
   {
     id: "chin-tuck",
     title: "Retracție cervicală (Chin Tuck)",
@@ -535,5 +536,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     ...video("1Q4h6pY9x2k"),
   },
 ]
+
+export const LIBRARY_EXERCISES = hydrateLibraryExercises(CATALOG_DRAFT)
 
 assertCatalogMatchesTaxonomy(LIBRARY_EXERCISES)

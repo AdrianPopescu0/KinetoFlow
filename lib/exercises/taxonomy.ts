@@ -188,8 +188,28 @@ export function difficultyLabel(id: Difficulty): string {
   return DIFFICULTIES.find((item) => item.id === id)?.label ?? id
 }
 
-export function equipmentLabel(id: Equipment): string {
+export function isEquipment(value: string): value is Equipment {
+  return EQUIPMENT.some((item) => item.id === value)
+}
+
+export function normalizeEquipment(value: string | null | undefined): Equipment {
+  return value && isEquipment(value) ? value : "none"
+}
+
+export function equipmentLabel(id: Equipment | string): string {
   return EQUIPMENT.find((item) => item.id === id)?.label ?? id
+}
+
+export function equipmentLabels(ids: Array<Equipment | string>): string {
+  return ids.map((id) => equipmentLabel(id)).join(" · ")
+}
+
+export function regionLabels(ids: Array<AnatomicalRegion | string>): string {
+  return ids.map((id) => regionById(id).label).join(" · ")
+}
+
+export function objectiveLabels(ids: Array<TherapeuticObjective | string>): string {
+  return ids.map((id) => subcategoryLabel(id)).join(" · ")
 }
 
 export function isExercisePosition(value: string): value is ExercisePosition {
