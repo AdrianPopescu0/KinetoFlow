@@ -36,17 +36,17 @@ export function AuthSplitLayout({
         <ul className="relative space-y-3 text-sm text-teal-50/90">
           <li className="flex items-start gap-3">
             <span className="mt-1 size-1.5 shrink-0 rounded-full bg-teal-300" />
-            Securitate la standarde clinice — Datele pacienților tăi sunt mereu în
+            Securitate la standarde clinice. Datele pacienților tăi sunt mereu în
             siguranță.
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-1 size-1.5 shrink-0 rounded-full bg-teal-300" />
-            Totul într-un singur loc — De la primul consult și până la ultimul
+            Totul într-un singur loc. De la primul consult și până la ultimul
             exercițiu.
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-1 size-1.5 shrink-0 rounded-full bg-teal-300" />
-            Conexiune directă cu pacientul — Programe trimise rapid, fără
+            Conexiune directă cu pacientul. Programe trimise rapid, fără
             complicații.
           </li>
         </ul>
