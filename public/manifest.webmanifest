@@ -1,0 +1,11 @@
+{
+  "name": "KinetoFlow",
+  "short_name": "KinetoFlow",
+  "description": "Programul tău de recuperare și reminder-ele de check-in.",
+  "start_url": "/acces",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#042f2e",
+  "lang": "ro"
+}

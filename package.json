@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test lib/reminders/window.test.ts lib/patients/notify-channel.test.ts lib/patients/phone.test.ts lib/patients/twilio-sms-config.test.ts lib/exercises/schedule.test.ts lib/cron/windows.test.ts"
+    "test": "node --experimental-strip-types --test lib/reminders/window.test.ts lib/patients/notify-channel.test.ts lib/patients/phone.test.ts lib/patients/twilio-sms-config.test.ts lib/patients/fcm-web-config.test.ts lib/patients/reminder-delivery.test.ts lib/exercises/schedule.test.ts lib/cron/windows.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -16,6 +16,8 @@
     "@supabase/supabase-js": "^2.112.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "firebase": "^12.18.0",
+    "firebase-admin": "^14.3.0",
     "lucide-react": "^1.39.0",
     "next": "16.3.4",
     "react": "19.2.8",

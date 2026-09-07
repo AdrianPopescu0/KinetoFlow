@@ -1,3 +1,4 @@
+import { isFirebaseAdminConfigured } from "@/lib/patients/fcm-admin"
 import { twilioSmsProviderFlags } from "@/lib/patients/twilio-sms-config"
 
 const PREFIX = "[checkin-reminders]"
@@ -34,6 +35,10 @@ export function providerFlags(): {
   twilioWhatsApp: boolean
   metaWhatsApp: boolean
   twilioSms: boolean
+  fcm: boolean
 } {
-  return twilioSmsProviderFlags()
+  return {
+    ...twilioSmsProviderFlags(),
+    fcm: isFirebaseAdminConfigured(),
+  }
 }

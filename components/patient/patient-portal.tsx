@@ -10,6 +10,8 @@ import { ExerciseCard } from "@/components/patient/exercise-card"
 import { ExtraTipsDialog, RecoveryDrawer, RecoveryGuidePanel } from "@/components/patient/recovery-guide-panel"
 import { PatientHeader } from "@/components/patient/patient-header"
 import { PatientOnboardingModal } from "@/components/patient/patient-onboarding-modal"
+import { PatientPushListener } from "@/components/patient/patient-push-listener"
+import { PatientPushOnboarding } from "@/components/patient/patient-push-onboarding"
 import {
   GoldenRulesCard,
   TherapistCard,
@@ -187,6 +189,8 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
   return (
     <AppShell>
       <PatientOnboardingModal patientKey={program.token} />
+      <PatientPushOnboarding patientKey={program.token} firstName={program.firstName} />
+      <PatientPushListener portalToken={program.token} />
       <PatientHeader firstName={program.firstName} dateLabel={dateLabel} onOpenGuide={() => setGuideOpen(true)} />
 
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 overflow-x-hidden px-4 py-6 pb-16 sm:px-6 lg:gap-10 lg:px-8 lg:py-8">

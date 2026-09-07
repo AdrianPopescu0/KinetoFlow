@@ -5,10 +5,17 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { isExerciseActiveOnDate } from "@/lib/exercises/schedule"
 import { resolveNotifyChannel } from "@/lib/patients/notify-channel"
 import { sendPatientNotification } from "@/lib/patients/notify-patient"
+import { sendPushToTokens } from "@/lib/patients/push-send"
+import { listPushTokensByPatientIds } from "@/lib/patients/push-tokens"
+import { chooseReminderDelivery } from "@/lib/patients/reminder-delivery"
 import { twilioSmsFrom } from "@/lib/patients/sms-send"
 import { toWhatsAppNumber } from "@/lib/patients/phone"
 import { isMissingNotifyChannelColumn } from "@/lib/patients/remember-notify-channel"
-import { patientCheckinReminderMessage } from "@/lib/patients/whatsapp"
+import {
+  patientAccessUrlWithCode,
+  patientCheckinReminderMessage,
+  patientPortalUrl,
+} from "@/lib/patients/whatsapp"
 import { maskPhone, providerFlags, reminderLog, reminderWarn } from "@/lib/reminders/log"
 import {
   bucharestDateKey,
@@ -24,6 +31,7 @@ type PatientRow = {
   therapist_id: string
   assigned_therapist_id: string | null
   notify_channel?: string | null
+  token?: string | null
 }
 
 type ExerciseRow = {
@@ -41,7 +49,7 @@ export type ReminderSendOutcome = {
   fullName: string
   status: "sent" | "skipped" | "failed"
   reason?: string
-  channel?: "sms" | "whatsapp" | null
+  channel?: "sms" | "whatsapp" | "push" | null
   provider?: string | null
 }
 
@@ -86,16 +94,17 @@ export async function runCheckinReminders(
     tomorrowStart,
     providers,
     smsFromReady: Boolean(twilioSmsFrom()),
+    fcmReady: providers.fcm,
   })
 
   const withChannel = await supabase
     .from("patients")
-    .select("id, full_name, phone, access_code, therapist_id, assigned_therapist_id, notify_channel")
+    .select("id, full_name, phone, access_code, therapist_id, assigned_therapist_id, notify_channel, token")
 
   const patientsQuery = isMissingNotifyChannelColumn(withChannel.error)
     ? await supabase
         .from("patients")
-        .select("id, full_name, phone, access_code, therapist_id, assigned_therapist_id")
+        .select("id, full_name, phone, access_code, therapist_id, assigned_therapist_id, token")
     : withChannel
 
   if (patientsQuery.error) {
@@ -120,6 +129,13 @@ export async function runCheckinReminders(
   }
 
   const patientIds = patients.map((patient) => patient.id)
+  const { tokensByPatient, missingTable: missingPushTable } = await listPushTokensByPatientIds(
+    supabase,
+    patientIds,
+  )
+  if (missingPushTable) {
+    reminderWarn("Tabela patient_push_tokens lipsește. Rulează sql/023_patient_push_tokens.sql.")
+  }
 
   const [{ data: exercisesRaw, error: exercisesError }, { data: checkInsRaw, error: checkInsError }] =
     await Promise.all([
@@ -191,6 +207,7 @@ export async function runCheckinReminders(
     scanned: patients.length,
     activePatients: activePatientIds.size,
     checkedInToday: checkedInToday.size,
+    patientsWithPush: tokensByPatient.size,
   })
 
   for (const patient of patients) {
@@ -199,6 +216,14 @@ export async function runCheckinReminders(
     const storedNotifyChannel = patient.notify_channel ?? null
     // Preferința veche `whatsapp` din DB este ignorată: trimitem doar SMS.
     const channel = resolveNotifyChannel(storedNotifyChannel)
+    const pushTokens = tokensByPatient.get(patient.id) ?? []
+    const hasValidPhone = Boolean(toWhatsAppNumber(phone))
+    const hasAccessCode = /^\d{8}$/.test(accessCode)
+    const delivery = chooseReminderDelivery({
+      pushTokens,
+      hasValidPhone,
+      hasAccessCode,
+    })
     const base = {
       patientId: patient.id,
       fullName: patient.full_name,
@@ -206,6 +231,8 @@ export async function runCheckinReminders(
       notifyChannel: channel,
       storedNotifyChannel,
       ignoredWhatsAppPreference: storedNotifyChannel === "whatsapp",
+      delivery,
+      pushTokenCount: pushTokens.length,
     }
 
     if (!activePatientIds.has(patient.id)) {
@@ -226,43 +253,22 @@ export async function runCheckinReminders(
       continue
     }
 
-    if (!phone) {
+    if (delivery === "none") {
       skipped += 1
-      reminderWarn("Sărit: lipsește telefonul.", base)
+      const reason = !hasValidPhone
+        ? "Lipsește telefonul (și nu există token push)."
+        : "Cod de acces invalid (și nu există token push)."
+      reminderWarn(`Sărit: ${reason}`, { ...base, accessCodeLength: accessCode.length })
       outcomes.push({
         patientId: patient.id,
         fullName: patient.full_name,
         status: "skipped",
-        reason: "Lipsește telefonul.",
+        reason,
       })
       continue
     }
 
-    if (!toWhatsAppNumber(phone)) {
-      skipped += 1
-      reminderWarn("Sărit: număr de telefon invalid (nu se poate normaliza).", base)
-      outcomes.push({
-        patientId: patient.id,
-        fullName: patient.full_name,
-        status: "skipped",
-        reason: "Număr de telefon invalid.",
-      })
-      continue
-    }
-
-    if (!/^\d{8}$/.test(accessCode)) {
-      skipped += 1
-      reminderWarn("Sărit: cod de acces invalid.", { ...base, accessCodeLength: accessCode.length })
-      outcomes.push({
-        patientId: patient.id,
-        fullName: patient.full_name,
-        status: "skipped",
-        reason: "Cod de acces invalid.",
-      })
-      continue
-    }
-
-    if (!providers.twilioSms) {
+    if (delivery === "sms" && !providers.twilioSms) {
       reminderWarn("Canal SMS, dar Twilio SMS nu e configurat.", {
         ...base,
         channel,
@@ -270,27 +276,110 @@ export async function runCheckinReminders(
       })
     }
 
+    if (delivery === "push" && !providers.fcm) {
+      reminderWarn("Canal push, dar Firebase Admin nu e configurat pe server.", {
+        ...base,
+        providers,
+      })
+    }
+
     eligible += 1
     const clinicName = clinicNameForPatient(patient, clinicsByUserId)
+    const firstName = patient.full_name.trim().split(/\s+/)[0] || patient.full_name
     const message = patientCheckinReminderMessage({
       fullName: patient.full_name,
       clinicName,
       accessCode,
     })
+    const portalUrl =
+      typeof patient.token === "string" && patient.token
+        ? patientPortalUrl(patient.token)
+        : patientAccessUrlWithCode(accessCode)
 
     if (options.dryRun) {
-      reminderLog("Dry-run: aș trimite, dar nu trimit.", { ...base, channel, message })
+      reminderLog("Dry-run: aș trimite, dar nu trimit.", {
+        ...base,
+        channel: delivery,
+        message,
+        portalUrl,
+      })
       outcomes.push({
         patientId: patient.id,
         fullName: patient.full_name,
         status: "skipped",
         reason: "dry-run",
-        channel,
+        channel: delivery,
       })
       continue
     }
 
-    reminderLog("Trimit reminder.", { ...base, channel, clinicName, message })
+    reminderLog("Trimit reminder.", { ...base, channel: delivery, clinicName, message, portalUrl })
+
+    if (delivery === "push") {
+      const push = await sendPushToTokens(pushTokens, {
+        title: `${clinicName}: check-in`,
+        body: `Bună, ${firstName}! Nu ai făcut încă check-in-ul de azi. Deschide programul și notează cum te simți.`,
+        url: portalUrl,
+      })
+      if (push.sent) {
+        sent += 1
+        reminderLog("Trimis push.", {
+          ...base,
+          channel: "push",
+          provider: push.provider,
+          successCount: push.successCount,
+          failureCount: push.failureCount,
+        })
+        outcomes.push({
+          patientId: patient.id,
+          fullName: patient.full_name,
+          status: "sent",
+          channel: "push",
+          provider: push.provider,
+        })
+        continue
+      }
+
+      if (hasValidPhone && hasAccessCode) {
+        reminderWarn("Push eșuat, încerc SMS.", { ...base, error: push.error, providers })
+        const sms = await sendPatientNotification(phone, message, "sms")
+        if (sms.sent) {
+          sent += 1
+          reminderLog("Trimis SMS (fallback după push).", {
+            ...base,
+            channel: sms.channel,
+            provider: sms.provider,
+          })
+          outcomes.push({
+            patientId: patient.id,
+            fullName: patient.full_name,
+            status: "sent",
+            channel: sms.channel,
+            provider: sms.provider,
+          })
+          continue
+        }
+      }
+
+      failed += 1
+      reminderWarn("Trimitere push eșuată.", {
+        ...base,
+        channel: "push",
+        provider: push.provider,
+        error: push.error ?? "Trimitere eșuată.",
+        providers,
+      })
+      outcomes.push({
+        patientId: patient.id,
+        fullName: patient.full_name,
+        status: "failed",
+        reason: push.error ?? "Trimitere eșuată.",
+        channel: "push",
+        provider: push.provider,
+      })
+      continue
+    }
+
     const result = await sendPatientNotification(phone, message, channel)
     if (result.sent) {
       sent += 1

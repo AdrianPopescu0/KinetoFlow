@@ -163,6 +163,36 @@ export type Database = {
         Update: Record<string, unknown>
         Relationships: []
       }
+      patient_push_tokens: {
+        Row: {
+          id: string
+          patient_id: string
+          token: string
+          platform: string
+          user_agent: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          token: string
+          platform?: string
+          user_agent?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Record<string, unknown>
+        Relationships: [
+          {
+            foreignKeyName: "patient_push_tokens_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_profiles: {
         Row: {
           id: string

@@ -20,6 +20,16 @@ export const metadata: Metadata = {
   title: "KinetoFlow",
   description:
     "Platformă clinică pentru kinetoterapie: autentificare securizată, programe și progresul pacienților.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "KinetoFlow",
+    statusBarStyle: "default",
+  },
+}
+
+export const viewport = {
+  themeColor: "#042f2e",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

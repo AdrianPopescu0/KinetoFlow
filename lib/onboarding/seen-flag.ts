@@ -9,6 +9,10 @@ export function patientOnboardingKey(patientKey: string): string {
   return `kinetoflow_patient_onboarded_${patientKey}`
 }
 
+export function patientPushPromptKey(patientKey: string): string {
+  return `kinetoflow_patient_push_prompted_${patientKey}`
+}
+
 export function subscribeOnboardingFlag(onStoreChange: () => void): () => void {
   listeners.add(onStoreChange)
   return () => {

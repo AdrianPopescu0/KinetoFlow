@@ -23,6 +23,7 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SITE_URL` — originea publică a aplicației (invitații terapeuți `/auth/activare` și recuperare parolă). Nu folosi un URL de preview Vercel (`*-git-*.vercel.app`).
 - `CRON_SECRET` — secret pentru cron-uri (`Authorization: Bearer …` pe `/api/cron/reminders` și `/api/cron/daily-update`); pe Vercel, dacă e setat, header-ul e trimis automat
 - Opțional, pentru reminder-e SMS: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` și `TWILIO_PHONE_NUMBER` (E.164, ex. `+4915888623971`, fără `whatsapp:`). Alias-uri acceptate: `TWILIO_SMS_FROM`, `TWILIO_FROM`.
+- Opțional, pentru reminder-e **push** (Firebase Cloud Messaging): cheile `NEXT_PUBLIC_FIREBASE_*` (inclusiv `NEXT_PUBLIC_FIREBASE_VAPID_KEY`) plus pe server `FIREBASE_SERVICE_ACCOUNT` sau `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`. Fără acestea, cron-ul rămâne pe SMS (și local simulează push-ul).
 
 În dashboard-ul Supabase, **Authentication → Providers → Email** trebuie să fie activ. Pentru fluxul de onboarding imediat după înregistrare, dezactivează „Confirm email” (sau lasă-l activ — utilizatorul confirmă din email și apoi intră în cont).
 
@@ -65,7 +66,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 În Supabase: **SQL Editor** → lipește și rulează `supabase/migrations/001_patients.sql`.
 
-Tabele: `patients` (token UUID unic pentru `/patient/[token]`; **fără** coloana `clinic_id` — cabinetul e `therapist_id` + `clinic_profiles.clinic_name`; `notify_channel` = SMS Twilio, rulează `sql/022_patient_notify_channel.sql`), `exercises`, `check_ins`, `exercise_completions` (finalizări zilnice din portalul pacientului — rulează `016_exercise_completions.sql`). Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient. Dacă lipsește tabela, rulează `sql/020_create_exercise_library.sql`, apoi `sql/021_exercise_library_editors.sql` în SQL Editor (nu la build-ul Vercel): SELECT pentru oricine; INSERT/UPDATE/DELETE doar pentru `kinetic01flow@gmail.com` și `admin@kinetoflow.ro`.
+Tabele: `patients` (token UUID unic pentru `/patient/[token]`; **fără** coloana `clinic_id` — cabinetul e `therapist_id` + `clinic_profiles.clinic_name`; `notify_channel` = SMS Twilio, rulează `sql/022_patient_notify_channel.sql`), `patient_push_tokens` (FCM web push — rulează `sql/023_patient_push_tokens.sql`), `exercises`, `check_ins`, `exercise_completions` (finalizări zilnice din portalul pacientului — rulează `016_exercise_completions.sql`). Biblioteca din aplicație (`/dashboard/exercises`) rămâne comună; `exercise_library` e catalog, fără date de pacient. Dacă lipsește tabela, rulează `sql/020_create_exercise_library.sql`, apoi `sql/021_exercise_library_editors.sql` în SQL Editor (nu la build-ul Vercel): SELECT pentru oricine; INSERT/UPDATE/DELETE doar pentru `kinetic01flow@gmail.com` și `admin@kinetoflow.ro`.
 
 Fișa clinică: `/dashboard/patients/[id]`. La salvare, aplicația compară `updated_at` cu momentul deschiderii ecranului; dacă altcineva a modificat fișa, terapeutul e avertizat și poate reîncărca datele. Rulează `supabase/migrations/009_patients_updated_at.sql`. Asignare terapeut: `010_assigned_therapist.sql` (`assigned_therapist_id`). Note clinice: `002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
@@ -98,6 +99,18 @@ La această oră job-ul **pregătește programul zilei**:
 - Job-ul recalculează setul activ, numără schemele care încep/se termină azi și șterge finalizările legate de exerciții inactive.
 
 Reminder-ul de check-in de la 18:00 **nu** poate rula în același cron Hobby (ar trebui o a doua declanșare). Rămâne pe `/api/cron/reminders` (sau `?task=reminders` pe `/api/cron/daily`) pentru trigger manual, cron extern sau plan Pro.
+
+Dacă pacientul a activat notificările push, cron-ul trimite **FCM** către tokenul salvat (`patient_push_tokens`) în loc de SMS/WhatsApp. Fără token (sau dacă FCM eșuează), rămâne fallback-ul SMS Twilio.
+
+## Notificări push (Firebase Cloud Messaging)
+
+1. Creează un proiect Firebase, activează **Cloud Messaging** și o aplicație Web.
+2. În Firebase Console → Project settings → Cloud Messaging, generează un **Web Push certificate** (VAPID).
+3. Pe Vercel (și în `.env.local`) pune cheile `NEXT_PUBLIC_FIREBASE_*` plus contul de serviciu (`FIREBASE_SERVICE_ACCOUNT` sau cele 3 variabile `FIREBASE_*`).
+4. În Supabase SQL Editor rulează `sql/023_patient_push_tokens.sql`.
+5. Pacientul, la primul acces în `/patient/[token]`, vede ecranul de onboarding și poate activa notificările. Tokenul se salvează prin `POST /api/patient/push-token`.
+
+Fără credențiale Firebase, aplicația rămâne utilizabilă: onboarding-ul apare, iar pe serverul de dezvoltare trimiterea push e simulată în loguri.
 
 Trigger manual program: `GET /api/cron/daily?task=program&force=1` cu `Authorization: Bearer ${CRON_SECRET}`. Alias: `/api/cron/daily-update`. Reminder: `?task=reminders&force=1` sau `/api/cron/reminders?force=1`. Previzualizare reminder: `?dryRun=1`.
 

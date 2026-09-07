@@ -5,6 +5,7 @@ import {
   resolveNotifyChannel,
   type PatientNotifyChannel,
 } from "@/lib/patients/notify-channel"
+import { isFirebaseAdminConfigured } from "@/lib/patients/fcm-admin"
 import { isTwilioSmsConfigured, sendSmsMessage } from "@/lib/patients/sms-send"
 
 export type { PatientNotifyChannel }
@@ -16,10 +17,11 @@ export type PatientNotifyResult = {
   error?: string
 }
 
-export function configuredNotifyChannels(): { whatsapp: boolean; sms: boolean } {
+export function configuredNotifyChannels(): { whatsapp: boolean; sms: boolean; push: boolean } {
   return {
     whatsapp: false,
     sms: isTwilioSmsConfigured(),
+    push: isFirebaseAdminConfigured(),
   }
 }
 
