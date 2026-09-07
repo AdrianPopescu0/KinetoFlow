@@ -320,33 +320,7 @@ export function LoginForm({
         </Button>
       </form>
 
-      <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center text-sm text-slate-600">
-        {tab === "register" ? (
-          <>
-            <span>Ai deja cont?</span>
-            <button
-              type="button"
-              onClick={() => switchTab("login")}
-              className="font-medium text-[#042f2e] underline-offset-4 hover:underline"
-            >
-              Conectează-te
-            </button>
-          </>
-        ) : (
-          <>
-            <span>Nu ai cont?</span>
-            <button
-              type="button"
-              onClick={() => switchTab("register")}
-              className="font-medium text-[#042f2e] underline-offset-4 hover:underline"
-            >
-              Creează clinică nouă
-            </button>
-          </>
-        )}
-        <span className="select-none text-slate-400" aria-hidden="true">
-          .
-        </span>
+      <p className="text-center text-sm text-slate-600">
         <Link href="/acces" className="font-medium text-[#042f2e] underline-offset-4 hover:underline">
           Intră cu telefonul.
         </Link>
