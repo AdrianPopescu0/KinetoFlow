@@ -44,6 +44,15 @@ export function LoginForm({
     setTab(initialTab)
   }, [initialTab])
 
+  function switchTab(next: AuthTab) {
+    setTab(next)
+    setError(null)
+    setInfo(null)
+    setPassword("")
+    setAcceptedTerms(false)
+    router.replace(loginHref(next === "register" ? "signup" : "signin"), { scroll: false })
+  }
+
   const handleGoogleLogin = async () => {
     if (tab === "register" && !acceptedTerms) {
       setError(LEGAL_ACCEPT_ERROR)
@@ -108,6 +117,19 @@ export function LoginForm({
 
   return (
     <div className="flex flex-col gap-5">
+      <div
+        role="tablist"
+        aria-label="Autentificare sau înregistrare"
+        className="grid grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1"
+      >
+        <TabButton active={tab === "login"} onClick={() => switchTab("login")}>
+          Intră în cont
+        </TabButton>
+        <TabButton active={tab === "register"} onClick={() => switchTab("register")}>
+          Înregistrează clinică nouă
+        </TabButton>
+      </div>
+
       {error ? (
         <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
           <AlertCircle />
@@ -304,6 +326,31 @@ export function LoginForm({
         </Link>
       </p>
     </div>
+  )
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: string
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "h-auto min-h-11 rounded-lg px-2 py-2 text-sm font-medium leading-tight whitespace-normal transition-colors",
+        active ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900",
+      )}
+    >
+      {children}
+    </button>
   )
 }
 
