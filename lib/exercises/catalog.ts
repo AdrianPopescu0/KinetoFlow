@@ -15,7 +15,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Adu bărbia ușor înapoi, ca și cum ai face un bărbie dublu controlat. Menține privirea orizontală. Activează flexorii profunzi, fără a împinge capul în jos.",
     region: "cervical",
-    subcategory: "neck-mobility",
+    subcategory: "mobility",
     difficulty: "usor",
     equipment: "none",
     position: "sitting",
@@ -30,7 +30,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Așază mâinile la ceafă, sprijină mijlocul toracelui pe spătar și deschide cutia toracică. Mișcarea vine din torace, nu din cervicală.",
     region: "thoracic",
-    subcategory: "chest-open",
+    subcategory: "mobility",
     difficulty: "mediu",
     equipment: "none",
     position: "sitting",
@@ -45,7 +45,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Culcat pe spate, bărbia ușor retrasă. Ridică capul 1 cm de saltea și ține 5–8 secunde, fără a simți trapezii. Revino lent.",
     region: "cervical",
-    subcategory: "head-posture",
+    subcategory: "posture",
     difficulty: "usor",
     equipment: "none",
     position: "lying",
@@ -60,7 +60,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Adu omoplații ușor în jos și înăuntru, ca și cum i-ai pune în buzunarele din spate. Ține 5 secunde fără a ridica umerii.",
     region: "upper",
-    subcategory: "shoulder",
+    subcategory: "stability",
     difficulty: "usor",
     equipment: "none",
     position: "sitting",
@@ -75,7 +75,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Trage banda spre coaste, coatele pe lângă corp. Expiră la tracțiune. Controlează întoarcerea; nu lăsa umerii să urce.",
     region: "thoracic",
-    subcategory: "chest-open",
+    subcategory: "posture",
     difficulty: "mediu",
     equipment: "bands",
     position: "standing",
@@ -90,7 +90,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Așază o mână sub șold, înclină capul opus și adaugă o presiune ușoară. Respiră în zona tensionată 20–30 de secunde.",
     region: "cervical",
-    subcategory: "trap-stretch",
+    subcategory: "stretching",
     difficulty: "usor",
     equipment: "none",
     position: "sitting",
@@ -105,7 +105,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Sprijină toracele pe rulou, genunchii flexați. Rulează lent pe segmentul T4–T10. Evită cervicala și lombarul jos.",
     region: "thoracic",
-    subcategory: "midback-relax",
+    subcategory: "mobility",
     difficulty: "mediu",
     equipment: "roller",
     position: "lying",
@@ -120,7 +120,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Decubit lateral, genunchii flexați. Deschide brațul de sus spre tavan și înapoi, urmărind mâna cu privirea. Revino controlat.",
     region: "thoracic",
-    subcategory: "trunk-rotation",
+    subcategory: "mobility",
     difficulty: "usor",
     equipment: "none",
     position: "lying",
@@ -135,7 +135,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Culcat pe spate, brațe și genunchi la 90°. Extinde opus braț-picior fără a pierde contactul lombarului cu solul. Mișcare lentă.",
     region: "lumbar",
-    subcategory: "core",
+    subcategory: "stability",
     difficulty: "mediu",
     equipment: "none",
     position: "lying",
@@ -150,7 +150,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Din patrupedie, întinde brațul și piciorul opus. Menține bazinul stabil, fără a roti trunchiul. Ține 2–3 secunde.",
     region: "lumbar",
-    subcategory: "core",
+    subcategory: "stability",
     difficulty: "mediu",
     equipment: "none",
     position: "lying",
@@ -165,7 +165,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Culcat, genunchii flexați. Aplatizează lombarul pe saltea prin bascularea bazinului. Ține 3 secunde, apoi revino.",
     region: "pelvis",
-    subcategory: "pelvic-tilt",
+    subcategory: "mobility",
     difficulty: "usor",
     equipment: "none",
     position: "lying",
@@ -180,7 +180,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Pe scaun, mișcă bazinul ca pe un ceas: anterior, posterior, stânga, dreapta. Trunchiul rămâne înalt, mișcarea e mică și controlată.",
     region: "pelvis",
-    subcategory: "pelvic-tilt",
+    subcategory: "mobility",
     difficulty: "usor",
     equipment: "none",
     position: "sitting",
@@ -195,7 +195,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Ridică bazinul până la linie umăr–șold–genunchi și ține 5 secunde. Activează podeaua pelvină, fără a forța lombarul în extensie.",
     region: "pelvis",
-    subcategory: "glute-hip",
+    subcategory: "strength",
     difficulty: "mediu",
     equipment: "none",
     position: "lying",
@@ -210,7 +210,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Culcat, glezna pe genunchiul opus. Adu ușor coapsa spre piept până simți stretching în fesă. Ține 20–30 de secunde, fără durere iradiată.",
     region: "pelvis",
-    subcategory: "pelvic-relax",
+    subcategory: "stretching",
     difficulty: "usor",
     equipment: "none",
     position: "lying",
@@ -225,7 +225,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Din patrupedie, alternează rotunjirea și deschiderea coloanei. Mișcare fluidă, fără forțare la capete de amplitudine.",
     region: "lumbar",
-    subcategory: "lumbar-stretch",
+    subcategory: "mobility",
     difficulty: "usor",
     equipment: "none",
     position: "lying",
@@ -240,7 +240,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Adu ambele genunchi spre piept și ține ușor. Permite lombarului să se alungească. Respiră profund 20–30 de secunde.",
     region: "lumbar",
-    subcategory: "lumbar-relax",
+    subcategory: "stretching",
     difficulty: "usor",
     equipment: "none",
     position: "lying",
@@ -255,7 +255,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Așază-te pe călcâie, brațele înainte, fruntea pe saltea. Lasă trunchiul să se lungească. Variantă: mâinile spre o parte pentru latissimus.",
     region: "lumbar",
-    subcategory: "lumbar-relax",
+    subcategory: "stretching",
     difficulty: "usor",
     equipment: "none",
     position: "lying",
@@ -270,7 +270,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Cotul lipit de trunchi, la 90°. Rotește antebrațul în afară împotriva benzii. Nu deschide cotul de corp.",
     region: "upper",
-    subcategory: "shoulder",
+    subcategory: "strength",
     difficulty: "mediu",
     equipment: "bands",
     position: "standing",
@@ -285,7 +285,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Ancorează banda lateral. Cotul la 90°, trage palma spre abdomen. Controlează revenirea — eccentrica contează.",
     region: "upper",
-    subcategory: "shoulder",
+    subcategory: "strength",
     difficulty: "mediu",
     equipment: "bands",
     position: "standing",
@@ -300,7 +300,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Lasă brațul să atârne relaxat. Mișcarea vine din balansul trunchiului, nu din umăr. Cercuri mici, fără durere.",
     region: "upper",
-    subcategory: "shoulder",
+    subcategory: "mobility",
     difficulty: "usor",
     equipment: "none",
     position: "standing",
@@ -315,7 +315,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Spatele și antebrațele pe perete. Ridică brațele lent, fără a desprinde coatele sau a urca umerii.",
     region: "upper",
-    subcategory: "shoulder",
+    subcategory: "posture",
     difficulty: "mediu",
     equipment: "none",
     position: "standing",
@@ -330,7 +330,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Cot întins, palma în jos. Cu cealaltă mână flectează pumnul. Ține 20–30 de secunde. Util în epicondilita laterală.",
     region: "upper",
-    subcategory: "elbow",
+    subcategory: "stretching",
     difficulty: "usor",
     equipment: "none",
     position: "sitting",
@@ -345,7 +345,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Antebraț pe masă, pumnul în afară. Ridică gantera cu cealaltă mână, coboară lent 4 secunde. Protocol tip Tyler.",
     region: "upper",
-    subcategory: "wrist-fingers",
+    subcategory: "strength",
     difficulty: "avansat",
     equipment: "dumbbells",
     position: "sitting",
@@ -360,7 +360,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Bandă deasupra genunchiului, pas înapoi. Extinde genunchiul împotriva benzii până la aliniere, fără hiperextensie dureroasă.",
     region: "lower",
-    subcategory: "knee",
+    subcategory: "strength",
     difficulty: "mediu",
     equipment: "bands",
     position: "standing",
@@ -375,7 +375,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Genunchii pe direcția degetelor, greutatea pe călcâie. Coboară 30–45°, fără valgus. Urcă apăsând în podea.",
     region: "lower",
-    subcategory: "knee",
+    subcategory: "strength",
     difficulty: "usor",
     equipment: "none",
     position: "standing",
@@ -390,7 +390,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Decubit lateral, genunchii flexați. Deschide genunchiul de sus fără a roti bazinul înapoi. Ține 1–2 secunde.",
     region: "lower",
-    subcategory: "hip",
+    subcategory: "strength",
     difficulty: "usor",
     equipment: "none",
     position: "lying",
@@ -405,7 +405,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Culcat, picioarele la lățimea bazinului. Ridică bazinul până la linie umăr–șold–genunchi. Evită hiperlordozarea.",
     region: "lower",
-    subcategory: "hip",
+    subcategory: "strength",
     difficulty: "usor",
     equipment: "none",
     position: "lying",
@@ -420,7 +420,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Stai pe un picior pe BOSU, genunchi ușor flexat. Ține 20–30 de secunde. Privirea înainte, bazinul la nivel.",
     region: "lower",
-    subcategory: "ankle-heel",
+    subcategory: "stability",
     difficulty: "avansat",
     equipment: "ball",
     position: "standing",
@@ -435,7 +435,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Șezând, piciorul în aer. Desenează literele cu vârful degetelor, mișcare din gleznă, nu din genunchi.",
     region: "lower",
-    subcategory: "ankle-heel",
+    subcategory: "mobility",
     difficulty: "usor",
     equipment: "none",
     position: "sitting",
@@ -450,7 +450,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Un picior în fața celuilalt, călcâi la degete. Ține 20–30 de secunde. Progresează cu ochii închiși dacă e stabil.",
     region: "functional",
-    subcategory: "balance",
+    subcategory: "stability",
     difficulty: "mediu",
     equipment: "none",
     position: "standing",
@@ -465,7 +465,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Pe un picior, atinge cu celălalt 5 direcții pe podea fără a pierde controlul bazinului. Revino central după fiecare atingere.",
     region: "functional",
-    subcategory: "balance",
+    subcategory: "stability",
     difficulty: "avansat",
     equipment: "none",
     position: "standing",
@@ -480,7 +480,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Picioarele la lățimea bazinului. Apleacă trunchiul, ridică-te fără impuls din mâini dacă e posibil. Controlează așezarea.",
     region: "functional",
-    subcategory: "gait",
+    subcategory: "strength",
     difficulty: "usor",
     equipment: "none",
     position: "sitting",
@@ -495,7 +495,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Urcă cu piciorul de lucru, extinde șoldul și genunchiul. Coboară controlat. Evită împingerea din piciorul de jos.",
     region: "functional",
-    subcategory: "gait",
+    subcategory: "strength",
     difficulty: "mediu",
     equipment: "none",
     position: "standing",
@@ -510,7 +510,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "O mână pe abdomen, una pe piept. Inspiră pe nas — abdomenul se ridică, pieptul rămâne liniștit. Expiră lung pe gură.",
     region: "functional",
-    subcategory: "breathing",
+    subcategory: "posture",
     difficulty: "usor",
     equipment: "none",
     position: "lying",
@@ -525,7 +525,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     description:
       "Așază-te pe minge, picioarele stabile. Leagănă ușor bazinul și sincronizează respirația. Umerii coborâți, maxilarul relaxat.",
     region: "functional",
-    subcategory: "breathing",
+    subcategory: "posture",
     difficulty: "usor",
     equipment: "ball",
     position: "sitting",

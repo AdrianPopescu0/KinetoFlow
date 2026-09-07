@@ -67,7 +67,7 @@ export function LibraryCard({
             {region.label}
           </span>
           <span className="rounded-full bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-            {subcategoryLabel(exercise.region, exercise.subcategory)}
+            {subcategoryLabel(exercise.subcategory)}
           </span>
           <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", DIFFICULTY_CLASS[exercise.difficulty])}>
             {difficultyLabel(exercise.difficulty)}

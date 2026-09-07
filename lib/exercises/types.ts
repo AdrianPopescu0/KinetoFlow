@@ -13,28 +13,7 @@ export type Equipment = "none" | "bands" | "dumbbells" | "ball" | "roller"
 
 export type ExercisePosition = "lying" | "sitting" | "standing"
 
-export type TherapeuticObjective =
-  | "neck-mobility"
-  | "head-posture"
-  | "trap-stretch"
-  | "chest-open"
-  | "trunk-rotation"
-  | "midback-relax"
-  | "lumbar-relax"
-  | "core"
-  | "lumbar-stretch"
-  | "pelvic-tilt"
-  | "glute-hip"
-  | "pelvic-relax"
-  | "shoulder"
-  | "elbow"
-  | "wrist-fingers"
-  | "hip"
-  | "knee"
-  | "ankle-heel"
-  | "balance"
-  | "gait"
-  | "breathing"
+export type TherapeuticObjective = "mobility" | "strength" | "stability" | "stretching" | "posture"
 
 export type LibraryExercise = {
   id: string

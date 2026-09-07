@@ -4,7 +4,7 @@ import {
   EQUIPMENT,
   POSITIONS,
   REGIONS,
-  objectiveBelongsToRegion,
+  normalizeObjective,
 } from "@/lib/exercises/taxonomy"
 import type {
   AnatomicalRegion,
@@ -12,7 +12,6 @@ import type {
   Equipment,
   ExercisePosition,
   LibraryExercise,
-  TherapeuticObjective,
 } from "@/lib/exercises/types"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
 import { getCachedUser } from "@/lib/auth/session"
@@ -52,11 +51,7 @@ function isPosition(value: string): value is ExercisePosition {
 
 export function mapLibraryRow(row: LibraryRow): LibraryExercise | null {
   const region = typeof row.region === "string" && isRegion(row.region) ? row.region : "functional"
-  const subcategory =
-    typeof row.subcategory === "string" &&
-    objectiveBelongsToRegion(region, row.subcategory as TherapeuticObjective)
-      ? (row.subcategory as TherapeuticObjective)
-      : (REGIONS.find((item) => item.id === region)?.subcategories[0]?.id ?? "balance")
+  const subcategory = normalizeObjective(row.subcategory)
   const difficulty =
     typeof row.difficulty === "string" && isDifficulty(row.difficulty) ? row.difficulty : "usor"
   const equipment =

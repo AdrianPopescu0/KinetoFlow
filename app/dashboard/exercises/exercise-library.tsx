@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/toaster"
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
-import { EMPTY_FILTERS, filterLibrary, regionCounts, subcategoriesForRegion } from "@/lib/exercises/filter"
+import { EMPTY_FILTERS, filterLibrary, regionCounts } from "@/lib/exercises/filter"
 import {
   DIFFICULTIES,
   EQUIPMENT,
+  OBJECTIVES,
   POSITIONS,
   REGIONS,
   difficultyLabel,
@@ -68,13 +69,10 @@ export function ExerciseLibrary({
       }),
     [catalog, filters.difficulty, filters.equipment, filters.position, filters.query],
   )
-  const subcategories = subcategoriesForRegion(filters.region)
-
   function update<K extends keyof LibraryFilters>(key: K, value: LibraryFilters[K]) {
     setFilters((current) => ({
       ...current,
       [key]: value,
-      ...(key === "region" ? { subcategory: "all" as const } : {}),
     }))
   }
 
@@ -86,10 +84,10 @@ export function ExerciseLibrary({
       onClear: () => update("region", "all"),
     })
   }
-  if (filters.subcategory !== "all" && filters.region !== "all") {
+  if (filters.subcategory !== "all") {
     tags.push({
       key: "subcategory",
-      label: subcategoryLabel(filters.region, filters.subcategory),
+      label: subcategoryLabel(filters.subcategory),
       onClear: () => update("subcategory", "all"),
     })
   }
@@ -157,12 +155,8 @@ export function ExerciseLibrary({
           <FilterSelect
             label="Obiectiv"
             value={filters.subcategory}
-            disabled={filters.region === "all"}
             onChange={(value) => update("subcategory", value as TherapeuticObjective | "all")}
-            options={[
-              { id: "all", label: "Toate obiectivele" },
-              ...subcategories.map((item) => ({ id: item.id, label: item.label })),
-            ]}
+            options={[{ id: "all", label: "Toate obiectivele" }, ...OBJECTIVES]}
           />
           <FilterSelect
             label="Nivel"

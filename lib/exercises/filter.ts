@@ -1,4 +1,4 @@
-import { REGIONS } from "@/lib/exercises/taxonomy"
+import { OBJECTIVES, REGIONS } from "@/lib/exercises/taxonomy"
 import type { AnatomicalRegion, LibraryExercise, LibraryFilters } from "@/lib/exercises/types"
 
 export const EMPTY_FILTERS: LibraryFilters = {
@@ -67,9 +67,6 @@ export function regionCounts(
   return counts
 }
 
-export function subcategoriesForRegion(region: AnatomicalRegion | "all") {
-  if (region === "all") {
-    return []
-  }
-  return REGIONS.find((item) => item.id === region)?.subcategories ?? []
+export function subcategoriesForRegion(_region?: AnatomicalRegion | "all") {
+  return OBJECTIVES
 }

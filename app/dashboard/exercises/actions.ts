@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { getCachedUser } from "@/lib/auth/session"
 import { LIBRARY_WRITE_FORBIDDEN, authUserCanEditLibrary } from "@/lib/exercises/library-admin"
 import { libraryExerciseToRow, listStoredLibraryExercises } from "@/lib/exercises/library-store"
-import { objectiveBelongsToRegion } from "@/lib/exercises/taxonomy"
+import { isTherapeuticObjective } from "@/lib/exercises/taxonomy"
 import type {
   AnatomicalRegion,
   Difficulty,
@@ -51,9 +51,9 @@ function exerciseFromForm(formData: FormData, id?: string): LibraryExercise | { 
   }
 
   const region = (readText(formData, "region") || "functional") as AnatomicalRegion
-  const subcategory = (readText(formData, "subcategory") || "balance") as TherapeuticObjective
-  if (!objectiveBelongsToRegion(region, subcategory)) {
-    return { error: "Obiectivul terapeutic nu corespunde regiunii." }
+  const subcategory = readText(formData, "subcategory") || "mobility"
+  if (!isTherapeuticObjective(subcategory)) {
+    return { error: "Alege un obiectiv terapeutic valid." }
   }
 
   const videoUrl = readText(formData, "video_url") || null

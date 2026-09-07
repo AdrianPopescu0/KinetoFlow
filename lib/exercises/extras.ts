@@ -1,5 +1,5 @@
-import { objectiveBelongsToRegion } from "@/lib/exercises/taxonomy"
-import type { AnatomicalRegion, LibraryExercise, TherapeuticObjective } from "@/lib/exercises/types"
+import { normalizeObjective, objectiveBelongsToRegion } from "@/lib/exercises/taxonomy"
+import type { AnatomicalRegion, LibraryExercise } from "@/lib/exercises/types"
 
 const STORAGE_KEY = "kinetoflow.exercise-library.extra.v1"
 
@@ -16,7 +16,10 @@ export function loadCustomExercises(): LibraryExercise[] {
     if (!Array.isArray(parsed)) {
       return []
     }
-    return parsed.filter(isLibraryExercise)
+    return parsed.filter(isLibraryExercise).map((exercise) => ({
+      ...exercise,
+      subcategory: normalizeObjective(exercise.subcategory),
+    }))
   } catch {
     return []
   }
@@ -37,5 +40,5 @@ function isLibraryExercise(value: unknown): value is LibraryExercise {
   if (typeof item.region !== "string" || typeof item.subcategory !== "string") {
     return false
   }
-  return objectiveBelongsToRegion(item.region as AnatomicalRegion, item.subcategory as TherapeuticObjective)
+  return objectiveBelongsToRegion(item.region as AnatomicalRegion, item.subcategory)
 }

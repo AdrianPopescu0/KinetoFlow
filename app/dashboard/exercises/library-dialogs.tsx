@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useTransition, type ReactNode } from "react"
+import { useState, useTransition, type ReactNode } from "react"
 import { Loader2 } from "lucide-react"
 
 import { createLibraryExercise } from "@/app/dashboard/exercises/actions"
@@ -14,6 +14,7 @@ import { toast } from "@/components/ui/toaster"
 import {
   DIFFICULTIES,
   EQUIPMENT,
+  OBJECTIVES,
   POSITIONS,
   REGIONS,
   difficultyLabel,
@@ -69,7 +70,7 @@ export function PreviewDialog({
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div>
           <dt className="text-slate-500">Obiectiv</dt>
-          <dd className="font-medium text-slate-900">{subcategoryLabel(exercise.region, exercise.subcategory)}</dd>
+          <dd className="font-medium text-slate-900">{subcategoryLabel(exercise.subcategory)}</dd>
         </div>
         <div>
           <dt className="text-slate-500">Nivel</dt>
@@ -185,10 +186,6 @@ export function AddExerciseDialog({
 }) {
   const [isPending, startCreate] = useTransition()
   const [region, setRegion] = useState(REGIONS[0].id)
-  const subcategories = useMemo(
-    () => REGIONS.find((item) => item.id === region)?.subcategories ?? [],
-    [region],
-  )
 
   function handleSubmit(formData: FormData) {
     formData.set("region", region)
@@ -241,10 +238,9 @@ export function AddExerciseDialog({
               id="subcategory"
               name="subcategory"
               className="h-11 rounded-lg border border-slate-300 bg-white px-2.5 text-sm"
-              key={region}
-              defaultValue={subcategories[0]?.id}
+              defaultValue={OBJECTIVES[0].id}
             >
-              {subcategories.map((item) => (
+              {OBJECTIVES.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.label}
                 </option>
