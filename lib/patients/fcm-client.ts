@@ -1,16 +1,23 @@
 "use client"
 
+import { getFirebaseApp } from "@/lib/firebase"
 import {
   firebaseMessagingSwUrl,
   isFirebaseWebConfigured,
   readFirebaseVapidKey,
   readFirebaseWebConfig,
+  type FirebaseWebConfig,
 } from "@/lib/patients/fcm-web-config"
 
 export type FcmTokenResult = {
   token: string | null
   permission: NotificationPermission | "unsupported"
   error?: string
+}
+
+type ResolvedFirebase = {
+  config: FirebaseWebConfig
+  vapidKey: string
 }
 
 function notificationsSupported(): boolean {
@@ -21,26 +28,48 @@ function notificationsSupported(): boolean {
   )
 }
 
-async function getMessagingInstance() {
-  const config = readFirebaseWebConfig()
-  if (!config) {
+/** Inline NEXT_PUBLIC_* sau, dacă lipsește din bundle, config-ul de pe server (runtime Vercel). */
+async function resolveFirebaseWeb(): Promise<ResolvedFirebase | null> {
+  if (isFirebaseWebConfigured()) {
+    const config = readFirebaseWebConfig()
+    const vapidKey = readFirebaseVapidKey()
+    if (config && vapidKey) {
+      return { config, vapidKey }
+    }
+  }
+
+  try {
+    const response = await fetch("/api/firebase-web-config", { cache: "no-store" })
+    const payload = (await response.json()) as {
+      configured?: boolean
+      vapidKey?: string | null
+      config?: FirebaseWebConfig | null
+    }
+    if (payload?.configured && payload.config?.apiKey && payload.vapidKey) {
+      return { config: payload.config, vapidKey: payload.vapidKey }
+    }
+  } catch {
+    // serverul nu are încă NEXT_PUBLIC_FIREBASE_*
+  }
+  return null
+}
+
+async function getMessagingInstance(config: FirebaseWebConfig) {
+  const app = getFirebaseApp(config)
+  if (!app) {
     return null
   }
-  const { getApps, initializeApp } = await import("firebase/app")
   const { getMessaging, isSupported } = await import("firebase/messaging")
   if (!(await isSupported())) {
     return null
   }
-  const app = getApps()[0] ?? initializeApp(config)
   return getMessaging(app)
 }
 
-export async function registerMessagingServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+export async function registerMessagingServiceWorker(
+  config: FirebaseWebConfig,
+): Promise<ServiceWorkerRegistration | null> {
   if (!notificationsSupported()) {
-    return null
-  }
-  const config = readFirebaseWebConfig()
-  if (!config) {
     return null
   }
   const registration = await navigator.serviceWorker.register(firebaseMessagingSwUrl(config), {
@@ -63,20 +92,20 @@ export async function requestPatientPushToken(): Promise<FcmTokenResult> {
     return { token: null, permission }
   }
 
-  if (!isFirebaseWebConfigured()) {
+  const firebaseWeb = await resolveFirebaseWeb()
+  if (!firebaseWeb) {
     return {
       token: process.env.NODE_ENV === "production" ? null : `mock-web:${crypto.randomUUID()}`,
       permission,
       error:
         process.env.NODE_ENV === "production"
-          ? "Firebase Messaging nu e configurat pe acest site."
+          ? "Firebase Messaging nu e configurat pe acest site. Verifică NEXT_PUBLIC_FIREBASE_* pe Vercel și redesfășoară aplicația."
           : undefined,
     }
   }
 
-  const vapidKey = readFirebaseVapidKey()
-  const messaging = await getMessagingInstance()
-  if (!messaging || !vapidKey) {
+  const messaging = await getMessagingInstance(firebaseWeb.config)
+  if (!messaging) {
     return {
       token: null,
       permission,
@@ -85,10 +114,10 @@ export async function requestPatientPushToken(): Promise<FcmTokenResult> {
   }
 
   try {
-    const registration = await registerMessagingServiceWorker()
+    const registration = await registerMessagingServiceWorker(firebaseWeb.config)
     const { getToken } = await import("firebase/messaging")
     const token = await getToken(messaging, {
-      vapidKey,
+      vapidKey: firebaseWeb.vapidKey,
       serviceWorkerRegistration: registration ?? undefined,
     })
     return { token: token || null, permission }
@@ -101,11 +130,15 @@ export async function requestPatientPushToken(): Promise<FcmTokenResult> {
 export async function listenForForegroundPush(
   onMessage: (payload: { title: string; body: string; url?: string }) => void,
 ): Promise<() => void> {
-  if (!isFirebaseWebConfigured() || !notificationsSupported()) {
+  if (!notificationsSupported()) {
+    return () => undefined
+  }
+  const firebaseWeb = await resolveFirebaseWeb()
+  if (!firebaseWeb) {
     return () => undefined
   }
   try {
-    const messaging = await getMessagingInstance()
+    const messaging = await getMessagingInstance(firebaseWeb.config)
     if (!messaging) {
       return () => undefined
     }

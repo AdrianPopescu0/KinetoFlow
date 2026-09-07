@@ -106,9 +106,9 @@ Dacă pacientul a activat notificările push, cron-ul trimite **FCM** către tok
 
 1. Creează un proiect Firebase, activează **Cloud Messaging** și o aplicație Web.
 2. În Firebase Console → Project settings → Cloud Messaging, generează un **Web Push certificate** (VAPID).
-3. Pe Vercel (și în `.env.local`) pune cheile `NEXT_PUBLIC_FIREBASE_*` plus contul de serviciu (`FIREBASE_SERVICE_ACCOUNT` sau cele 3 variabile `FIREBASE_*`).
+3. Pe Vercel (și în `.env.local`) pune cheile **cu prefix `NEXT_PUBLIC_`**: `API_KEY`, `AUTH_DOMAIN`, `PROJECT_ID`, `STORAGE_BUCKET`, `MESSAGING_SENDER_ID`, `APP_ID`, `VAPID_KEY`. Alias-uri: `NEXT_PUBLIC_FIREBASE_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_MESSAGING_VAPID_KEY`. După ce le adaugi, **redesfășoară** aplicația (cheile publice se citesc la build). Pe server: `FIREBASE_SERVICE_ACCOUNT` sau `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`.
 4. În Supabase SQL Editor rulează `sql/023_patient_push_tokens.sql`.
-5. Pacientul, la primul acces în `/patient/[token]`, vede ecranul de onboarding și poate activa notificările. Tokenul se salvează prin `POST /api/patient/push-token`.
+5. Pacientul, la primul acces în `/patient/[token]`, vede ecranul de onboarding și poate activa notificările. Tokenul se salvează prin `POST /api/patient/push-token`. Service worker: `public/firebase-messaging-sw.js`. Config client: `lib/firebase.ts`.
 
 Fără credențiale Firebase, aplicația rămâne utilizabilă: onboarding-ul apare, iar pe serverul de dezvoltare trimiterea push e simulată în loguri.
 

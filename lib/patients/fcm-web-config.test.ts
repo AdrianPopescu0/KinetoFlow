@@ -24,3 +24,17 @@ test("config web FCM e validă cu toate cheile publice", () => {
   assert.equal(isFirebaseWebConfigured(complete), true)
   assert.equal(readFirebaseWebConfig(complete)?.projectId, "demo")
 })
+
+test("acceptă alias-uri VAPID / senderId și authDomain implicit", () => {
+  const aliased = {
+    NEXT_PUBLIC_FIREBASE_API_KEY: "AIzaSyDummy",
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: "demo",
+    NEXT_PUBLIC_FIREBASE_SENDER_ID: "123456",
+    NEXT_PUBLIC_FIREBASE_APP_ID: "1:123456:web:abc",
+    NEXT_PUBLIC_FIREBASE_MESSAGING_VAPID_KEY: "B" + "x".repeat(86),
+  }
+  const config = readFirebaseWebConfig(aliased)
+  assert.equal(isFirebaseWebConfigured(aliased), true)
+  assert.equal(config?.authDomain, "demo.firebaseapp.com")
+  assert.equal(config?.messagingSenderId, "123456")
+})

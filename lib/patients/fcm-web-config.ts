@@ -1,3 +1,10 @@
+import {
+  firebasePublicEnv,
+  getFirebaseOptions,
+  getFirebaseVapidKey,
+  isFirebaseWebConfigured as isFirebaseWebConfiguredFromEnv,
+} from "../firebase.ts"
+
 export type FirebaseWebConfig = {
   apiKey: string
   authDomain: string
@@ -7,40 +14,36 @@ export type FirebaseWebConfig = {
   appId: string
 }
 
-function trimEnv(value: string | undefined): string {
-  return value?.trim() ?? ""
-}
-
 /** Config public pentru SDK-ul web Firebase (NEXT_PUBLIC_*). */
 export function readFirebaseWebConfig(
-  env: Record<string, string | undefined> = process.env,
+  env: Record<string, string | undefined> = firebasePublicEnv(),
 ): FirebaseWebConfig | null {
-  const apiKey = trimEnv(env.NEXT_PUBLIC_FIREBASE_API_KEY)
-  const authDomain = trimEnv(env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN)
-  const projectId = trimEnv(env.NEXT_PUBLIC_FIREBASE_PROJECT_ID)
-  const storageBucket = trimEnv(env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET)
-  const messagingSenderId = trimEnv(env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID)
-  const appId = trimEnv(env.NEXT_PUBLIC_FIREBASE_APP_ID)
-  if (!apiKey || !authDomain || !projectId || !messagingSenderId || !appId) {
+  const options = getFirebaseOptions(env)
+  if (
+    !options?.apiKey ||
+    !options.authDomain ||
+    !options.projectId ||
+    !options.appId ||
+    !options.messagingSenderId
+  ) {
     return null
   }
   return {
-    apiKey,
-    authDomain,
-    projectId,
-    storageBucket: storageBucket || `${projectId}.appspot.com`,
-    messagingSenderId,
-    appId,
+    apiKey: options.apiKey,
+    authDomain: options.authDomain,
+    projectId: options.projectId,
+    storageBucket: options.storageBucket ?? "",
+    messagingSenderId: options.messagingSenderId,
+    appId: options.appId,
   }
 }
 
-export function readFirebaseVapidKey(env: Record<string, string | undefined> = process.env): string | null {
-  const key = trimEnv(env.NEXT_PUBLIC_FIREBASE_VAPID_KEY)
-  return key || null
+export function readFirebaseVapidKey(env: Record<string, string | undefined> = firebasePublicEnv()): string | null {
+  return getFirebaseVapidKey(env)
 }
 
-export function isFirebaseWebConfigured(env: Record<string, string | undefined> = process.env): boolean {
-  return Boolean(readFirebaseWebConfig(env) && readFirebaseVapidKey(env))
+export function isFirebaseWebConfigured(env: Record<string, string | undefined> = firebasePublicEnv()): boolean {
+  return isFirebaseWebConfiguredFromEnv(env)
 }
 
 export function firebaseMessagingSwUrl(config: FirebaseWebConfig): string {
