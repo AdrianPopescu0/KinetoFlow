@@ -14,10 +14,19 @@ type LoginPageProps = {
   searchParams: Promise<{ mode?: string; tab?: string; reason?: string }>
 }
 
+function loginReasonMessage(reason: string | undefined): string | null {
+  if (reason === "otp_expired") {
+    return "Linkul de invitație a expirat sau a fost deja folosit. Cere administratorului un link nou."
+  }
+  if (reason === "oauth") {
+    return "Autentificarea cu Google a fost anulată sau a eșuat. Încearcă din nou."
+  }
+  return null
+}
+
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams
   const signup = isSignupAuthMode(params)
-  const expiredInvite = params.reason === "otp_expired"
 
   return (
     <AuthSplitLayout
@@ -44,11 +53,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     >
       <LoginForm
         initialTab={signup ? "register" : "login"}
-        initialError={
-          expiredInvite
-            ? "Linkul de invitație a expirat sau a fost deja folosit. Cere administratorului un link nou."
-            : null
-        }
+        initialError={loginReasonMessage(params.reason)}
       />
     </AuthSplitLayout>
   )

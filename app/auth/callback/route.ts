@@ -55,8 +55,12 @@ export async function GET(request: NextRequest) {
   const errorCode = searchParams.get("error_code") ?? searchParams.get("error")
   const next = safeAuthNextPath(searchParams.get("next")) ?? "/dashboard"
 
-  if (errorCode === "otp_expired" || errorCode === "access_denied") {
+  if (errorCode === "otp_expired") {
     return NextResponse.redirect(callbackAbsoluteUrl(request, "/login?reason=otp_expired"))
+  }
+
+  if (errorCode && !code && !(tokenHash && isEmailOtpType(otpType))) {
+    return NextResponse.redirect(callbackAbsoluteUrl(request, "/login?reason=oauth"))
   }
 
   if (!code && !(tokenHash && isEmailOtpType(otpType))) {
