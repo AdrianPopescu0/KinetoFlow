@@ -7,8 +7,8 @@ import { SupportModal } from "@/components/SupportModal"
 
 function FooterSeparator() {
   return (
-    <span className="select-none text-slate-300" aria-hidden="true">
-      ·
+    <span className="select-none text-slate-400" aria-hidden="true">
+      .
     </span>
   )
 }
@@ -18,7 +18,7 @@ export function Footer() {
   const [supportOpen, setSupportOpen] = useState(false)
 
   return (
-    <footer className="mt-auto border-t border-slate-200 bg-slate-50 px-4 py-3.5">
+    <footer className="mt-auto bg-slate-50 px-4 py-3.5">
       <nav
         aria-label="Informații legale"
         className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-center text-xs text-muted-foreground"

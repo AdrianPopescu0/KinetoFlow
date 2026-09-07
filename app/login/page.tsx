@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 
 import { LoginForm } from "@/app/login/login-form"
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout"
@@ -38,18 +37,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           : "Intră în contul tău de terapeut sau administrator."
       }
       footer={
-        <>
-          <p className="mt-6 text-center text-sm text-slate-600">
-            Ești pacient?{" "}
-            <Link href="/acces" className="font-medium text-[#042f2e] underline-offset-4 hover:underline">
-              Intră cu telefonul și codul de 8 cifre
-            </Link>
-          </p>
-          <p className="mt-8 text-center text-xs leading-relaxed text-slate-500">
-            Accesul este rezervat terapeuților și administratorilor KinetoFlow. Nu partaja
-            parola și închide sesiunea pe dispozitive partajate.
-          </p>
-        </>
+        <p className="mt-8 text-center text-xs leading-relaxed text-slate-500">
+          Accesul este rezervat terapeuților și administratorilor KinetoFlow. Nu partaja
+          parola și închide sesiunea pe dispozitive partajate.
+        </p>
       }
     >
       <LoginForm
