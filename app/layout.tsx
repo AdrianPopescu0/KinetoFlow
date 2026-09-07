@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { Footer } from "@/components/Footer";
@@ -21,6 +22,13 @@ export const metadata: Metadata = {
   description:
     "Platformă clinică pentru kinetoterapie: autentificare securizată, programe și progresul pacienților.",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+  },
   appleWebApp: {
     capable: true,
     title: "KinetoFlow",
@@ -39,6 +47,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} min-h-screen max-w-full overflow-x-hidden antialiased`}
     >
       <body className="flex min-h-screen max-w-full flex-col justify-between overflow-x-hidden bg-slate-50 text-slate-800">
+        <Script id="pwa-install-capture" strategy="beforeInteractive">
+          {`(function () {
+  window.addEventListener("beforeinstallprompt", function (event) {
+    event.preventDefault();
+    window.__pwaInstallPrompt = event;
+  });
+  window.addEventListener("appinstalled", function () {
+    window.__pwaInstallPrompt = undefined;
+  });
+})();`}
+        </Script>
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         <Footer />
         <Toaster />

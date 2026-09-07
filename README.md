@@ -127,6 +127,7 @@ middleware.ts                    # Next.js middleware
 app/login/actions.ts             # Server Action login()
 app/login/page.tsx               # UI login split-screen
 app/dashboard/page.tsx           # Dashboard terapeut (protejat)
+components/InstallPWAButton.tsx  # Buton instalare PWA (beforeinstallprompt; nu apare pe iOS)
 app/patient/[token]/page.tsx     # Programul public al pacientului
 app/patient/page.tsx             # Recuperare token (webview fără parametri)
 app/p/[patientToken]/page.tsx    # Alias vechi al programului pacientului
@@ -135,4 +136,9 @@ app/api/cron/daily/route.ts      # Umbrella: program la miezul nopții + reminde
 app/api/cron/reminders/route.ts  # Reminder check-in 18:00 (manual / Pro / cron extern)
 app/api/cron/daily-update/route.ts # Alias manual pentru resetul de program
 vercel.json                      # un singur cron: 22:00 UTC → /api/cron/reset-daily-progress
+public/manifest.webmanifest      # PWA: standalone + iconițe 192/512
 ```
+
+## Instalare PWA (Android / Chrome / Edge)
+
+Butonul **Instalează Aplicația KinetoFlow** apare în header-ul programului pacientului doar dacă browserul emite `beforeinstallprompt` (Chrome/Edge pe Android sau desktop). Safari pe iOS nu emite evenimentul, deci butonul rămâne ascuns. După instalare sau dacă aplicația rulează deja standalone, butonul dispare.

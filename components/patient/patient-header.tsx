@@ -3,6 +3,7 @@
 import { BookOpen } from "lucide-react"
 
 import { logoutPatient } from "@/app/acces/actions"
+import { InstallPWAButton } from "@/components/InstallPWAButton"
 import { Logo } from "@/components/Logo"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { clearStoredPatientToken } from "@/lib/patients/token-storage"
@@ -54,6 +55,7 @@ export function PatientHeader({ firstName, dateLabel, onOpenGuide }: PatientHead
           </div>
           <p className="text-right text-xs text-teal-50/80 sm:hidden">{dateLabel}</p>
         </div>
+        <InstallPWAButton variant="onDark" className="sm:self-start" />
       </div>
     </header>
   )
