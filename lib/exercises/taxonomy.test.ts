@@ -4,10 +4,13 @@ import test from "node:test"
 import {
   OBJECTIVES,
   POSITIONS,
+  REGIONS,
+  isAnatomicalRegion,
   isExercisePosition,
   isTherapeuticObjective,
   normalizeObjective,
   normalizePosition,
+  normalizeRegion,
   positionLabel,
   subcategoryLabel,
 } from "./taxonomy.ts"
@@ -55,4 +58,22 @@ test("pozițiile sunt cele 5 fundamentale din kinetoterapie", () => {
   assert.equal(normalizePosition("decubit"), "lying")
   assert.equal(normalizePosition("patrupedie"), "kneeling")
   assert.equal(normalizePosition("unknown"), "sitting")
+})
+
+test("regiunile anatomice nu mai includ Funcțional", () => {
+  assert.deepEqual(
+    REGIONS.map((item) => item.label),
+    [
+      "Coloană Cervicală",
+      "Coloană Toracală",
+      "Coloană Lombară",
+      "Bazin & Pelvis",
+      "Membru Superior",
+      "Membru Inferior",
+    ],
+  )
+  assert.equal(isAnatomicalRegion("functional"), false)
+  assert.equal(normalizeRegion("functional"), "lower")
+  assert.ok(isAnatomicalRegion("cervical"))
+  assert.ok(isAnatomicalRegion("lower"))
 })

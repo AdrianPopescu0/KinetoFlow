@@ -449,7 +449,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     title: "Sprijin tandem",
     description:
       "Un picior în fața celuilalt, călcâi la degete. Ține 20–30 de secunde. Progresează cu ochii închiși dacă e stabil.",
-    region: "functional",
+    region: "lower",
     subcategory: "stability",
     difficulty: "mediu",
     equipment: "none",
@@ -464,7 +464,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     title: "Star excursion (atingeri)",
     description:
       "Pe un picior, atinge cu celălalt 5 direcții pe podea fără a pierde controlul bazinului. Revino central după fiecare atingere.",
-    region: "functional",
+    region: "lower",
     subcategory: "stability",
     difficulty: "avansat",
     equipment: "none",
@@ -479,7 +479,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     title: "Ridicare de pe scaun (sit-to-stand)",
     description:
       "Picioarele la lățimea bazinului. Apleacă trunchiul, ridică-te fără impuls din mâini dacă e posibil. Controlează așezarea.",
-    region: "functional",
+    region: "lower",
     subcategory: "strength",
     difficulty: "usor",
     equipment: "none",
@@ -494,7 +494,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     title: "Urcare pe treaptă",
     description:
       "Urcă cu piciorul de lucru, extinde șoldul și genunchiul. Coboară controlat. Evită împingerea din piciorul de jos.",
-    region: "functional",
+    region: "lower",
     subcategory: "strength",
     difficulty: "mediu",
     equipment: "none",
@@ -509,7 +509,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     title: "Respirație diafragmatică",
     description:
       "O mână pe abdomen, una pe piept. Inspiră pe nas — abdomenul se ridică, pieptul rămâne liniștit. Expiră lung pe gură.",
-    region: "functional",
+    region: "thoracic",
     subcategory: "posture",
     difficulty: "usor",
     equipment: "none",
@@ -524,7 +524,7 @@ export const LIBRARY_EXERCISES: LibraryExercise[] = [
     title: "Relaxare pe minge — reset respirator",
     description:
       "Așază-te pe minge, picioarele stabile. Leagănă ușor bazinul și sincronizează respirația. Umerii coborâți, maxilarul relaxat.",
-    region: "functional",
+    region: "pelvis",
     subcategory: "posture",
     difficulty: "usor",
     equipment: "ball",

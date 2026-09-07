@@ -5,7 +5,6 @@ export type AnatomicalRegion =
   | "pelvis"
   | "upper"
   | "lower"
-  | "functional"
 
 export type Difficulty = "usor" | "mediu" | "avansat"
 

@@ -5,9 +5,8 @@ import { revalidatePath } from "next/cache"
 import { getCachedUser } from "@/lib/auth/session"
 import { LIBRARY_WRITE_FORBIDDEN, authUserCanEditLibrary } from "@/lib/exercises/library-admin"
 import { libraryExerciseToRow, listStoredLibraryExercises } from "@/lib/exercises/library-store"
-import { isExercisePosition, isTherapeuticObjective } from "@/lib/exercises/taxonomy"
+import { isAnatomicalRegion, isExercisePosition, isTherapeuticObjective } from "@/lib/exercises/taxonomy"
 import type {
-  AnatomicalRegion,
   Difficulty,
   Equipment,
   LibraryExercise,
@@ -48,7 +47,10 @@ function exerciseFromForm(formData: FormData, id?: string): LibraryExercise | { 
     return { error: "Completează titlul și descrierea." }
   }
 
-  const region = (readText(formData, "region") || "functional") as AnatomicalRegion
+  const region = readText(formData, "region") || "lumbar"
+  if (!isAnatomicalRegion(region)) {
+    return { error: "Alege o regiune anatomică validă." }
+  }
   const subcategory = readText(formData, "subcategory") || "mobility"
   if (!isTherapeuticObjective(subcategory)) {
     return { error: "Alege un obiectiv terapeutic valid." }

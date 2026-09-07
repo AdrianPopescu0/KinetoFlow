@@ -2,12 +2,11 @@ import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
 import {
   DIFFICULTIES,
   EQUIPMENT,
-  REGIONS,
   normalizeObjective,
   normalizePosition,
+  normalizeRegion,
 } from "@/lib/exercises/taxonomy"
 import type {
-  AnatomicalRegion,
   Difficulty,
   Equipment,
   LibraryExercise,
@@ -32,10 +31,6 @@ type LibraryRow = {
   video_url?: string | null
 }
 
-function isRegion(value: string): value is AnatomicalRegion {
-  return REGIONS.some((region) => region.id === value)
-}
-
 function isDifficulty(value: string): value is Difficulty {
   return DIFFICULTIES.some((item) => item.id === value)
 }
@@ -45,7 +40,7 @@ function isEquipment(value: string): value is Equipment {
 }
 
 export function mapLibraryRow(row: LibraryRow): LibraryExercise | null {
-  const region = typeof row.region === "string" && isRegion(row.region) ? row.region : "functional"
+  const region = normalizeRegion(row.region)
   const subcategory = normalizeObjective(row.subcategory)
   const difficulty =
     typeof row.difficulty === "string" && isDifficulty(row.difficulty) ? row.difficulty : "usor"

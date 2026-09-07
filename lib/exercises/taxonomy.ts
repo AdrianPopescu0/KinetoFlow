@@ -56,8 +56,12 @@ export const REGIONS: RegionDef[] = [
   { id: "pelvis", label: "Bazin & Pelvis", shortLabel: "Bazin & Pelvis" },
   { id: "upper", label: "Membru Superior", shortLabel: "Membru superior" },
   { id: "lower", label: "Membru Inferior", shortLabel: "Membru inferior" },
-  { id: "functional", label: "Funcțional", shortLabel: "Funcțional" },
 ]
+
+const LEGACY_REGION_MAP: Record<string, AnatomicalRegion> = {
+  functional: "lower",
+  funcțional: "lower",
+}
 
 export const DIFFICULTIES: { id: Difficulty; label: string }[] = [
   { id: "usor", label: "Ușor" },
@@ -100,8 +104,22 @@ const LEGACY_POSITION_MAP: Record<string, ExercisePosition> = {
   suspensie: "hanging",
 }
 
-export function regionById(id: AnatomicalRegion): RegionDef {
-  return REGIONS.find((region) => region.id === id) ?? REGIONS[0]
+export function isAnatomicalRegion(value: string): value is AnatomicalRegion {
+  return REGIONS.some((region) => region.id === value)
+}
+
+export function normalizeRegion(value: string | null | undefined): AnatomicalRegion {
+  if (value && isAnatomicalRegion(value)) {
+    return value
+  }
+  if (value && value in LEGACY_REGION_MAP) {
+    return LEGACY_REGION_MAP[value]
+  }
+  return "lumbar"
+}
+
+export function regionById(id: AnatomicalRegion | string): RegionDef {
+  return REGIONS.find((region) => region.id === normalizeRegion(id)) ?? REGIONS[0]
 }
 
 export function isTherapeuticObjective(value: string): value is TherapeuticObjective {
@@ -145,7 +163,6 @@ export function assertCatalogMatchesTaxonomy(
     pelvis: 0,
     upper: 0,
     lower: 0,
-    functional: 0,
   }
 
   for (const exercise of exercises) {
