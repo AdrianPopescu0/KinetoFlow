@@ -139,6 +139,11 @@ vercel.json                      # un singur cron: 22:00 UTC → /api/cron/reset
 public/manifest.webmanifest      # PWA: standalone + iconițe 192/512
 ```
 
-## Instalare PWA (Android / Chrome / Edge)
+## Instalare PWA (Android / Windows / Mac)
 
-Butonul **Instalează Aplicația KinetoFlow** apare în header-ul programului pacientului doar dacă browserul emite `beforeinstallprompt` (Chrome/Edge pe Android sau desktop). Safari pe iOS nu emite evenimentul, deci butonul rămâne ascuns. După instalare sau dacă aplicația rulează deja standalone, butonul dispare.
+Butonul **Instalează Aplicația KinetoFlow** este vizibil în header-ul programului pacientului pe desktop și mobil. La click:
+
+- dacă browserul emite `beforeinstallprompt` (Chrome/Edge/Brave), se deschide fereastra nativă de instalare;
+- altfel apare un modal cu pașii pentru **Chrome**, **Brave** și **Samsung Internet** (adaptați după browserul detectat).
+
+În aplicația deja instalată (mod standalone) butonul se ascunde.

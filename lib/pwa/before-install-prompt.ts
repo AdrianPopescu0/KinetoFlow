@@ -35,10 +35,7 @@ export function isStandaloneDisplay(win: {
   )
 }
 
-/** iOS Safari nu emite beforeinstallprompt — fără eveniment, butonul rămâne ascuns. */
-export function shouldShowInstallButton(options: {
-  promptEvent: BeforeInstallPromptEvent | null
-  isStandalone: boolean
-}): boolean {
-  return options.promptEvent != null && !options.isStandalone
+/** Butonul rămâne vizibil în browser; dispare doar dacă PWA-ul e deja deschis. */
+export function shouldShowInstallButton(options: { isStandalone: boolean }): boolean {
+  return !options.isStandalone
 }
