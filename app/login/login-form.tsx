@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2 } from "lucide-react"
+import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
 
 import { login, register } from "@/app/login/actions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -21,14 +21,16 @@ type AuthTab = "login" | "register"
 export function LoginForm({
   initialTab,
   initialError = null,
+  initialInfo = null,
 }: {
   initialTab: AuthTab
   initialError?: string | null
+  initialInfo?: string | null
 }) {
   const router = useRouter()
   const [tab, setTab] = useState<AuthTab>(initialTab)
   const [error, setError] = useState<string | null>(initialError)
-  const [info, setInfo] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(initialInfo)
   const [showPassword, setShowPassword] = useState(false)
   const [password, setPassword] = useState("")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
@@ -103,6 +105,12 @@ export function LoginForm({
       }
       if (result?.info) {
         setInfo(result.info)
+        if (tab === "register") {
+          setTab("login")
+          setPassword("")
+          setAcceptedTerms(false)
+          router.replace(loginHref("signin"), { scroll: false })
+        }
       }
     })
   }
@@ -132,7 +140,8 @@ export function LoginForm({
 
       {info ? (
         <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
-          <AlertTitle>Verifică emailul</AlertTitle>
+          <Mail />
+          <AlertTitle>Confirmă adresa de email</AlertTitle>
           <AlertDescription>{info}</AlertDescription>
         </Alert>
       ) : null}
@@ -301,7 +310,7 @@ export function LoginForm({
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              {tab === "register" ? "Se creează contul…" : "Se autentifică…"}
+              {tab === "register" ? "Se trimite emailul de confirmare…" : "Se autentifică…"}
             </>
           ) : tab === "register" ? (
             "Creează cont"

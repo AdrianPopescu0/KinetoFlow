@@ -25,7 +25,7 @@ cp .env.example .env.local
 - Opțional, pentru reminder-e SMS: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` și `TWILIO_PHONE_NUMBER` (E.164, ex. `+4915888623971`, fără `whatsapp:`). Alias-uri acceptate: `TWILIO_SMS_FROM`, `TWILIO_FROM`.
 - Opțional, pentru reminder-e **push** (Firebase Cloud Messaging): cheile `NEXT_PUBLIC_FIREBASE_*` (inclusiv `NEXT_PUBLIC_FIREBASE_VAPID_KEY`) plus pe server `FIREBASE_SERVICE_ACCOUNT` sau `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`. Fără acestea, cron-ul rămâne pe SMS (și local simulează push-ul).
 
-În dashboard-ul Supabase, **Authentication → Providers → Email** trebuie să fie activ. Pentru **Google**, activează providerul Google (Client ID + secret din Google Cloud Console). Redirect-ul din consola Google este `https://<proiect>.supabase.co/auth/v1/callback`; în aplicație, după OAuth, utilizatorul revine pe `/auth/callback`. Pentru fluxul de onboarding imediat după înregistrare, dezactivează „Confirm email” (sau lasă-l activ — utilizatorul confirmă din email și apoi intră în cont).
+În dashboard-ul Supabase, **Authentication → Providers → Email** trebuie să fie activ, cu **Confirm email** pornit. La înregistrare, `signUp` trimite `emailRedirectTo` către `/auth/callback?next=/onboarding`; utilizatorul primește un email și nu are acces la dashboard/onboarding până confirmă adresa. Pentru **Google**, activează providerul Google (Client ID + secret din Google Cloud Console). Redirect-ul din consola Google este `https://<proiect>.supabase.co/auth/v1/callback`; în aplicație, după OAuth, utilizatorul revine pe `/auth/callback`.
 
 Adaugă URL-urile de redirect pentru recuperarea parolei și invitațiile WhatsApp:
 
@@ -48,7 +48,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 | Rută | Rol |
 | --- | --- |
-| `/login` | Intră în cont (`?mode=signin`) sau înregistrează clinică (`?mode=signup`); email+parolă sau **Sign in with Google**; la signup e obligatoriu consimțământul la Termeni și Politica de Confidențialitate |
+| `/login` | Intră în cont (`?mode=signin`) sau înregistrează clinică (`?mode=signup`); email+parolă sau **Sign in with Google**; la signup e obligatoriu consimțământul la Termeni și Politica de Confidențialitate; accesul complet după confirmarea emailului |
 | `/termeni` | Termeni și Condiții (inclusiv disclaimer medical) |
 | `/confidentialitate` | Politica de Confidențialitate și prelucrare date (GDPR) |
 | `/onboarding` | Configurare clinică (obligatorie înainte de dashboard) |
@@ -78,6 +78,7 @@ Reguli de securitate aplicate:
 
 - Validare pe server pentru email și parolă înainte de apelul Auth
 - La înregistrare, parola trebuie: 8+ caractere, o majusculă, o cifră, un caracter special
+- Contul email+parolă rămâne fără acces la `/dashboard` și `/onboarding` până la confirmarea adresei (`email_confirmed_at`)
 - Mesaj generic la eșec: „Email sau parolă incorectă” (fără enumerarea utilizatorilor)
 - Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori și trimite la `/onboarding` dacă lipsește `clinic_profiles`
 - Verificare `getUser()` (nu `getSession()`) pentru autorizare

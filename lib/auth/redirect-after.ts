@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { therapistHasClinicProfile } from "@/lib/clinics/profile"
 import { createClient } from "@/utils/supabase/server"
 
@@ -14,6 +15,11 @@ export async function redirectAfterTherapistAuth() {
 
   if (!user) {
     redirect("/login")
+  }
+
+  if (!isEmailConfirmedUser(user)) {
+    await supabase.auth.signOut()
+    redirect("/login?reason=confirm_email")
   }
 
   const ready = await therapistHasClinicProfile(supabase, user.id)

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import {
   PATIENT_RESUME_COOKIE,
@@ -27,6 +28,15 @@ function isTherapistAuthPage(pathname: string): boolean {
 
 function isOnboardingPath(pathname: string): boolean {
   return pathname === "/onboarding" || pathname.startsWith("/onboarding/")
+}
+
+function allowsUnconfirmedEmail(pathname: string): boolean {
+  return (
+    pathname === "/auth/callback" ||
+    pathname.startsWith("/auth/callback/") ||
+    pathname === "/auth/activare" ||
+    pathname.startsWith("/auth/set-password")
+  )
 }
 
 function storedPatientToken(request: NextRequest): string | null {
@@ -112,6 +122,24 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const authenticatedUser = userError ? null : user
+  const emailConfirmed = isEmailConfirmedUser(authenticatedUser)
+
+  if (
+    authenticatedUser &&
+    !emailConfirmed &&
+    !allowsUnconfirmedEmail(pathname) &&
+    (isProtectedPath(pathname) || isOnboardingPath(pathname))
+  ) {
+    await supabase.auth.signOut()
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = "/login"
+    redirectUrl.search = "reason=confirm_email"
+    const redirect = NextResponse.redirect(redirectUrl)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirect.cookies.set(cookie.name, cookie.value)
+    })
+    return redirect
+  }
 
   if (!authenticatedUser && (isProtectedPath(pathname) || isOnboardingPath(pathname))) {
     const redirectUrl = request.nextUrl.clone()
@@ -120,7 +148,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (authenticatedUser) {
+  if (authenticatedUser && emailConfirmed) {
     const clinicReady = clinicReadyFromUser(authenticatedUser)
       ? true
       : await therapistHasClinicProfile(supabase, authenticatedUser.id)

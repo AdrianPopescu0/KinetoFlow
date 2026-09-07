@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 
+import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 import { createClient } from "@/utils/supabase/server"
@@ -52,6 +53,10 @@ export async function saveClinicProfile(formData: FormData): Promise<OnboardingS
 
   if (!user) {
     return { error: "Sesiunea a expirat. Autentifică-te din nou." }
+  }
+
+  if (!isEmailConfirmedUser(user)) {
+    return { error: "Confirmă adresa de email înainte de a configura clinica." }
   }
 
   const row = {

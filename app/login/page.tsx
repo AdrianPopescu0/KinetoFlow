@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import { LoginForm } from "@/app/login/login-form"
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout"
+import { EMAIL_CONFIRM_REQUIRED } from "@/lib/auth/email-confirmed"
 import { isSignupAuthMode } from "@/lib/auth/paths"
 
 export const metadata: Metadata = {
@@ -54,6 +55,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <LoginForm
         initialTab={signup ? "register" : "login"}
         initialError={loginReasonMessage(params.reason)}
+        initialInfo={params.reason === "confirm_email" ? EMAIL_CONFIRM_REQUIRED : null}
       />
     </AuthSplitLayout>
   )

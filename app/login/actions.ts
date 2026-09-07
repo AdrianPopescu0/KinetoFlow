@@ -1,8 +1,12 @@
 "use server"
 
-import { redirect } from "next/navigation"
-
 import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
+import {
+  EMAIL_CONFIRM_REQUIRED,
+  REGISTER_CONFIRM_INFO,
+  isEmailConfirmedUser,
+  isEmailNotConfirmedAuthError,
+} from "@/lib/auth/email-confirmed"
 import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
 import {
   AUTH_ERROR_MESSAGE,
@@ -31,7 +35,19 @@ export async function login(formData: FormData): Promise<LoginActionState> {
   })
 
   if (error) {
+    if (isEmailNotConfirmedAuthError(error)) {
+      return { info: EMAIL_CONFIRM_REQUIRED }
+    }
     return { error: AUTH_ERROR_MESSAGE }
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!isEmailConfirmedUser(user)) {
+    await supabase.auth.signOut()
+    return { info: EMAIL_CONFIRM_REQUIRED }
   }
 
   await redirectAfterTherapistAuth()
@@ -55,6 +71,9 @@ export async function register(formData: FormData): Promise<LoginActionState> {
   })
 
   if (error) {
+    if (isEmailNotConfirmedAuthError(error)) {
+      return { info: REGISTER_CONFIRM_INFO }
+    }
     return { error: REGISTER_ERROR_MESSAGE }
   }
 
@@ -62,27 +81,10 @@ export async function register(formData: FormData): Promise<LoginActionState> {
     return { error: "Există deja un cont cu acest email. Intră în cont din tabul de autentificare." }
   }
 
-  if (!data.session) {
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: parsed.email,
-      password: parsed.password,
-    })
-    if (signInError) {
-      return {
-        info: "Contul a fost creat. Confirmă emailul, apoi revino la Intră în cont pentru a configura clinica.",
-      }
-    }
+  // Nu acordăm acces până la confirmarea din email, chiar dacă Supabase a creat o sesiune.
+  if (data.session) {
+    await supabase.auth.signOut()
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return {
-      info: "Contul a fost creat. Confirmă emailul, apoi revino la Intră în cont pentru a configura clinica.",
-    }
-  }
-
-  redirect("/onboarding")
+  return { info: REGISTER_CONFIRM_INFO }
 }

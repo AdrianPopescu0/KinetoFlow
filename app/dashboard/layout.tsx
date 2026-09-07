@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 
 import { DashboardHeader } from "@/app/dashboard/dashboard-header"
 import { AppShell } from "@/components/brand/app-atmosphere"
+import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { getCachedUser } from "@/lib/auth/session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
 import { isClinicAdmin } from "@/lib/clinics/types"
@@ -12,6 +13,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const { supabase, user } = await getCachedUser()
   if (!user) {
     redirect("/login")
+  }
+  if (!isEmailConfirmedUser(user)) {
+    redirect("/login?reason=confirm_email")
   }
 
   const { profile } = await fetchClinicProfile(supabase, user.id)
