@@ -1,9 +1,19 @@
-import { NextResponse } from "next/server"
+import { createServerClient } from "@supabase/ssr"
+import { NextResponse, type NextRequest } from "next/server"
 import type { EmailOtpType } from "@supabase/supabase-js"
 
 import { SET_PASSWORD_PATH, safeAuthNextPath } from "@/lib/auth/paths"
 import { therapistHasClinicProfile } from "@/lib/clinics/profile"
-import { createClient } from "@/utils/supabase/server"
+import type { Database } from "@/lib/supabase/database.types"
+import { getSupabasePublicEnv } from "@/utils/supabase/env"
+
+export const dynamic = "force-dynamic"
+
+type SessionCookie = {
+  name: string
+  value: string
+  options?: Parameters<NextResponse["cookies"]["set"]>[2]
+}
 
 function isEmailOtpType(value: string | null): value is EmailOtpType {
   return (
@@ -16,12 +26,29 @@ function isEmailOtpType(value: string | null): value is EmailOtpType {
   )
 }
 
-function loginExpiredRedirect(origin: string) {
-  return NextResponse.redirect(`${origin}/login?reason=otp_expired`)
+function callbackAbsoluteUrl(request: NextRequest, path: string) {
+  const forwardedHost = request.headers.get("x-forwarded-host")
+  if (process.env.NODE_ENV !== "development" && forwardedHost) {
+    return `https://${forwardedHost}${path}`
+  }
+  return `${request.nextUrl.origin}${path}`
 }
 
-export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+function redirectWithCookies(request: NextRequest, path: string, cookiesToSet: SessionCookie[]) {
+  const response = NextResponse.redirect(callbackAbsoluteUrl(request, path))
+  for (const { name, value, options } of cookiesToSet) {
+    response.cookies.set(name, value, options)
+  }
+  return response
+}
+
+/**
+ * PKCE / email callback: `?code=` → `exchangeCodeForSession`, apoi redirect
+ * spre dashboard, onboarding sau setarea parolei. Cookie-urile de sesiune
+ * trebuie puse pe răspunsul de redirect, altfel utilizatorul ajunge delogat.
+ */
+export async function GET(request: NextRequest) {
+  const { searchParams } = request.nextUrl
   const code = searchParams.get("code")
   const tokenHash = searchParams.get("token_hash")
   const otpType = searchParams.get("type")
@@ -29,10 +56,30 @@ export async function GET(request: Request) {
   const next = safeAuthNextPath(searchParams.get("next")) ?? "/dashboard"
 
   if (errorCode === "otp_expired" || errorCode === "access_denied") {
-    return loginExpiredRedirect(origin)
+    return NextResponse.redirect(callbackAbsoluteUrl(request, "/login?reason=otp_expired"))
   }
 
-  const supabase = await createClient()
+  if (!code && !(tokenHash && isEmailOtpType(otpType))) {
+    return NextResponse.redirect(callbackAbsoluteUrl(request, "/login"))
+  }
+
+  const sessionCookies: SessionCookie[] = []
+  const { url, anonKey } = getSupabasePublicEnv()
+  const supabase = createServerClient<Database>(url, anonKey, {
+    cookies: {
+      getAll() {
+        const merged = new Map(request.cookies.getAll().map((cookie) => [cookie.name, cookie]))
+        for (const cookie of sessionCookies) {
+          merged.set(cookie.name, { name: cookie.name, value: cookie.value })
+        }
+        return Array.from(merged.values())
+      },
+      setAll(cookiesToSet) {
+        sessionCookies.push(...cookiesToSet)
+      },
+    },
+  })
+
   let sessionError: string | null = null
 
   if (tokenHash && isEmailOtpType(otpType)) {
@@ -44,8 +91,6 @@ export async function GET(request: Request) {
   } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     sessionError = error?.message ?? null
-  } else {
-    return NextResponse.redirect(`${origin}/login`)
   }
 
   if (sessionError) {
@@ -53,11 +98,13 @@ export async function GET(request: Request) {
       sessionError.toLowerCase().includes("expired") ||
       sessionError.toLowerCase().includes("otp") ||
       sessionError.toLowerCase().includes("invalid")
-    return expired ? loginExpiredRedirect(origin) : NextResponse.redirect(`${origin}/login`)
+    return NextResponse.redirect(
+      callbackAbsoluteUrl(request, expired ? "/login?reason=otp_expired" : "/login"),
+    )
   }
 
   if (next === SET_PASSWORD_PATH) {
-    return NextResponse.redirect(`${origin}${SET_PASSWORD_PATH}`)
+    return redirectWithCookies(request, SET_PASSWORD_PATH, sessionCookies)
   }
 
   const {
@@ -67,9 +114,10 @@ export async function GET(request: Request) {
   if (user) {
     const clinicReady = await therapistHasClinicProfile(supabase, user.id)
     if (!clinicReady) {
-      return NextResponse.redirect(`${origin}/onboarding`)
+      return redirectWithCookies(request, "/onboarding", sessionCookies)
     }
   }
 
-  return NextResponse.redirect(`${origin}${next === "/onboarding" ? "/dashboard" : next}`)
+  const destination = next === "/onboarding" ? "/dashboard" : next
+  return redirectWithCookies(request, destination, sessionCookies)
 }
