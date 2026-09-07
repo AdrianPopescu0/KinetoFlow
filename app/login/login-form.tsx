@@ -141,6 +141,7 @@ export function LoginForm({
         type="button"
         variant="outline"
         disabled={busy}
+        aria-label="Sign in with Google"
         onClick={() => {
           void handleGoogleLogin()
         }}
@@ -151,7 +152,7 @@ export function LoginForm({
         ) : (
           <GoogleMark className="size-5" />
         )}
-        Continuă cu Google
+        Sign in with Google
       </Button>
 
       <div className="flex items-center gap-3" role="separator" aria-label="sau">
