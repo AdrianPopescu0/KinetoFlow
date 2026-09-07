@@ -25,6 +25,25 @@ function trim(value: string | undefined): string {
   return value?.trim() ?? ""
 }
 
+/** Scoate ghilimele/spații din Vercel; respinge cheia privată PEM. */
+export function sanitizeVapidKey(value: string | undefined): string | null {
+  let key = trim(value).replace(/^["']+|["']+$/g, "").replace(/\s+/g, "")
+  if (!key) {
+    return null
+  }
+  try {
+    if (key.includes("%")) {
+      key = decodeURIComponent(key)
+    }
+  } catch {
+    // păstrăm valoarea deja curățată
+  }
+  if (key.includes("BEGIN") || key.includes("PRIVATE KEY")) {
+    return null
+  }
+  return key || null
+}
+
 export function getFirebaseOptions(
   env: Record<string, string | undefined> = firebasePublicEnv(),
 ): FirebaseOptions | null {
@@ -56,11 +75,11 @@ export function getFirebaseOptions(
 export function getFirebaseVapidKey(
   env: Record<string, string | undefined> = firebasePublicEnv(),
 ): string | null {
-  const key =
-    trim(env.NEXT_PUBLIC_FIREBASE_VAPID_KEY) ||
-    trim(env.NEXT_PUBLIC_FIREBASE_MESSAGING_VAPID_KEY) ||
-    trim(env.NEXT_PUBLIC_FIREBASE_WEB_PUSH_CERTIFICATE)
-  return key || null
+  return (
+    sanitizeVapidKey(env.NEXT_PUBLIC_FIREBASE_VAPID_KEY) ||
+    sanitizeVapidKey(env.NEXT_PUBLIC_FIREBASE_MESSAGING_VAPID_KEY) ||
+    sanitizeVapidKey(env.NEXT_PUBLIC_FIREBASE_WEB_PUSH_CERTIFICATE)
+  )
 }
 
 export function isFirebaseWebConfigured(

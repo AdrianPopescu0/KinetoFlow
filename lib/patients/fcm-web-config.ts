@@ -46,14 +46,6 @@ export function isFirebaseWebConfigured(env: Record<string, string | undefined> 
   return isFirebaseWebConfiguredFromEnv(env)
 }
 
-export function firebaseMessagingSwUrl(config: FirebaseWebConfig): string {
-  const params = new URLSearchParams({
-    apiKey: config.apiKey,
-    authDomain: config.authDomain,
-    projectId: config.projectId,
-    storageBucket: config.storageBucket,
-    messagingSenderId: config.messagingSenderId,
-    appId: config.appId,
-  })
-  return `/firebase-messaging-sw.js?${params.toString()}`
+export function firebaseMessagingSwUrl(_config?: FirebaseWebConfig): string {
+  return "/firebase-messaging-sw.js"
 }

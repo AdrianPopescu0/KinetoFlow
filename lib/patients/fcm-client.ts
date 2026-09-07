@@ -28,6 +28,14 @@ function notificationsSupported(): boolean {
   )
 }
 
+function describePushError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "Nu am putut obține tokenul FCM."
+  if (/push service error/i.test(message) || /registration failed/i.test(message)) {
+    return "Înregistrarea push a eșuat. Folosește cheia VAPID publică (Firebase → Cloud Messaging → Web Push certificates), nu cheia privată. În Brave, activează „Use Google services for push messaging”."
+  }
+  return message
+}
+
 /** Inline NEXT_PUBLIC_* sau, dacă lipsește din bundle, config-ul de pe server (runtime Vercel). */
 async function resolveFirebaseWeb(): Promise<ResolvedFirebase | null> {
   if (isFirebaseWebConfigured()) {
@@ -54,6 +62,59 @@ async function resolveFirebaseWeb(): Promise<ResolvedFirebase | null> {
   return null
 }
 
+async function waitUntilActivated(registration: ServiceWorkerRegistration): Promise<void> {
+  const pending = registration.installing ?? registration.waiting
+  if (registration.active && !pending) {
+    return
+  }
+  const worker = pending ?? registration.active
+  if (!worker) {
+    await navigator.serviceWorker.ready
+    return
+  }
+  if (worker.state === "activated") {
+    return
+  }
+  await new Promise<void>((resolve, reject) => {
+    const onChange = () => {
+      if (worker.state === "activated") {
+        worker.removeEventListener("statechange", onChange)
+        resolve()
+      } else if (worker.state === "redundant") {
+        worker.removeEventListener("statechange", onChange)
+        reject(new Error("Service worker-ul push a devenit redundant înainte de activare."))
+      }
+    }
+    worker.addEventListener("statechange", onChange)
+  })
+}
+
+async function unregisterStaleMessagingWorkers(): Promise<void> {
+  const registrations = await navigator.serviceWorker.getRegistrations()
+  await Promise.all(
+    registrations.map(async (registration) => {
+      const scriptUrl = registration.active?.scriptURL ?? registration.installing?.scriptURL ?? ""
+      if (scriptUrl.includes("firebase-messaging-sw.js?")) {
+        await registration.unregister()
+      }
+    }),
+  )
+}
+
+export async function registerMessagingServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (!notificationsSupported()) {
+    return null
+  }
+  await unregisterStaleMessagingWorkers()
+  const registration = await navigator.serviceWorker.register(firebaseMessagingSwUrl(), {
+    scope: "/",
+    updateViaCache: "none",
+  })
+  await waitUntilActivated(registration)
+  await navigator.serviceWorker.ready
+  return registration
+}
+
 async function getMessagingInstance(config: FirebaseWebConfig) {
   const app = getFirebaseApp(config)
   if (!app) {
@@ -64,19 +125,6 @@ async function getMessagingInstance(config: FirebaseWebConfig) {
     return null
   }
   return getMessaging(app)
-}
-
-export async function registerMessagingServiceWorker(
-  config: FirebaseWebConfig,
-): Promise<ServiceWorkerRegistration | null> {
-  if (!notificationsSupported()) {
-    return null
-  }
-  const registration = await navigator.serviceWorker.register(firebaseMessagingSwUrl(config), {
-    scope: "/",
-  })
-  await navigator.serviceWorker.ready
-  return registration
 }
 
 export async function requestPatientPushToken(): Promise<FcmTokenResult> {
@@ -104,26 +152,25 @@ export async function requestPatientPushToken(): Promise<FcmTokenResult> {
     }
   }
 
-  const messaging = await getMessagingInstance(firebaseWeb.config)
-  if (!messaging) {
-    return {
-      token: null,
-      permission,
-      error: "Notificările push nu sunt disponibile pe acest dispozitiv.",
-    }
-  }
-
   try {
-    const registration = await registerMessagingServiceWorker(firebaseWeb.config)
+    const registration = await registerMessagingServiceWorker()
+    const messaging = await getMessagingInstance(firebaseWeb.config)
+    if (!messaging || !registration?.active) {
+      return {
+        token: null,
+        permission,
+        error: "Notificările push nu sunt disponibile pe acest dispozitiv.",
+      }
+    }
+
     const { getToken } = await import("firebase/messaging")
     const token = await getToken(messaging, {
       vapidKey: firebaseWeb.vapidKey,
-      serviceWorkerRegistration: registration ?? undefined,
+      serviceWorkerRegistration: registration,
     })
     return { token: token || null, permission }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Nu am putut obține tokenul FCM."
-    return { token: null, permission, error: message }
+    return { token: null, permission, error: describePushError(error) }
   }
 }
 
@@ -138,6 +185,7 @@ export async function listenForForegroundPush(
     return () => undefined
   }
   try {
+    await registerMessagingServiceWorker()
     const messaging = await getMessagingInstance(firebaseWeb.config)
     if (!messaging) {
       return () => undefined

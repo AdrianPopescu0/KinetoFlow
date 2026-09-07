@@ -7,5 +7,6 @@
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#042f2e",
-  "lang": "ro"
+  "lang": "ro",
+  "gcm_sender_id": "103953800507"
 }

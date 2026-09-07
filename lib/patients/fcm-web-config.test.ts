@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { isFirebaseWebConfigured, readFirebaseWebConfig } from "./fcm-web-config.ts"
+import { isFirebaseWebConfigured, readFirebaseWebConfig, firebaseMessagingSwUrl } from "./fcm-web-config.ts"
+import { sanitizeVapidKey } from "../firebase.ts"
 
 const complete = {
   NEXT_PUBLIC_FIREBASE_API_KEY: "AIzaSyDummy",
@@ -37,4 +38,14 @@ test("acceptă alias-uri VAPID / senderId și authDomain implicit", () => {
   assert.equal(isFirebaseWebConfigured(aliased), true)
   assert.equal(config?.authDomain, "demo.firebaseapp.com")
   assert.equal(config?.messagingSenderId, "123456")
+})
+
+test("sanitizeVapidKey scoate ghilimelele din Vercel și respinge cheia PEM", () => {
+  assert.equal(sanitizeVapidKey('"Bxxxx"'), "Bxxxx")
+  assert.equal(sanitizeVapidKey("  Bxxxx  "), "Bxxxx")
+  assert.equal(sanitizeVapidKey("-----BEGIN PRIVATE KEY-----abc"), null)
+})
+
+test("service worker-ul FCM se înregistrează fără query string", () => {
+  assert.equal(firebaseMessagingSwUrl(), "/firebase-messaging-sw.js")
 })

@@ -24,6 +24,12 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "no-cache" },
         ],
       },
+      {
+        source: "/api/firebase-messaging-sw-env",
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
     ]
   },
 };
