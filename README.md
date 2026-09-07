@@ -21,7 +21,7 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — cheia anonimă / publicabilă (`sb_publishable_…`)
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
 - `NEXT_PUBLIC_SITE_URL` — originea publică a aplicației (invitații terapeuți `/auth/activare` și recuperare parolă). Nu folosi un URL de preview Vercel (`*-git-*.vercel.app`).
-- `CRON_SECRET` — secret pentru cron-uri (`Authorization: Bearer …` pe `/api/cron/reminders` și `/api/cron/daily-update`); pe Vercel, dacă e setat, header-ul e trimis automat
+- `CRON_SECRET` — secret pentru cron-uri (`Authorization: Bearer …` pe `/api/cron/reset-daily-progress`, `/api/cron/reminders` și `/api/cron/daily-update`); pe Vercel, dacă e setat, header-ul e trimis automat
 - Opțional, pentru reminder-e SMS: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` și `TWILIO_PHONE_NUMBER` (E.164, ex. `+4915888623971`, fără `whatsapp:`). Alias-uri acceptate: `TWILIO_SMS_FROM`, `TWILIO_FROM`.
 - Opțional, pentru reminder-e **push** (Firebase Cloud Messaging): cheile `NEXT_PUBLIC_FIREBASE_*` (inclusiv `NEXT_PUBLIC_FIREBASE_VAPID_KEY`) plus pe server `FIREBASE_SERVICE_ACCOUNT` sau `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`. Fără acestea, cron-ul rămâne pe SMS (și local simulează push-ul).
 
