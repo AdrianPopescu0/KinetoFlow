@@ -96,7 +96,8 @@ Job-ul **resetează progresul zilnic** al exercițiilor (`exercise_completions`)
 - Marcajele „Efectuat” sunt pe dată (`completed_on`). Ziua nouă pornește fără bifă — nu se copiază finalizările de ieri.
 - Recalculează setul activ după perioada din `notes` (`Perioadă tratament: DD.MM.YYYY – DD.MM.YYYY`).
 - Șterge finalizările legate de exerciții inactive.
-- Protejat cu `Authorization: Bearer ${CRON_SECRET}`. Fără secret sau header greșit → 401.
+- Protejat cu `Authorization: Bearer ${CRON_SECRET}` (`process.env.CRON_SECRET`). Fără secret, fără `Bearer` sau token greșit → `{ "error": "Neautorizat." }` (401).
+- Rulează resetul dacă: cron-ul Vercel apelează ruta (`user-agent: vercel-cron/1.0` / `x-vercel-cron-schedule`), sau `?force=1`, sau e fereastra 00:00–01:00 Europe/Bucharest.
 
 Trigger manual: `GET /api/cron/reset-daily-progress?force=1` cu `Authorization: Bearer ${CRON_SECRET}`. Alias-uri: `/api/cron/daily?task=program&force=1`, `/api/cron/daily-update`.
 

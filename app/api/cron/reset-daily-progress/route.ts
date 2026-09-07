@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server"
 
+import {
+  isAuthorizedCronRequest,
+  isVercelCronInvocation,
+  shouldRunDailyProgressReset,
+} from "@/lib/cron/authorize"
 import { isMidnightProgramWindow } from "@/lib/cron/windows"
 import { runResetDailyProgress } from "@/lib/exercises/reset-daily-progress"
 import { bucharestDateKey, bucharestHour } from "@/lib/time/bucharest"
@@ -8,30 +13,28 @@ import { createServiceRoleClient } from "@/utils/supabase/admin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function authorizeCron(request: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim()
-  if (!secret) {
-    return false
-  }
-  return request.headers.get("authorization") === `Bearer ${secret}`
+function unauthorized() {
+  return NextResponse.json({ error: "Neautorizat." }, { status: 401 })
 }
 
 async function handleResetDailyProgress(request: Request) {
-  if (!authorizeCron(request)) {
+  const cronSecret = process.env.CRON_SECRET
+  if (!isAuthorizedCronRequest(request, cronSecret)) {
     console.warn("[reset-daily-progress] Cerere respinsă: CRON_SECRET lipsă sau Authorization greșit.", {
-      hasCronSecret: Boolean(process.env.CRON_SECRET?.trim()),
+      hasCronSecret: Boolean(cronSecret?.trim()),
       hasAuthorization: Boolean(request.headers.get("authorization")),
     })
-    return NextResponse.json({ error: "Neautorizat." }, { status: 401 })
+    return unauthorized()
   }
 
   const url = new URL(request.url)
   const force = url.searchParams.get("force") === "1"
+  const vercelCron = isVercelCronInvocation(request)
   const now = new Date()
   const dateKey = bucharestDateKey(now)
   const hour = bucharestHour(now)
 
-  if (!force && !isMidnightProgramWindow(now)) {
+  if (!shouldRunDailyProgressReset({ force, vercelCron, inMidnightWindow: isMidnightProgramWindow(now) })) {
     console.info("[reset-daily-progress] În afara ferestrei 00:00 Europe/Bucharest.", {
       dateKey,
       bucharestHour: hour,
@@ -49,6 +52,7 @@ async function handleResetDailyProgress(request: Request) {
     dateKey,
     bucharestHour: hour,
     force,
+    vercelCron,
   })
 
   try {
@@ -57,6 +61,7 @@ async function handleResetDailyProgress(request: Request) {
     return NextResponse.json({
       ok: true,
       forced: force,
+      vercelCron,
       bucharestHour: hour,
       ...summary,
     })
