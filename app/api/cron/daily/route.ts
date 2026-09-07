@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { runDailyExerciseUpdate } from "@/lib/exercises/daily-update"
+import { runResetDailyProgress } from "@/lib/exercises/reset-daily-progress"
 import {
   CHECKIN_REMINDER_HOUR_BUCHAREST,
   isCheckinReminderWindow,
@@ -99,7 +99,7 @@ async function handleDailyCron(request: Request) {
 
   try {
     const supabase = createServiceRoleClient()
-    const program = planned.program ? await runDailyExerciseUpdate(supabase, now) : null
+    const program = planned.program ? await runResetDailyProgress(supabase, now) : null
     const reminders = planned.reminders
       ? await runCheckinReminders(supabase, { dryRun, now })
       : null

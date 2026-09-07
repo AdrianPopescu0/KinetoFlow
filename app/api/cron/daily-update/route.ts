@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { runDailyExerciseUpdate } from "@/lib/exercises/daily-update"
+import { runResetDailyProgress } from "@/lib/exercises/reset-daily-progress"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
 export const runtime = "nodejs"
@@ -17,7 +17,7 @@ async function handleDailyUpdate(request: Request) {
   }
 
   try {
-    const summary = await runDailyExerciseUpdate(createServiceRoleClient())
+    const summary = await runResetDailyProgress(createServiceRoleClient())
     return NextResponse.json({ ok: true, ...summary })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Eroare necunoscută."

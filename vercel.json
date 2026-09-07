@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/daily",
+      "path": "/api/cron/reset-daily-progress",
       "schedule": "0 22 * * *"
     }
   ]

@@ -86,17 +86,19 @@ Reguli de securitate aplicate:
 
 ## Cron zilnic (Hobby: un singur job)
 
-Planul Vercel Hobby permite **un singur cron, o dată pe zi**. `vercel.json` are deci o singură rută: `/api/cron/daily` la **22:00 UTC**.
+Planul Vercel Hobby permite **un singur cron, o dată pe zi**. `vercel.json` are deci o singură rută: `/api/cron/reset-daily-progress` la **22:00 UTC** ≈ **00:00 România**.
 
 - iarnă (EET, UTC+2): 22:00 UTC = **00:00** România
 - vară (EEST, UTC+3): 22:00 UTC = **01:00** România (ziua nouă a început deja)
 
-La această oră job-ul **pregătește programul zilei**:
+Job-ul **resetează progresul zilnic** al exercițiilor (`exercise_completions`):
 
-- Exercițiile stau în `exercises`; perioada (ex. 5 zile consecutive) e în `notes` (`Perioadă tratament: DD.MM.YYYY – DD.MM.YYYY`).
-- Portalul arată doar exercițiile active pe `dateKey`-ul București. La miezul nopții se schimbă ziua, deci schema zilei 2/3/… apare automat — nu se copiază rânduri noi.
-- Finalizările (`exercise_completions.completed_on`) sunt pe dată, deci ziua nouă pornește fără „efectuat”.
-- Job-ul recalculează setul activ, numără schemele care încep/se termină azi și șterge finalizările legate de exerciții inactive.
+- Marcajele „Efectuat” sunt pe dată (`completed_on`). Ziua nouă pornește fără bifă — nu se copiază finalizările de ieri.
+- Recalculează setul activ după perioada din `notes` (`Perioadă tratament: DD.MM.YYYY – DD.MM.YYYY`).
+- Șterge finalizările legate de exerciții inactive.
+- Protejat cu `Authorization: Bearer ${CRON_SECRET}`. Fără secret sau header greșit → 401.
+
+Trigger manual: `GET /api/cron/reset-daily-progress?force=1` cu `Authorization: Bearer ${CRON_SECRET}`. Alias-uri: `/api/cron/daily?task=program&force=1`, `/api/cron/daily-update`.
 
 Reminder-ul de check-in de la 18:00 **nu** poate rula în același cron Hobby (ar trebui o a doua declanșare). Rămâne pe `/api/cron/reminders` (sau `?task=reminders` pe `/api/cron/daily`) pentru trigger manual, cron extern sau plan Pro.
 
@@ -112,7 +114,7 @@ Dacă pacientul a activat notificările push, cron-ul trimite **FCM** către tok
 
 Fără credențiale Firebase, aplicația rămâne utilizabilă: onboarding-ul apare, iar pe serverul de dezvoltare trimiterea push e simulată în loguri.
 
-Trigger manual program: `GET /api/cron/daily?task=program&force=1` cu `Authorization: Bearer ${CRON_SECRET}`. Alias: `/api/cron/daily-update`. Reminder: `?task=reminders&force=1` sau `/api/cron/reminders?force=1`. Previzualizare reminder: `?dryRun=1`.
+Trigger manual program: `GET /api/cron/reset-daily-progress?force=1` cu `Authorization: Bearer ${CRON_SECRET}`. Alias: `/api/cron/daily-update` și `/api/cron/daily?task=program&force=1`. Reminder: `?task=reminders&force=1` sau `/api/cron/reminders?force=1`. Previzualizare reminder: `?dryRun=1`.
 
 ## Structură relevantă
 
@@ -128,8 +130,9 @@ app/dashboard/page.tsx           # Dashboard terapeut (protejat)
 app/patient/[token]/page.tsx     # Programul public al pacientului
 app/patient/page.tsx             # Recuperare token (webview fără parametri)
 app/p/[patientToken]/page.tsx    # Alias vechi al programului pacientului
-app/api/cron/daily/route.ts      # Cron Hobby: rollover program la ~00:00 RO (Bearer CRON_SECRET)
+app/api/cron/reset-daily-progress/route.ts # Cron 00:00 RO: reset progres exerciții (Bearer CRON_SECRET)
+app/api/cron/daily/route.ts      # Umbrella: program la miezul nopții + reminder (manual / Pro)
 app/api/cron/reminders/route.ts  # Reminder check-in 18:00 (manual / Pro / cron extern)
-app/api/cron/daily-update/route.ts # Alias manual pentru rollover-ul de program
-vercel.json                      # un singur cron: 22:00 UTC → /api/cron/daily
+app/api/cron/daily-update/route.ts # Alias manual pentru resetul de program
+vercel.json                      # un singur cron: 22:00 UTC → /api/cron/reset-daily-progress
 ```

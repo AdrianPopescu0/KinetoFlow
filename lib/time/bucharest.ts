@@ -110,3 +110,12 @@ export function startOfTodayIso(now = new Date()): string {
 export function startOfTomorrowIso(now = new Date()): string {
   return startOfNextBucharestDay(now).toISOString()
 }
+
+/** Ziua curentă și cea anterioară, calendar București — folosite la resetul de progres zilnic. */
+export function bucharestDayPair(now = new Date()): { dateKey: string; previousDateKey: string } {
+  const dateKey = bucharestDateKey(now)
+  return {
+    dateKey,
+    previousDateKey: addBucharestCalendarDays(dateKey, -1),
+  }
+}
