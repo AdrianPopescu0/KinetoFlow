@@ -313,7 +313,7 @@ function FilterSelect({
         disabled={disabled}
         aria-label={label}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 max-w-[11.5rem] min-w-[8.5rem] rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none focus-visible:border-[#042f2e] focus-visible:ring-3 focus-visible:ring-[#042f2e]/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+        className="h-12 max-w-[16.5rem] min-w-[8.5rem] rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none focus-visible:border-[#042f2e] focus-visible:ring-3 focus-visible:ring-[#042f2e]/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
       >
         {options.map((option) => (
           <option key={option.id} value={option.id}>

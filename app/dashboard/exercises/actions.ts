@@ -5,14 +5,12 @@ import { revalidatePath } from "next/cache"
 import { getCachedUser } from "@/lib/auth/session"
 import { LIBRARY_WRITE_FORBIDDEN, authUserCanEditLibrary } from "@/lib/exercises/library-admin"
 import { libraryExerciseToRow, listStoredLibraryExercises } from "@/lib/exercises/library-store"
-import { isTherapeuticObjective } from "@/lib/exercises/taxonomy"
+import { isExercisePosition, isTherapeuticObjective } from "@/lib/exercises/taxonomy"
 import type {
   AnatomicalRegion,
   Difficulty,
   Equipment,
-  ExercisePosition,
   LibraryExercise,
-  TherapeuticObjective,
 } from "@/lib/exercises/types"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
@@ -56,6 +54,11 @@ function exerciseFromForm(formData: FormData, id?: string): LibraryExercise | { 
     return { error: "Alege un obiectiv terapeutic valid." }
   }
 
+  const position = readText(formData, "position") || "sitting"
+  if (!isExercisePosition(position)) {
+    return { error: "Alege o poziție validă." }
+  }
+
   const videoUrl = readText(formData, "video_url") || null
   return {
     id: id ?? crypto.randomUUID(),
@@ -65,7 +68,7 @@ function exerciseFromForm(formData: FormData, id?: string): LibraryExercise | { 
     subcategory,
     difficulty: (readText(formData, "difficulty") || "usor") as Difficulty,
     equipment: (readText(formData, "equipment") || "none") as Equipment,
-    position: (readText(formData, "position") || "sitting") as ExercisePosition,
+    position,
     sets: readNumber(formData, "sets", 3),
     reps: readNumber(formData, "reps", 10),
     durationSeconds: readNumber(formData, "duration", 90),

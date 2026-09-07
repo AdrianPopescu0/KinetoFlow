@@ -74,10 +74,31 @@ export const EQUIPMENT: { id: Equipment; label: string }[] = [
 ]
 
 export const POSITIONS: { id: ExercisePosition; label: string }[] = [
-  { id: "lying", label: "Culcat (Decubit)" },
-  { id: "sitting", label: "Șezând" },
   { id: "standing", label: "În picioare (Ortostatism)" },
+  { id: "sitting", label: "Așezat (Șezând)" },
+  { id: "lying", label: "Culcat (Dorsal / Ventral / Lateral)" },
+  { id: "kneeling", label: "Pe genunchi" },
+  { id: "hanging", label: "Atârnat" },
 ]
+
+const LEGACY_POSITION_MAP: Record<string, ExercisePosition> = {
+  decubit: "lying",
+  "decubit-dorsal": "lying",
+  "decubit-ventral": "lying",
+  "decubit-lateral": "lying",
+  sezand: "sitting",
+  "șezând": "sitting",
+  asezat: "sitting",
+  "așezat": "sitting",
+  ortostatism: "standing",
+  quadruped: "kneeling",
+  patrupedie: "kneeling",
+  "pe-genunchi": "kneeling",
+  genunchi: "kneeling",
+  atarnat: "hanging",
+  "atârnat": "hanging",
+  suspensie: "hanging",
+}
 
 export function regionById(id: AnatomicalRegion): RegionDef {
   return REGIONS.find((region) => region.id === id) ?? REGIONS[0]
@@ -154,8 +175,23 @@ export function equipmentLabel(id: Equipment): string {
   return EQUIPMENT.find((item) => item.id === id)?.label ?? id
 }
 
-export function positionLabel(id: ExercisePosition): string {
-  return POSITIONS.find((item) => item.id === id)?.label ?? id
+export function isExercisePosition(value: string): value is ExercisePosition {
+  return POSITIONS.some((item) => item.id === value)
+}
+
+export function normalizePosition(value: string | null | undefined): ExercisePosition {
+  if (value && isExercisePosition(value)) {
+    return value
+  }
+  if (value && value in LEGACY_POSITION_MAP) {
+    return LEGACY_POSITION_MAP[value]
+  }
+  return "sitting"
+}
+
+export function positionLabel(id: ExercisePosition | string): string {
+  const normalized = normalizePosition(id)
+  return POSITIONS.find((item) => item.id === normalized)?.label ?? id
 }
 
 export function formatDuration(seconds: number): string {

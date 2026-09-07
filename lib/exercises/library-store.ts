@@ -2,15 +2,14 @@ import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
 import {
   DIFFICULTIES,
   EQUIPMENT,
-  POSITIONS,
   REGIONS,
   normalizeObjective,
+  normalizePosition,
 } from "@/lib/exercises/taxonomy"
 import type {
   AnatomicalRegion,
   Difficulty,
   Equipment,
-  ExercisePosition,
   LibraryExercise,
 } from "@/lib/exercises/types"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
@@ -45,10 +44,6 @@ function isEquipment(value: string): value is Equipment {
   return EQUIPMENT.some((item) => item.id === value)
 }
 
-function isPosition(value: string): value is ExercisePosition {
-  return POSITIONS.some((item) => item.id === value)
-}
-
 export function mapLibraryRow(row: LibraryRow): LibraryExercise | null {
   const region = typeof row.region === "string" && isRegion(row.region) ? row.region : "functional"
   const subcategory = normalizeObjective(row.subcategory)
@@ -56,8 +51,7 @@ export function mapLibraryRow(row: LibraryRow): LibraryExercise | null {
     typeof row.difficulty === "string" && isDifficulty(row.difficulty) ? row.difficulty : "usor"
   const equipment =
     typeof row.equipment === "string" && isEquipment(row.equipment) ? row.equipment : "none"
-  const position =
-    typeof row.position === "string" && isPosition(row.position) ? row.position : "sitting"
+  const position = normalizePosition(row.position)
   const videoUrl = row.video_url?.trim() || null
   const youtubeId = row.youtube_id?.trim() || youtubeIdFromUrl(videoUrl)
 

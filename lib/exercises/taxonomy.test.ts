@@ -3,8 +3,12 @@ import test from "node:test"
 
 import {
   OBJECTIVES,
+  POSITIONS,
+  isExercisePosition,
   isTherapeuticObjective,
   normalizeObjective,
+  normalizePosition,
+  positionLabel,
   subcategoryLabel,
 } from "./taxonomy.ts"
 
@@ -28,4 +32,27 @@ test("etichetele și valorile vechi se normalizează la noul set", () => {
   assert.equal(normalizeObjective("core"), "stability")
   assert.equal(normalizeObjective("trap-stretch"), "stretching")
   assert.equal(normalizeObjective("unknown"), "mobility")
+})
+
+test("pozițiile sunt cele 5 fundamentale din kinetoterapie", () => {
+  assert.deepEqual(
+    POSITIONS.map((item) => item.label),
+    [
+      "În picioare (Ortostatism)",
+      "Așezat (Șezând)",
+      "Culcat (Dorsal / Ventral / Lateral)",
+      "Pe genunchi",
+      "Atârnat",
+    ],
+  )
+  assert.ok(isExercisePosition("standing"))
+  assert.ok(isExercisePosition("sitting"))
+  assert.ok(isExercisePosition("lying"))
+  assert.ok(isExercisePosition("kneeling"))
+  assert.ok(isExercisePosition("hanging"))
+  assert.equal(positionLabel("lying"), "Culcat (Dorsal / Ventral / Lateral)")
+  assert.equal(positionLabel("sitting"), "Așezat (Șezând)")
+  assert.equal(normalizePosition("decubit"), "lying")
+  assert.equal(normalizePosition("patrupedie"), "kneeling")
+  assert.equal(normalizePosition("unknown"), "sitting")
 })

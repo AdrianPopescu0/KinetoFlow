@@ -11,7 +11,7 @@ export type Difficulty = "usor" | "mediu" | "avansat"
 
 export type Equipment = "none" | "bands" | "dumbbells" | "ball" | "roller"
 
-export type ExercisePosition = "lying" | "sitting" | "standing"
+export type ExercisePosition = "standing" | "sitting" | "lying" | "kneeling" | "hanging"
 
 export type TherapeuticObjective = "mobility" | "strength" | "stability" | "stretching" | "posture"
 
