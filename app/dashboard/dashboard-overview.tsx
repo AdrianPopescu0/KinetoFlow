@@ -36,9 +36,13 @@ export function DashboardOverview({
 
       <section className={surfaceCardClassName("overflow-hidden")}>
         <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-800">Listă pacienți</h2>
+          <h2 className="text-base font-semibold text-slate-800">
+            {filter === "checkins" ? "Check-in-uri azi" : "Listă pacienți"}
+          </h2>
           <p className="text-sm text-slate-600">
-            Caută după pacient sau apasă un card de metrici pentru a filtra lista.
+            {filter === "checkins"
+              ? "Cine a trimis formularul azi și cine e încă în așteptare, după vizualizarea selectată."
+              : "Caută după pacient sau apasă un card de metrici pentru a filtra lista."}
           </p>
         </div>
         <PatientList

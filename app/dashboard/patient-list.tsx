@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import { Search } from "lucide-react"
 
 import { PatientMobileCard, PatientTableRow } from "@/app/dashboard/patient-list-rows"
+import { CheckinsTodayPanel } from "@/app/dashboard/checkins-today-panel"
 import { assignPatientTherapist } from "@/app/dashboard/patients/actions"
 import { toast } from "@/components/ui/toaster"
 import { Input } from "@/components/ui/input"
@@ -106,7 +107,7 @@ export function PatientList({
     setExerciseTarget(null)
   }, [])
 
-  const filtered = useMemo(() => {
+  const scoped = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return rows.filter((patient) => {
       if (!patientMatchesAssignmentScope(patient, scope, currentTherapistId)) {
@@ -116,9 +117,16 @@ export function PatientList({
       if (needle && !haystack.includes(needle)) {
         return false
       }
-      return patientMatchesListFilter(patient, filter)
+      return true
     })
-  }, [currentTherapistId, filter, query, rows, scope])
+  }, [currentTherapistId, query, rows, scope])
+
+  const filtered = useMemo(() => {
+    if (filter === "checkins") {
+      return scoped
+    }
+    return scoped.filter((patient) => patientMatchesListFilter(patient, filter))
+  }, [filter, scoped])
 
   return (
     <div className="min-w-0 overflow-x-hidden">
@@ -164,7 +172,9 @@ export function PatientList({
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {filter === "checkins" ? (
+        <CheckinsTodayPanel patients={scoped} query={query} scope={scope} />
+      ) : filtered.length === 0 ? (
         <p className="px-5 py-8 text-center text-sm text-slate-600">
           {query.trim()
             ? "Nu am găsit pacienți pentru filtrul selectat."

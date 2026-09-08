@@ -27,6 +27,7 @@ import {
   isWriteConflict,
   type PatientFileSnapshot,
 } from "@/lib/patients/optimistic"
+import { sendManualCheckinReminder } from "@/lib/reminders/manual-checkin"
 
 export type MutationState = {
   error: string | null
@@ -556,3 +557,20 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
 
   return { error: null }
 }
+
+export async function sendCheckinReminder(patientId: string): Promise<{
+  error: string | null
+  sent: boolean
+  channel: "push" | "sms" | null
+}> {
+  const { supabase, user } = await requireUser()
+  if (!user) {
+    return { error: "Sesiunea a expirat. Autentifică-te din nou.", sent: false, channel: null }
+  }
+  if (typeof patientId !== "string" || patientId.length < 8) {
+    return { error: "Lipsește pacientul.", sent: false, channel: null }
+  }
+
+  return sendManualCheckinReminder(supabase, user.id, patientId)
+}
+

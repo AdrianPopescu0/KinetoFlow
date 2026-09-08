@@ -70,6 +70,15 @@ export function isBucharestToday(input: Date | string, now = new Date()): boolea
   return key.length > 0 && key === bucharestDateKey(now)
 }
 
+/** Oră `HH:mm` pe ceasul din Europe/Bucharest. */
+export function formatBucharestClock(input: Date | string): string {
+  const wall = bucharestWallClock(input)
+  if (!wall) {
+    return ""
+  }
+  return `${pad2(wall.hour)}:${pad2(wall.minute)}`
+}
+
 export function addBucharestCalendarDays(ymd: string, days: number): string {
   const [year, month, day] = ymd.split("-").map(Number)
   const utcNoon = new Date(Date.UTC(year, month - 1, day + days, 12, 0, 0))

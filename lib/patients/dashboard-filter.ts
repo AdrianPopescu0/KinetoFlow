@@ -1,5 +1,5 @@
-import type { PatientListItem } from "@/lib/patients/types-db"
-import { bucharestDateKey, isBucharestToday } from "@/lib/time/bucharest"
+import type { PatientListItem } from "./types-db.ts"
+import { bucharestDateKey, isBucharestToday } from "../time/bucharest.ts"
 
 export type PatientListFilter = "all" | "checkins" | "alert" | "compliance" | "silent"
 
@@ -44,10 +44,8 @@ export function patientMatchesListFilter(
     return patient.lastVas === null
   }
   if (filter === "checkins") {
-    if (!patient.lastCheckInAt) {
-      return false
-    }
-    return isBucharestToday(patient.lastCheckInAt, new Date(now))
+    // Lista principală e înlocuită de split Completat / În așteptare.
+    return true
   }
   if (filter === "compliance") {
     return isLowCompliance(patient, now)
@@ -60,7 +58,7 @@ export function emptyFilterMessage(filter: PatientListFilter): string {
     case "alert":
       return "Niciun pacient cu VAS ≥ 7 momentan."
     case "checkins":
-      return "Niciun pacient nu a completat un check-in azi."
+      return "Nu există pacienți în vizualizarea de check-in de azi."
     case "compliance":
       return "Niciun pacient cu complianță scăzută (fără check-in în ultimele 7 zile)."
     case "silent":
@@ -68,6 +66,34 @@ export function emptyFilterMessage(filter: PatientListFilter): string {
     default:
       return "Nu am găsit pacienți pentru filtrul selectat."
   }
+}
+
+export function patientHasCheckInToday(patient: PatientListItem, now = new Date()): boolean {
+  if (!patient.lastCheckInAt) {
+    return false
+  }
+  return isBucharestToday(patient.lastCheckInAt, now)
+}
+
+export function splitPatientsByTodayCheckIn(
+  patients: PatientListItem[],
+  now = new Date(),
+): { completed: PatientListItem[]; pending: PatientListItem[] } {
+  const completed: PatientListItem[] = []
+  const pending: PatientListItem[] = []
+
+  for (const patient of patients) {
+    if (patientHasCheckInToday(patient, now)) {
+      completed.push(patient)
+    } else {
+      pending.push(patient)
+    }
+  }
+
+  completed.sort((left, right) => (right.lastCheckInAt ?? "").localeCompare(left.lastCheckInAt ?? ""))
+  pending.sort((left, right) => left.full_name.localeCompare(right.full_name, "ro"))
+
+  return { completed, pending }
 }
 
 export function emptyAssignmentScopeMessage(scope: PatientAssignmentScope): string {
