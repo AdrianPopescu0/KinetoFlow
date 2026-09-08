@@ -211,6 +211,7 @@ export async function runCheckinReminders(
   })
 
   for (const patient of patients) {
+    try {
     const phone = typeof patient.phone === "string" ? patient.phone.trim() : ""
     const accessCode = typeof patient.access_code === "string" ? patient.access_code.trim() : ""
     const storedNotifyChannel = patient.notify_channel ?? null
@@ -408,6 +409,21 @@ export async function runCheckinReminders(
         reason: result.error ?? "Trimitere eșuată.",
         channel: result.channel,
         provider: result.provider,
+      })
+    }
+    } catch (error) {
+      failed += 1
+      const message = error instanceof Error ? error.message : "Eroare necunoscută."
+      reminderWarn("Eroare la un pacient; continui cu restul.", {
+        patientId: patient.id,
+        fullName: patient.full_name,
+        error: message,
+      })
+      outcomes.push({
+        patientId: patient.id,
+        fullName: patient.full_name,
+        status: "failed",
+        reason: message,
       })
     }
   }

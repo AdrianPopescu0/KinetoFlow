@@ -9,9 +9,14 @@ function buffersEqual(left: string, right: string): boolean {
   return timingSafeEqual(a, b)
 }
 
+function secretTokenMatches(token: string, secret: string): boolean {
+  return buffersEqual(token, secret)
+}
+
 /**
- * Vercel trimite `Authorization: Bearer ${CRON_SECRET}`.
- * Acceptă și spații accidentale / `bearer` lowercase, dar respinge lipsa prefixului.
+ * Vercel și cron-job.org trimit `Authorization: Bearer ${CRON_SECRET}`.
+ * Acceptă și spații accidentale / `bearer` lowercase, dar respinge lipsa prefixului
+ * pe acest header (ca să nu confunde un Bearer malformat cu un secret brut).
  */
 export function authorizationMatchesCronSecret(
   authorization: string | null,
@@ -39,11 +44,37 @@ export function authorizationMatchesCronSecret(
   if (!token) {
     return false
   }
-  return buffersEqual(token, secret)
+  return secretTokenMatches(token, secret)
 }
 
+/** Header custom (cron-job.org → Advanced): valoarea e secretul sau `Bearer …`. */
+export function headerMatchesCronSecret(value: string | null, cronSecret: string | undefined): boolean {
+  if (!cronSecret || !value) {
+    return false
+  }
+  const secret = cronSecret.trim()
+  const token = value.trim()
+  if (!secret || !token) {
+    return false
+  }
+  if (secretTokenMatches(token, secret)) {
+    return true
+  }
+  return authorizationMatchesCronSecret(token, secret)
+}
+
+const CRON_SECRET_HEADERS = ["x-cron-secret", "x-cron-job-secret", "x-api-key"] as const
+
 export function isAuthorizedCronRequest(request: Request, cronSecret = process.env.CRON_SECRET): boolean {
-  return authorizationMatchesCronSecret(request.headers.get("authorization"), cronSecret)
+  if (authorizationMatchesCronSecret(request.headers.get("authorization"), cronSecret)) {
+    return true
+  }
+  for (const name of CRON_SECRET_HEADERS) {
+    if (headerMatchesCronSecret(request.headers.get(name), cronSecret)) {
+      return true
+    }
+  }
+  return false
 }
 
 /** Invocare din Vercel Cron (header-ele sunt în plus față de Bearer; nu înlocuiesc secretul). */
@@ -64,4 +95,11 @@ export function shouldRunDailyProgressReset(options: {
   inMidnightWindow: boolean
 }): boolean {
   return options.force || options.vercelCron || options.inMidnightWindow
+}
+
+export function cronErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+  return "Eroare necunoscută."
 }

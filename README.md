@@ -102,7 +102,7 @@ Job-ul **resetează progresul zilnic** al exercițiilor (`exercise_completions`)
 
 Trigger manual: `GET /api/cron/reset-daily-progress?force=1` cu `Authorization: Bearer ${CRON_SECRET}`. Alias-uri: `/api/cron/daily?task=program&force=1`, `/api/cron/daily-update`.
 
-Reminder-ul de check-in de la 18:00 **nu** poate rula în același cron Hobby (ar trebui o a doua declanșare). Rămâne pe `/api/cron/reminders` (sau `?task=reminders` pe `/api/cron/daily`) pentru trigger manual, cron extern sau plan Pro.
+Reminder-ul de check-in de la 18:00 **nu** poate rula în același cron Hobby (ar trebui o a doua declanșare). Rămâne pe `/api/cron/reminders` (sau `?task=reminders` pe `/api/cron/daily`) pentru trigger manual, **cron-job.org** sau plan Pro. Endpoint-ul **nu e public**: trimite `Authorization: Bearer ${CRON_SECRET}` sau `X-Cron-Secret: ${CRON_SECRET}` (în cron-job.org: Advanced → Request headers). Fără secret → 401 `{ "ok": false, "error": "Neautorizat." }`. Erorile de bază sau de pacient se întorc ca 500 JSON, nu ca crash; un pacient eșuat nu oprește restul job-ului. `?force=1` ignoră fereastra 18:00.
 
 Dacă pacientul a activat notificările push, cron-ul trimite **FCM** către tokenul salvat (`patient_push_tokens`) în loc de SMS/WhatsApp. Fără token (sau dacă FCM eșuează), rămâne fallback-ul SMS Twilio.
 

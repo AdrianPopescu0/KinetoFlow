@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { cronErrorMessage, isAuthorizedCronRequest } from "@/lib/cron/authorize"
 import { configuredNotifyChannels } from "@/lib/patients/notify-patient"
 import { runCheckinReminders } from "@/lib/reminders/checkin-reminders"
 import {
@@ -12,66 +13,73 @@ import { createServiceRoleClient } from "@/utils/supabase/admin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function authorizeCron(request: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim()
-  if (!secret) {
-    return false
-  }
-  const header = request.headers.get("authorization")
-  if (!header) {
-    return false
-  }
-  const expected = `Bearer ${secret}`
-  return header === expected
+function unauthorized() {
+  return NextResponse.json({ ok: false, error: "Neautorizat." }, { status: 401 })
 }
 
+function failure(error: unknown, status = 500) {
+  const message = cronErrorMessage(error)
+  console.error("[cron/reminders]", message)
+  return NextResponse.json({ ok: false, error: message }, { status })
+}
+
+/**
+ * Reminder check-in 18:00 Europe/Bucharest.
+ * Protejat cu CRON_SECRET — nu e public.
+ *
+ * cron-job.org (Advanced → Request headers), același secret ca pe Vercel:
+ *   Authorization: Bearer ${CRON_SECRET}
+ * sau
+ *   X-Cron-Secret: ${CRON_SECRET}
+ */
 async function handleReminders(request: Request) {
-  if (!authorizeCron(request)) {
-    console.warn("[checkin-reminders] Cerere respinsă: secret cron lipsă sau header Authorization greșit.", {
-      hasCronSecret: Boolean(process.env.CRON_SECRET?.trim()),
-      hasAuthorization: Boolean(request.headers.get("authorization")),
-    })
-    return NextResponse.json({ error: "Neautorizat." }, { status: 401 })
-  }
+  try {
+    if (!isAuthorizedCronRequest(request)) {
+      console.warn("[checkin-reminders] Cerere respinsă: secret cron lipsă sau header greșit.", {
+        hasCronSecret: Boolean(process.env.CRON_SECRET?.trim()),
+        hasAuthorization: Boolean(request.headers.get("authorization")),
+        hasCronSecretHeader: Boolean(request.headers.get("x-cron-secret") || request.headers.get("x-api-key")),
+      })
+      return unauthorized()
+    }
 
-  const url = new URL(request.url)
-  const dryRun = url.searchParams.get("dryRun") === "1"
-  const force = url.searchParams.get("force") === "1"
-  const now = new Date()
-  const hour = bucharestHour(now)
-  const dateKey = bucharestDateKey(now)
-  const inWindow = isCheckinReminderWindow(now)
-  const channels = configuredNotifyChannels()
+    const url = new URL(request.url)
+    const dryRun = url.searchParams.get("dryRun") === "1"
+    const force = url.searchParams.get("force") === "1"
+    const now = new Date()
+    const hour = bucharestHour(now)
+    const dateKey = bucharestDateKey(now)
+    const inWindow = isCheckinReminderWindow(now)
+    const channels = configuredNotifyChannels()
 
-  console.info("[checkin-reminders] Cron /api/cron/reminders apelat.", {
-    dateKey,
-    bucharestHour: hour,
-    reminderHour: CHECKIN_REMINDER_HOUR_BUCHAREST,
-    inWindow,
-    force,
-    dryRun,
-    channels,
-  })
-
-  if (!force && !inWindow) {
-    console.warn("[checkin-reminders] Nu trimit: în afara ferestrei orare.", {
+    console.info("[checkin-reminders] Cron /api/cron/reminders apelat.", {
       dateKey,
       bucharestHour: hour,
       reminderHour: CHECKIN_REMINDER_HOUR_BUCHAREST,
-      reason: `Ora București e ${hour}:00, reminder-ele pleacă doar la ${CHECKIN_REMINDER_HOUR_BUCHAREST}:00 (sau ?force=1).`,
-    })
-    return NextResponse.json({
-      ok: true,
-      skipped: true,
-      reason: `În afara ferestrei ${CHECKIN_REMINDER_HOUR_BUCHAREST}:00 Europe/Bucharest.`,
-      dateKey,
-      bucharestHour: hour,
-      reminderHour: CHECKIN_REMINDER_HOUR_BUCHAREST,
+      inWindow,
+      force,
+      dryRun,
       channels,
     })
-  }
 
-  try {
+    if (!force && !inWindow) {
+      console.warn("[checkin-reminders] Nu trimit: în afara ferestrei orare.", {
+        dateKey,
+        bucharestHour: hour,
+        reminderHour: CHECKIN_REMINDER_HOUR_BUCHAREST,
+        reason: `Ora București e ${hour}:00, reminder-ele pleacă doar la ${CHECKIN_REMINDER_HOUR_BUCHAREST}:00 (sau ?force=1).`,
+      })
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        reason: `În afara ferestrei ${CHECKIN_REMINDER_HOUR_BUCHAREST}:00 Europe/Bucharest.`,
+        dateKey,
+        bucharestHour: hour,
+        reminderHour: CHECKIN_REMINDER_HOUR_BUCHAREST,
+        channels,
+      })
+    }
+
     const supabase = createServiceRoleClient()
     const summary = await runCheckinReminders(supabase, { dryRun, now })
 
@@ -87,7 +95,6 @@ async function handleReminders(request: Request) {
       sent: summary.sent,
       failed: summary.failed,
       skipped: summary.skipped,
-      // Detalii utile la debug; pe Vercel logs rămân în response body.
       outcomes: summary.outcomes.map((outcome) => ({
         patientId: outcome.patientId,
         status: outcome.status,
@@ -97,18 +104,24 @@ async function handleReminders(request: Request) {
       })),
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Eroare necunoscută."
-    console.error("[cron/reminders]", message)
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    return failure(error)
   }
 }
 
-/** Vercel Cron apelează GET. */
+/** GET: Vercel Cron și cron-job.org. */
 export async function GET(request: Request) {
-  return handleReminders(request)
+  try {
+    return await handleReminders(request)
+  } catch (error) {
+    return failure(error)
+  }
 }
 
-/** Permite și POST pentru trigger manual / teste (`?force=1` ignoră fereastra 18:30). */
+/** POST: trigger manual / cron-job.org. `?force=1` ignoră fereastra 18:00. */
 export async function POST(request: Request) {
-  return handleReminders(request)
+  try {
+    return await handleReminders(request)
+  } catch (error) {
+    return failure(error)
+  }
 }

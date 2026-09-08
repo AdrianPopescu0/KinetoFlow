@@ -36,6 +36,36 @@ test("isAuthorizedCronRequest citește Authorization de pe Request", () => {
   assert.equal(isAuthorizedCronRequest(bad, SECRET), false)
 })
 
+test("cron-job.org: secret în X-Cron-Secret sau X-Api-Key, nu doar Authorization", () => {
+  assert.equal(
+    isAuthorizedCronRequest(
+      new Request("https://example.com/api/cron/reminders", {
+        headers: { "x-cron-secret": SECRET },
+      }),
+      SECRET,
+    ),
+    true,
+  )
+  assert.equal(
+    isAuthorizedCronRequest(
+      new Request("https://example.com/api/cron/reminders", {
+        headers: { "x-api-key": `Bearer ${SECRET}` },
+      }),
+      SECRET,
+    ),
+    true,
+  )
+  assert.equal(
+    isAuthorizedCronRequest(
+      new Request("https://example.com/api/cron/reminders", {
+        headers: { "user-agent": "cron-job.org" },
+      }),
+      SECRET,
+    ),
+    false,
+  )
+})
+
 test("detectează invocarea Vercel Cron din header / user-agent", () => {
   assert.equal(
     isVercelCronInvocation(
