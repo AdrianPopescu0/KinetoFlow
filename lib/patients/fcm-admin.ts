@@ -3,51 +3,30 @@ import "server-only"
 import { cert, getApps, initializeApp, type ServiceAccount } from "firebase-admin/app"
 import { getMessaging, type Messaging } from "firebase-admin/messaging"
 
-import { normalizeFirebasePrivateKey } from "@/lib/patients/fcm-private-key"
+import {
+  normalizeFirebasePrivateKey,
+  parseFirebaseServiceAccountJson,
+  type FirebaseServiceAccountFields,
+} from "@/lib/patients/fcm-private-key"
 
-type ServiceAccountFields = {
-  projectId: string
-  clientEmail: string
-  privateKey: string
-}
-
-function parseServiceAccountJson(raw: string): ServiceAccountFields | null {
-  const candidates = [raw.trim()]
-  const unquoted = raw.trim().replace(/^["']+|["']+$/g, "").trim()
-  if (unquoted && unquoted !== candidates[0]) {
-    candidates.push(unquoted)
+function credentialFromAccount(account: FirebaseServiceAccountFields): ServiceAccount | null {
+  const privateKey = normalizeFirebasePrivateKey(account.privateKey)
+  if (!privateKey) {
+    return null
   }
-
-  for (const candidate of candidates) {
-    try {
-      const parsed = JSON.parse(candidate) as {
-        project_id?: string
-        projectId?: string
-        client_email?: string
-        clientEmail?: string
-        private_key?: string
-        privateKey?: string
-      }
-      const projectId = (parsed.project_id ?? parsed.projectId)?.trim()
-      const clientEmail = (parsed.client_email ?? parsed.clientEmail)?.trim()
-      const privateKey = normalizeFirebasePrivateKey(parsed.private_key ?? parsed.privateKey)
-      if (!projectId || !clientEmail || !privateKey) {
-        continue
-      }
-      return { projectId, clientEmail, privateKey }
-    } catch {
-      // încearcă următorul candidat
-    }
+  return {
+    projectId: account.projectId,
+    clientEmail: account.clientEmail,
+    privateKey,
   }
-  return null
 }
 
 export function readFirebaseServiceAccount(
   env: NodeJS.ProcessEnv = process.env,
-): ServiceAccountFields | null {
-  const json = env.FIREBASE_SERVICE_ACCOUNT?.trim()
+): FirebaseServiceAccountFields | null {
+  const json = env.FIREBASE_SERVICE_ACCOUNT
   if (json) {
-    const fromJson = parseServiceAccountJson(json)
+    const fromJson = parseFirebaseServiceAccountJson(json)
     if (fromJson) {
       return fromJson
     }
@@ -79,10 +58,11 @@ export function getFirebaseMessagingAdmin(): Messaging | null {
     return null
   }
 
-  const serviceAccount: ServiceAccount = {
-    projectId: account.projectId,
-    clientEmail: account.clientEmail,
-    privateKey: account.privateKey,
+  const serviceAccount = credentialFromAccount(account)
+  if (!serviceAccount?.privateKey) {
+    console.error("[fcm-admin] Cheia privată lipsește sau nu a putut fi transformată în PEM.")
+    messagingSingleton = null
+    return null
   }
 
   try {
