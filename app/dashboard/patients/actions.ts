@@ -561,7 +561,7 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
 export async function sendCheckinReminder(patientId: string): Promise<{
   error: string | null
   sent: boolean
-  channel: "push" | "sms" | null
+  channel: "push" | null
 }> {
   const { supabase, user } = await requireUser()
   if (!user) {

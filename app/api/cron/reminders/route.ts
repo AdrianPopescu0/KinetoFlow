@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { cronErrorMessage, describeCronAuthFailure, isAuthorizedCronRequest } from "@/lib/cron/authorize"
-import { configuredNotifyChannels } from "@/lib/patients/notify-patient"
+import { configuredReminderChannels } from "@/lib/patients/notify-patient"
 import { runCheckinReminders } from "@/lib/reminders/checkin-reminders"
 import {
   CHECKIN_REMINDER_HOUR_BUCHAREST,
@@ -51,7 +51,7 @@ async function handleReminders(request: Request) {
     const hour = bucharestHour(now)
     const dateKey = bucharestDateKey(now)
     const inWindow = isCheckinReminderWindow(now)
-    const channels = configuredNotifyChannels()
+    const channels = configuredReminderChannels()
 
     console.info("[checkin-reminders] Cron /api/cron/reminders apelat.", {
       dateKey,

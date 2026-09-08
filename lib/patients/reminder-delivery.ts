@@ -1,19 +1,9 @@
-export type ReminderDelivery = "push" | "sms" | "none"
+export type ReminderDelivery = "push" | "none"
 
 /**
- * Push are prioritate față de SMS/WhatsApp atunci când pacientul a salvat un token FCM.
- * Fără token, rămâne SMS (dacă există telefon + cod).
+ * Reminderele de check-in se trimit exclusiv prin Web Push (FCM).
+ * Fără token înregistrat, nu se trimite SMS sau WhatsApp.
  */
-export function chooseReminderDelivery(input: {
-  pushTokens: string[]
-  hasValidPhone: boolean
-  hasAccessCode: boolean
-}): ReminderDelivery {
-  if (input.pushTokens.length > 0) {
-    return "push"
-  }
-  if (input.hasValidPhone && input.hasAccessCode) {
-    return "sms"
-  }
-  return "none"
+export function chooseReminderDelivery(input: { pushTokens: string[] }): ReminderDelivery {
+  return input.pushTokens.length > 0 ? "push" : "none"
 }

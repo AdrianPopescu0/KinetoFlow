@@ -23,7 +23,7 @@ export function twilioSmsFrom(): string | null {
 export async function sendSmsMessage(phone: string, message: string): Promise<SmsSendResult> {
   const to = toWhatsAppNumber(phone)
   if (!to) {
-    console.warn("[checkin-reminders] SMS: număr invalid, nu pot normaliza destinația.")
+    console.warn("[patient-sms] SMS: număr invalid, nu pot normaliza destinația.")
     return { sent: false, provider: null, error: "Număr invalid." }
   }
 
@@ -31,7 +31,7 @@ export async function sendSmsMessage(phone: string, message: string): Promise<Sm
   const twilioToken = process.env.TWILIO_AUTH_TOKEN?.trim()
   const twilioFrom = twilioSmsFrom()
   if (!twilioSid || !twilioToken || !twilioFrom) {
-    console.warn("[checkin-reminders] Niciun provider SMS configurat.", {
+    console.warn("[patient-sms] Niciun provider SMS configurat.", {
       hasTwilioSid: Boolean(twilioSid),
       hasTwilioToken: Boolean(twilioToken),
       hasTwilioPhoneNumber: Boolean(process.env.TWILIO_PHONE_NUMBER?.trim()),
@@ -60,7 +60,7 @@ export async function sendSmsMessage(phone: string, message: string): Promise<Sm
     })
     if (!response.ok) {
       const detail = await readProviderError(response)
-      console.warn("[checkin-reminders] SMS Twilio a eșuat.", {
+      console.warn("[patient-sms] SMS Twilio a eșuat.", {
         status: response.status,
         to: `***${to.slice(-4)}`,
         detail,
@@ -70,7 +70,7 @@ export async function sendSmsMessage(phone: string, message: string): Promise<Sm
     return { sent: true, provider: "twilio-sms" }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Twilio SMS request failed."
-    console.warn("[checkin-reminders] SMS Twilio request failed.", { message })
+    console.warn("[patient-sms] SMS Twilio request failed.", { message })
     return { sent: false, provider: "twilio-sms", error: message }
   }
 }

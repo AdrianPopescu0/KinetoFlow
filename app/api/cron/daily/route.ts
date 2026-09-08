@@ -7,7 +7,7 @@ import {
   isCheckinReminderWindow,
   isMidnightProgramWindow,
 } from "@/lib/cron/windows"
-import { configuredNotifyChannels } from "@/lib/patients/notify-patient"
+import { configuredReminderChannels } from "@/lib/patients/notify-patient"
 import { runCheckinReminders } from "@/lib/reminders/checkin-reminders"
 import { bucharestDateKey, bucharestHour } from "@/lib/time/bucharest"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
@@ -90,7 +90,7 @@ async function handleDailyCron(request: Request) {
     dryRun,
     task,
     ran: { program: planned.program, reminders: planned.reminders },
-    channels: configuredNotifyChannels(),
+    channels: configuredReminderChannels(),
   })
 
   try {
@@ -118,7 +118,7 @@ async function handleDailyCron(request: Request) {
             sent: reminders.sent,
             failed: reminders.failed,
             skipped: reminders.skipped,
-            channels: configuredNotifyChannels(),
+            channels: configuredReminderChannels(),
             reminderHour: CHECKIN_REMINDER_HOUR_BUCHAREST,
             outcomes: reminders.outcomes.map((outcome) => ({
               patientId: outcome.patientId,
