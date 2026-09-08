@@ -23,6 +23,8 @@ function patient(overrides: Partial<PatientListItem> & Pick<PatientListItem, "id
     notify_channel: "sms",
     lastVas: null,
     lastCheckInAt: null,
+    activeDaysLast7: 0,
+    frequencyWindowDays: 7,
     ...overrides,
   }
 }

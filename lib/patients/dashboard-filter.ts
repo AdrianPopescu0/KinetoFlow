@@ -1,4 +1,5 @@
 import type { PatientListItem } from "./types-db.ts"
+import { isLowRealFrequency } from "./compliance.ts"
 import { bucharestDateKey, isBucharestToday } from "../time/bucharest.ts"
 
 export type PatientListFilter = "all" | "checkins" | "alert" | "compliance" | "silent"
@@ -7,15 +8,10 @@ export type PatientAssignmentScope = "mine" | "clinic"
 
 export const PATIENT_SCOPE_STORAGE_KEY = "kinetoflow:dashboard-patient-scope"
 
-export const COMPLIANCE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
-
 export { bucharestDateKey }
 
-export function isLowCompliance(patient: PatientListItem, now = Date.now()): boolean {
-  if (!patient.lastCheckInAt) {
-    return true
-  }
-  return new Date(patient.lastCheckInAt).getTime() < now - COMPLIANCE_WINDOW_MS
+export function isLowCompliance(patient: PatientListItem): boolean {
+  return isLowRealFrequency(patient.activeDaysLast7, patient.frequencyWindowDays)
 }
 
 export function patientMatchesAssignmentScope(
@@ -32,7 +28,6 @@ export function patientMatchesAssignmentScope(
 export function patientMatchesListFilter(
   patient: PatientListItem,
   filter: PatientListFilter,
-  now = Date.now(),
 ): boolean {
   if (filter === "all") {
     return true
@@ -48,7 +43,7 @@ export function patientMatchesListFilter(
     return true
   }
   if (filter === "compliance") {
-    return isLowCompliance(patient, now)
+    return isLowCompliance(patient)
   }
   return true
 }
@@ -60,7 +55,7 @@ export function emptyFilterMessage(filter: PatientListFilter): string {
     case "checkins":
       return "Nu există pacienți în vizualizarea de check-in de azi."
     case "compliance":
-      return "Niciun pacient cu complianță scăzută (fără check-in în ultimele 7 zile)."
+      return "Niciun pacient cu frecvență scăzută (sub jumătate din zilele active din ultimele 7)."
     case "silent":
       return "Toți pacienții au cel puțin un check-in."
     default:

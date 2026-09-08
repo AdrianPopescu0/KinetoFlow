@@ -37,11 +37,14 @@ export type CheckInRecord = {
 export type PatientListItem = PatientRecord & {
   lastVas: number | null
   lastCheckInAt: string | null
+  activeDaysLast7: number
+  frequencyWindowDays: number
 }
 
 export type DashboardStats = {
   activePatients: number
   checkInsToday: number
   painAlerts: number
-  compliancePercent: number
+  realFrequencyActiveDays: number
+  realFrequencyWindowDays: number
 }

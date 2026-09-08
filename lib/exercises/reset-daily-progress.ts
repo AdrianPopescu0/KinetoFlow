@@ -55,7 +55,7 @@ async function countCompletionsForDate(supabase: SupabaseClient, dateKey: string
  *
  * Finalizările sunt pe dată (`completed_on`). Ziua nouă nu moștenește
  * „Efectuat” de ieri; job-ul pregătește setul activ și curăță marcajele
- * legate de exerciții inactive. Istoricul de ieri rămâne pentru compliance.
+ * legate de exerciții inactive. Istoricul de ieri rămâne pentru frecvența reală.
  */
 export async function runResetDailyProgress(
   supabase: SupabaseClient,

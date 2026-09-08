@@ -1,8 +1,12 @@
 import { cache } from "react"
 
 import { getCachedUser } from "@/lib/auth/session"
-import { sevenDayCompliancePercent } from "@/lib/patients/compliance"
-import { isBucharestToday } from "@/lib/time/bucharest"
+import {
+  REAL_FREQUENCY_WINDOW_DAYS,
+  clinicAverageFrequency,
+  countActiveFrequencyDays,
+} from "@/lib/patients/compliance"
+import { addBucharestCalendarDays, bucharestDateKey, isBucharestToday } from "@/lib/time/bucharest"
 import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
 import type {
   CheckInRecord,
@@ -13,7 +17,7 @@ import type {
 } from "@/lib/patients/types-db"
 
 /** Coloane explicite (fără `select(*)`). Embed-ul `check_ins` păstrează toate rândurile
- *  necesare pentru ultimul VAS, check-in-uri azi și complianța pe 7 zile. */
+ *  necesare pentru ultimul VAS, check-in-uri azi și frecvența reală pe 7 zile. */
 const PATIENT_LIST_COLUMNS =
   "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
 const PATIENT_LIST_COLUMNS_PLAIN =
@@ -83,7 +87,8 @@ export const listTherapistPatients = cache(async (): Promise<{
     activePatients: 0,
     checkInsToday: 0,
     painAlerts: 0,
-    compliancePercent: 0,
+    realFrequencyActiveDays: 0,
+    realFrequencyWindowDays: REAL_FREQUENCY_WINDOW_DAYS,
   }
 
   const { supabase, userId } = await currentTherapist()
@@ -131,6 +136,60 @@ export const listTherapistPatients = cache(async (): Promise<{
   return assemblePatientList((data ?? []) as Record<string, unknown>[], supabase)
 })
 
+async function listExerciseCompletionDaysByPatient(
+  supabase: Awaited<ReturnType<typeof currentTherapist>>["supabase"],
+  patientIds: string[],
+  fromDateKey: string,
+  toDateKey: string,
+): Promise<Map<string, string[]>> {
+  const daysByPatient = new Map<string, string[]>()
+  if (patientIds.length === 0) {
+    return daysByPatient
+  }
+
+  const addRow = (patientId: unknown, rawDay: unknown) => {
+    if (typeof patientId !== "string" || typeof rawDay !== "string" || rawDay.length < 10) {
+      return
+    }
+    const day = rawDay.slice(0, 10)
+    const current = daysByPatient.get(patientId)
+    if (current) {
+      current.push(day)
+    } else {
+      daysByPatient.set(patientId, [day])
+    }
+  }
+
+  const withCompletedOn = await supabase
+    .from("exercise_completions")
+    .select("patient_id, completed_on")
+    .in("patient_id", patientIds)
+    .gte("completed_on", fromDateKey)
+    .lte("completed_on", toDateKey)
+
+  if (!withCompletedOn.error) {
+    for (const row of (withCompletedOn.data ?? []) as unknown as Array<Record<string, unknown>>) {
+      addRow(row.patient_id, row.completed_on)
+    }
+    return daysByPatient
+  }
+
+  const withLocalDate = await supabase
+    .from("exercise_completions")
+    .select("patient_id, local_date")
+    .in("patient_id", patientIds)
+    .gte("local_date", fromDateKey)
+    .lte("local_date", toDateKey)
+
+  if (!withLocalDate.error) {
+    for (const row of (withLocalDate.data ?? []) as Array<Record<string, unknown>>) {
+      addRow(row.patient_id, row.local_date)
+    }
+  }
+
+  return daysByPatient
+}
+
 async function assemblePatientList(
   rawPatients: Record<string, unknown>[],
   supabase: Awaited<ReturnType<typeof currentTherapist>>["supabase"],
@@ -156,33 +215,50 @@ async function assemblePatientList(
     }
   }
 
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
   const latestByPatient = new Map<string, Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>()
 
+  const checkInsByPatient = new Map<string, string[]>()
   for (const row of checkIns) {
     const current = latestByPatient.get(row.patient_id)
     if (!current || row.created_at > current.created_at) {
       latestByPatient.set(row.patient_id, row)
     }
+    const stamps = checkInsByPatient.get(row.patient_id)
+    if (stamps) {
+      stamps.push(row.created_at)
+    } else {
+      checkInsByPatient.set(row.patient_id, [row.created_at])
+    }
   }
+
+  const todayKey = bucharestDateKey()
+  const windowStartKey = addBucharestCalendarDays(todayKey, -(REAL_FREQUENCY_WINDOW_DAYS - 1))
+  const exerciseDaysByPatient = await listExerciseCompletionDaysByPatient(
+    supabase,
+    patients.map((patient) => patient.id),
+    windowStartKey,
+    todayKey,
+  )
 
   const list: PatientListItem[] = patients.map((patient) => {
     const latest = latestByPatient.get(patient.id)
+    const frequency = countActiveFrequencyDays({
+      createdAt: patient.created_at,
+      checkInAt: checkInsByPatient.get(patient.id) ?? [],
+      exerciseCompletedOn: exerciseDaysByPatient.get(patient.id) ?? [],
+    })
     return {
       ...patient,
       lastVas: latest ? latest.vas_score : null,
       lastCheckInAt: latest?.created_at ?? null,
+      activeDaysLast7: frequency.activeDays,
+      frequencyWindowDays: frequency.windowDays,
     }
   })
 
   const checkInsToday = checkIns.filter((row) => isBucharestToday(row.created_at)).length
   const painAlerts = list.filter((patient) => (patient.lastVas ?? 0) >= 7).length
-  const compliant = list.filter((patient) => {
-    if (!patient.lastCheckInAt) {
-      return false
-    }
-    return new Date(patient.lastCheckInAt).getTime() >= weekAgo
-  }).length
+  const clinicFrequency = clinicAverageFrequency(list)
 
   return {
     patients: list,
@@ -190,7 +266,8 @@ async function assemblePatientList(
       activePatients: list.length,
       checkInsToday,
       painAlerts,
-      compliancePercent: sevenDayCompliancePercent(compliant, list.length),
+      realFrequencyActiveDays: clinicFrequency.activeDays,
+      realFrequencyWindowDays: clinicFrequency.windowDays,
     },
     error: null,
     needsMigration: false,

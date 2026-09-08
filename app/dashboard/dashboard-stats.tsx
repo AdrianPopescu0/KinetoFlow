@@ -1,10 +1,10 @@
 "use client"
 
 import { memo } from "react"
-import { Activity, AlertTriangle, ClipboardCheck, Users } from "lucide-react"
+import { AlertTriangle, CalendarDays, ClipboardCheck, Users } from "lucide-react"
 
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
-import { formatCompliancePercent } from "@/lib/patients/compliance"
+import { formatRealFrequency } from "@/lib/patients/compliance"
 import type { PatientListFilter } from "@/lib/patients/dashboard-filter"
 import type { DashboardStats as DashboardStatsData } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
@@ -13,10 +13,10 @@ const CARDS = [
   { key: "all", statKey: "activePatients", label: "Pacienți activi", icon: Users },
   { key: "checkins", statKey: "checkInsToday", label: "Check-in-uri azi", icon: ClipboardCheck },
   { key: "alert", statKey: "painAlerts", label: "Alerte durere VAS ≥ 7", icon: AlertTriangle },
-  { key: "compliance", statKey: "compliancePercent", label: "Complianță (7 zile)", icon: Activity },
+  { key: "compliance", statKey: "realFrequency", label: "Frecvență reală", icon: CalendarDays },
 ] as const satisfies ReadonlyArray<{
   key: PatientListFilter
-  statKey: keyof DashboardStatsData
+  statKey: "activePatients" | "checkInsToday" | "painAlerts" | "realFrequency"
   label: string
   icon: typeof Users
 }>
@@ -35,8 +35,8 @@ export const DashboardStats = memo(function DashboardStats({
       {CARDS.map((card) => {
         const Icon = card.icon
         const value =
-          card.statKey === "compliancePercent"
-            ? formatCompliancePercent(stats[card.statKey])
+          card.statKey === "realFrequency"
+            ? formatRealFrequency(stats.realFrequencyActiveDays, stats.realFrequencyWindowDays)
             : String(stats[card.statKey])
         const selected = filter === card.key && card.key !== "all"
 
@@ -61,6 +61,9 @@ export const DashboardStats = memo(function DashboardStats({
             <div>
               <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">{card.label}</p>
               <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-800">{value}</p>
+              {card.statKey === "realFrequency" ? (
+                <p className="mt-0.5 text-xs text-slate-500">zile active din ultimele 7</p>
+              ) : null}
             </div>
           </button>
         )
