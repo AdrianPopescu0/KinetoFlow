@@ -20,6 +20,7 @@ import {
   type PatientListFilter,
 } from "@/lib/patients/dashboard-filter"
 import type { PatientListItem } from "@/lib/patients/types-db"
+import { isHighPainVas } from "@/lib/patients/vas-history"
 import { cn } from "@/lib/utils"
 
 const AssignExercisesModal = dynamic(
@@ -43,6 +44,7 @@ export function PatientList({
   const [assignments, setAssignments] = useState<Record<string, string | null>>({})
   const [source, setSource] = useState(patients)
   const [exerciseTarget, setExerciseTarget] = useState<{ id: string; name: string } | null>(null)
+  const [expandOverrides, setExpandOverrides] = useState<Record<string, boolean>>({})
   const [, startAssign] = useTransition()
 
   // Datele proaspete de pe server înlocuiesc suprascrierile optimiste.
@@ -105,6 +107,25 @@ export function PatientList({
 
   const closeExercises = useCallback(() => {
     setExerciseTarget(null)
+  }, [])
+
+  const isRowExpanded = useCallback(
+    (patient: PatientListItem) => {
+      if (Object.hasOwn(expandOverrides, patient.id)) {
+        return expandOverrides[patient.id] === true
+      }
+      return isHighPainVas(patient.lastVas)
+    },
+    [expandOverrides],
+  )
+
+  const toggleRowExpanded = useCallback((patient: PatientListItem) => {
+    setExpandOverrides((current) => {
+      const currentlyOpen = Object.hasOwn(current, patient.id)
+        ? current[patient.id] === true
+        : isHighPainVas(patient.lastVas)
+      return { ...current, [patient.id]: !currentlyOpen }
+    })
   }, [])
 
   const scoped = useMemo(() => {
@@ -191,6 +212,8 @@ export function PatientList({
                 key={patient.id}
                 patient={patient}
                 therapists={therapists}
+                expanded={isRowExpanded(patient)}
+                onToggleExpanded={toggleRowExpanded}
                 onAssignTherapist={assignTherapist}
                 onOpenExercises={openExercises}
               />
@@ -215,6 +238,8 @@ export function PatientList({
                     key={patient.id}
                     patient={patient}
                     therapists={therapists}
+                    expanded={isRowExpanded(patient)}
+                    onToggleExpanded={toggleRowExpanded}
                     onAssignTherapist={assignTherapist}
                     onOpenExercises={openExercises}
                   />

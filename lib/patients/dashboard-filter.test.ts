@@ -25,6 +25,7 @@ function patient(overrides: Partial<PatientListItem> & Pick<PatientListItem, "id
     lastCheckInAt: null,
     activeDaysLast7: 0,
     frequencyWindowDays: 7,
+    checkIns: [],
     ...overrides,
   }
 }

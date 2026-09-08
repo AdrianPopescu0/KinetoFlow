@@ -1,5 +1,6 @@
 import type { PatientListItem } from "./types-db.ts"
 import { isLowRealFrequency } from "./compliance.ts"
+import { isHighPainVas } from "./vas-history.ts"
 import { bucharestDateKey, isBucharestToday } from "../time/bucharest.ts"
 
 export type PatientListFilter = "all" | "checkins" | "alert" | "compliance" | "silent"
@@ -33,7 +34,7 @@ export function patientMatchesListFilter(
     return true
   }
   if (filter === "alert") {
-    return (patient.lastVas ?? 0) >= 7
+    return isHighPainVas(patient.lastVas)
   }
   if (filter === "silent") {
     return patient.lastVas === null

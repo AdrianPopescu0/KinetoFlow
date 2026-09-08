@@ -34,11 +34,17 @@ export type CheckInRecord = {
   created_at: string
 }
 
+export type PatientVasPoint = {
+  vas_score: number
+  created_at: string
+}
+
 export type PatientListItem = PatientRecord & {
   lastVas: number | null
   lastCheckInAt: string | null
   activeDaysLast7: number
   frequencyWindowDays: number
+  checkIns: PatientVasPoint[]
 }
 
 export type DashboardStats = {

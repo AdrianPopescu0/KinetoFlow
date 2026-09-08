@@ -6,6 +6,7 @@ import {
   clinicAverageFrequency,
   countActiveFrequencyDays,
 } from "@/lib/patients/compliance"
+import { isHighPainVas } from "@/lib/patients/vas-history"
 import { addBucharestCalendarDays, bucharestDateKey, isBucharestToday } from "@/lib/time/bucharest"
 import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
 import type {
@@ -218,6 +219,7 @@ async function assemblePatientList(
   const latestByPatient = new Map<string, Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>()
 
   const checkInsByPatient = new Map<string, string[]>()
+  const vasHistoryByPatient = new Map<string, Array<Pick<CheckInRecord, "vas_score" | "created_at">>>()
   for (const row of checkIns) {
     const current = latestByPatient.get(row.patient_id)
     if (!current || row.created_at > current.created_at) {
@@ -228,6 +230,13 @@ async function assemblePatientList(
       stamps.push(row.created_at)
     } else {
       checkInsByPatient.set(row.patient_id, [row.created_at])
+    }
+    const history = vasHistoryByPatient.get(row.patient_id)
+    const point = { vas_score: row.vas_score, created_at: row.created_at }
+    if (history) {
+      history.push(point)
+    } else {
+      vasHistoryByPatient.set(row.patient_id, [point])
     }
   }
 
@@ -253,11 +262,12 @@ async function assemblePatientList(
       lastCheckInAt: latest?.created_at ?? null,
       activeDaysLast7: frequency.activeDays,
       frequencyWindowDays: frequency.windowDays,
+      checkIns: vasHistoryByPatient.get(patient.id) ?? [],
     }
   })
 
   const checkInsToday = checkIns.filter((row) => isBucharestToday(row.created_at)).length
-  const painAlerts = list.filter((patient) => (patient.lastVas ?? 0) >= 7).length
+  const painAlerts = list.filter((patient) => isHighPainVas(patient.lastVas)).length
   const clinicFrequency = clinicAverageFrequency(list)
 
   return {
