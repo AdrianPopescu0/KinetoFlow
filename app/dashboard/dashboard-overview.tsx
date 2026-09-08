@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useState } from "react"
 
 import { DashboardStats } from "@/app/dashboard/dashboard-stats"
 import { PatientList } from "@/app/dashboard/patient-list"
@@ -22,13 +22,13 @@ export function DashboardOverview({
 }) {
   const [filter, setFilter] = useState<PatientListFilter>("all")
 
-  function selectMetric(next: PatientListFilter) {
+  const selectMetric = useCallback((next: PatientListFilter) => {
     if (next === "all") {
       setFilter("all")
       return
     }
     setFilter((current) => (current === next ? "all" : next))
-  }
+  }, [])
 
   return (
     <>

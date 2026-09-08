@@ -12,6 +12,8 @@ import type {
   PatientRecord,
 } from "@/lib/patients/types-db"
 
+/** Coloane explicite (fără `select(*)`). Embed-ul `check_ins` păstrează toate rândurile
+ *  necesare pentru ultimul VAS, check-in-uri azi și complianța pe 7 zile. */
 const PATIENT_LIST_COLUMNS =
   "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
 const PATIENT_LIST_COLUMNS_PLAIN =

@@ -1,15 +1,20 @@
 "use client"
 
-import { useOptimistic, useState, useTransition } from "react"
+import { memo, useCallback, useOptimistic, useState, useTransition } from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { Library, Trash2 } from "lucide-react"
 
-import { AssignExercisesModal } from "@/app/dashboard/assign-exercises-modal"
 import { deleteExercise } from "@/app/dashboard/patients/actions"
 import { VideoPreview } from "@/components/media/video-preview"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/toaster"
 import type { ExerciseRecord } from "@/lib/patients/types-db"
+
+const AssignExercisesModal = dynamic(
+  () => import("@/app/dashboard/assign-exercises-modal").then((mod) => ({ default: mod.AssignExercisesModal })),
+  { ssr: false },
+)
 
 export function ExerciseManager({
   patientId,
@@ -28,13 +33,24 @@ export function ExerciseManager({
     (state, exerciseId: string) => state.filter((item) => item.id !== exerciseId),
   )
 
-  function remove(exerciseId: string) {
-    startTransition(async () => {
-      removeOptimistic(exerciseId)
-      await deleteExercise(patientId, exerciseId)
-      toast("Exercițiul a fost șters.")
-    })
-  }
+  const remove = useCallback(
+    (exerciseId: string) => {
+      startTransition(async () => {
+        removeOptimistic(exerciseId)
+        await deleteExercise(patientId, exerciseId)
+        toast("Exercițiul a fost șters.")
+      })
+    },
+    [patientId, removeOptimistic],
+  )
+
+  const closeLibrary = useCallback(() => {
+    setLibraryOpen(false)
+  }, [])
+
+  const refreshAfterSave = useCallback(() => {
+    router.refresh()
+  }, [router])
 
   return (
     <div className="flex flex-col gap-5 p-5">
@@ -52,30 +68,12 @@ export function ExerciseManager({
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
           {optimisticExercises.map((exercise) => (
-            <li key={exercise.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <VideoPreview url={exercise.video_url} title={exercise.title} />
-              <div className="flex flex-col gap-2 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold text-slate-800">{exercise.title}</h3>
-                    <p className="text-sm text-slate-600">
-                      {exercise.sets ?? "—"} serii × {exercise.reps ?? "—"} repetări
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => remove(exercise.id)}
-                    disabled={isPending}
-                    className="h-11 min-h-[44px] rounded-xl border-red-200 text-red-700"
-                  >
-                    <Trash2 className="size-4" />
-                    Șterge
-                  </Button>
-                </div>
-                {exercise.notes ? <p className="whitespace-pre-line text-sm text-slate-600">{exercise.notes}</p> : null}
-              </div>
-            </li>
+            <AssignedExerciseCard
+              key={exercise.id}
+              exercise={exercise}
+              pending={isPending}
+              onRemove={remove}
+            />
           ))}
         </ul>
       )}
@@ -84,9 +82,46 @@ export function ExerciseManager({
         open={libraryOpen}
         patientId={patientId}
         patientName={patientName}
-        onClose={() => setLibraryOpen(false)}
-        onSaved={() => router.refresh()}
+        onClose={closeLibrary}
+        onSaved={refreshAfterSave}
       />
     </div>
   )
 }
+
+const AssignedExerciseCard = memo(function AssignedExerciseCard({
+  exercise,
+  pending,
+  onRemove,
+}: {
+  exercise: ExerciseRecord
+  pending: boolean
+  onRemove: (exerciseId: string) => void
+}) {
+  return (
+    <li className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <VideoPreview url={exercise.video_url} title={exercise.title} />
+      <div className="flex flex-col gap-2 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-semibold text-slate-800">{exercise.title}</h3>
+            <p className="text-sm text-slate-600">
+              {exercise.sets ?? "—"} serii × {exercise.reps ?? "—"} repetări
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onRemove(exercise.id)}
+            disabled={pending}
+            className="h-11 min-h-[44px] rounded-xl border-red-200 text-red-700"
+          >
+            <Trash2 className="size-4" />
+            Șterge
+          </Button>
+        </div>
+        {exercise.notes ? <p className="whitespace-pre-line text-sm text-slate-600">{exercise.notes}</p> : null}
+      </div>
+    </li>
+  )
+})

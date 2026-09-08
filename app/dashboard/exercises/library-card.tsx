@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { Play, Trash2 } from "lucide-react"
 
 import {
@@ -20,16 +21,16 @@ const DIFFICULTY_CLASS = {
   avansat: "bg-rose-50 text-rose-800",
 } as const
 
-export function LibraryCard({
+export const LibraryCard = memo(function LibraryCard({
   exercise,
   onPreview,
   onAssign,
   onDelete,
 }: {
   exercise: LibraryExercise
-  onPreview: () => void
-  onAssign: () => void
-  onDelete?: () => void
+  onPreview: (exercise: LibraryExercise) => void
+  onAssign: (exercise: LibraryExercise) => void
+  onDelete?: (id: string) => void
 }) {
   const thumb = youtubeThumbnailUrl(exercise.youtubeId)
 
@@ -37,7 +38,7 @@ export function LibraryCard({
     <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <button
         type="button"
-        onClick={onPreview}
+        onClick={() => onPreview(exercise)}
         className="group relative aspect-video overflow-hidden bg-slate-100"
         aria-label={`Preview video: ${exercise.title}`}
       >
@@ -87,10 +88,10 @@ export function LibraryCard({
           </div>
         </dl>
         <div className="mt-auto flex flex-col gap-2 sm:flex-row">
-          <Button type="button" variant="outline" onClick={onPreview} className="h-11 flex-1 rounded-xl">
+          <Button type="button" variant="outline" onClick={() => onPreview(exercise)} className="h-11 flex-1 rounded-xl">
             Vezi detalii
           </Button>
-          <Button type="button" onClick={onAssign} className="h-11 flex-1 rounded-xl">
+          <Button type="button" onClick={() => onAssign(exercise)} className="h-11 flex-1 rounded-xl">
             + Asignează
           </Button>
         </div>
@@ -98,7 +99,7 @@ export function LibraryCard({
           <Button
             type="button"
             variant="outline"
-            onClick={onDelete}
+            onClick={() => onDelete(exercise.id)}
             className="h-11 min-h-[44px] rounded-xl border-red-200 text-red-700 hover:bg-red-50"
           >
             <Trash2 className="size-4" />
@@ -108,4 +109,4 @@ export function LibraryCard({
       </div>
     </article>
   )
-}
+})

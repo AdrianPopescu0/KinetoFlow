@@ -1,14 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
-import Link from "next/link"
-import { FolderOpen, Plus, Search } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
+import dynamic from "next/dynamic"
+import { Search } from "lucide-react"
 
-import { AssignExercisesModal } from "@/app/dashboard/assign-exercises-modal"
-import { AssignedTherapistSelect } from "@/app/dashboard/assigned-therapist-select"
+import { PatientMobileCard, PatientTableRow } from "@/app/dashboard/patient-list-rows"
 import { assignPatientTherapist } from "@/app/dashboard/patients/actions"
 import { toast } from "@/components/ui/toaster"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { ClinicTherapistOption } from "@/lib/clinics/types"
 import {
@@ -20,9 +18,13 @@ import {
   type PatientAssignmentScope,
   type PatientListFilter,
 } from "@/lib/patients/dashboard-filter"
-import { vasBadgeClass } from "@/lib/patients/display"
 import type { PatientListItem } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
+
+const AssignExercisesModal = dynamic(
+  () => import("@/app/dashboard/assign-exercises-modal").then((mod) => ({ default: mod.AssignExercisesModal })),
+  { ssr: false },
+)
 
 export function PatientList({
   patients,
@@ -59,14 +61,14 @@ export function PatientList({
     }
   }, [])
 
-  function selectScope(next: PatientAssignmentScope) {
+  const selectScope = useCallback((next: PatientAssignmentScope) => {
     setScope(next)
     try {
       window.localStorage.setItem(PATIENT_SCOPE_STORAGE_KEY, next)
     } catch {
       // ignore
     }
-  }
+  }, [])
 
   const rows = useMemo(
     () =>
@@ -78,20 +80,31 @@ export function PatientList({
     [assignments, patients],
   )
 
-  function assignTherapist(patientId: string, previous: string | null, next: string | null) {
-    setAssignments((current) => ({ ...current, [patientId]: next }))
+  const assignTherapist = useCallback(
+    (patientId: string, previous: string | null, next: string | null) => {
+      setAssignments((current) => ({ ...current, [patientId]: next }))
 
-    startAssign(async () => {
-      const result = await assignPatientTherapist(patientId, next)
-      if (result.error) {
-        setAssignments((current) => ({ ...current, [patientId]: previous }))
-        toast(result.error)
-        return
-      }
-      const name = therapists.find((therapist) => therapist.user_id === next)?.therapist_name
-      toast(name ? `Pacientul a fost asignat lui ${name}.` : "Pacientul este neasignat / la comun.")
-    })
-  }
+      startAssign(async () => {
+        const result = await assignPatientTherapist(patientId, next)
+        if (result.error) {
+          setAssignments((current) => ({ ...current, [patientId]: previous }))
+          toast(result.error)
+          return
+        }
+        const name = therapists.find((therapist) => therapist.user_id === next)?.therapist_name
+        toast(name ? `Pacientul a fost asignat lui ${name}.` : "Pacientul este neasignat / la comun.")
+      })
+    },
+    [therapists],
+  )
+
+  const openExercises = useCallback((patientId: string, name: string) => {
+    setExerciseTarget({ id: patientId, name })
+  }, [])
+
+  const closeExercises = useCallback(() => {
+    setExerciseTarget(null)
+  }, [])
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -164,62 +177,13 @@ export function PatientList({
           {/* Carduri verticale — doar mobil */}
           <ul className="space-y-3 overflow-x-hidden px-4 py-4 md:hidden">
             {filtered.map((patient) => (
-              <li
+              <PatientMobileCard
                 key={patient.id}
-                className="flex min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-              >
-                <div className="min-w-0">
-                  <p className="break-words font-medium text-slate-800">{patient.full_name}</p>
-                  <p className="mt-0.5 break-words text-xs text-slate-500">
-                    {patient.phone || "Fără telefon"}
-                  </p>
-                </div>
-
-                <span
-                  className={cn(
-                    "inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
-                    vasBadgeClass(patient.lastVas),
-                  )}
-                >
-                  {patient.lastVas === null ? "Fără scor" : `VAS ${patient.lastVas}`}
-                </span>
-
-                <div className="flex min-w-0 flex-col gap-1.5">
-                  <span className="text-xs font-medium text-slate-500">
-                    Terapeut responsabil
-                  </span>
-                  <AssignedTherapistSelect
-                    fullWidth
-                    assignedTherapistId={patient.assigned_therapist_id}
-                    therapists={therapists}
-                    onSelect={(next) =>
-                      assignTherapist(patient.id, patient.assigned_therapist_id, next)
-                    }
-                  />
-                </div>
-
-                <div className="flex min-w-0 flex-col gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      setExerciseTarget({ id: patient.id, name: patient.full_name })
-                    }
-                    className="h-11 min-h-[44px] w-full min-w-0 rounded-xl"
-                  >
-                    <Plus className="size-3.5 shrink-0" />
-                    Exerciții
-                  </Button>
-                  <Link
-                    href={`/dashboard/patients/${patient.id}`}
-                    prefetch
-                    className="inline-flex h-11 min-h-[44px] w-full min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white"
-                  >
-                    <FolderOpen className="size-3.5 shrink-0" />
-                    Deschide Fișa
-                  </Link>
-                </div>
-              </li>
+                patient={patient}
+                therapists={therapists}
+                onAssignTherapist={assignTherapist}
+                onOpenExercises={openExercises}
+              />
             ))}
           </ul>
 
@@ -237,53 +201,13 @@ export function PatientList({
               </thead>
               <tbody>
                 {filtered.map((patient) => (
-                  <tr key={patient.id} className="border-b border-slate-100 last:border-0">
-                    <td className="px-5 py-4">
-                      <p className="font-medium text-slate-800">{patient.full_name}</p>
-                      <p className="mt-0.5 text-xs text-slate-500">{patient.email || patient.phone || "—"}</p>
-                    </td>
-                    <td className="px-5 py-4 text-slate-700">{patient.diagnosis || "—"}</td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={cn(
-                          "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
-                          vasBadgeClass(patient.lastVas),
-                        )}
-                      >
-                        {patient.lastVas === null ? "Fără scor" : `VAS ${patient.lastVas}`}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <AssignedTherapistSelect
-                        assignedTherapistId={patient.assigned_therapist_id}
-                        therapists={therapists}
-                        onSelect={(next) =>
-                          assignTherapist(patient.id, patient.assigned_therapist_id, next)
-                        }
-                      />
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setExerciseTarget({ id: patient.id, name: patient.full_name })}
-                          className="h-11 min-h-[44px] rounded-xl"
-                        >
-                          <Plus className="size-4" />
-                          Exerciții
-                        </Button>
-                        <Link
-                          href={`/dashboard/patients/${patient.id}`}
-                          prefetch
-                          className="inline-flex h-11 min-h-[44px] items-center gap-1.5 rounded-xl bg-[#042f2e] px-3 text-sm font-medium text-white hover:bg-[#064e3b]"
-                        >
-                          <FolderOpen className="size-4" />
-                          Deschide Fișa
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
+                  <PatientTableRow
+                    key={patient.id}
+                    patient={patient}
+                    therapists={therapists}
+                    onAssignTherapist={assignTherapist}
+                    onOpenExercises={openExercises}
+                  />
                 ))}
               </tbody>
             </table>
@@ -295,7 +219,7 @@ export function PatientList({
         open={Boolean(exerciseTarget)}
         patientId={exerciseTarget?.id ?? ""}
         patientName={exerciseTarget?.name ?? ""}
-        onClose={() => setExerciseTarget(null)}
+        onClose={closeExercises}
       />
     </div>
   )

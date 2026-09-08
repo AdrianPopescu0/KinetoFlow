@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { memo, useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { Check, Loader2, Search, X } from "lucide-react"
 
 import { loadStoredLibraryExercises } from "@/app/dashboard/exercises/actions"
@@ -120,19 +120,19 @@ function AssignExercisesModalContent({
   const intervalValid = Boolean(startDate && endDate && startDate <= endDate)
   const intervalLabel = intervalValid ? formatTreatmentInterval(startDate, endDate) : "interval invalid"
 
-  function toggleExercise(id: string) {
+  const toggleExercise = useCallback((id: string) => {
     setSelectedIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     )
-  }
+  }, [])
 
-  function updateDose(id: string, field: keyof Dose, raw: string) {
+  const updateDose = useCallback((id: string, field: keyof Dose, raw: string) => {
     const value = Math.max(1, Math.min(99, Number.parseInt(raw, 10) || 1))
     setDoses((current) => ({
       ...current,
       [id]: { ...(current[id] ?? { sets: 1, reps: 1 }), [field]: value },
     }))
-  }
+  }, [])
 
   function save() {
     if (selectedIds.length === 0) {
@@ -244,74 +244,20 @@ function AssignExercisesModalContent({
                 </li>
               ) : (
                 filtered.map((exercise) => {
-                  const checked = selectedIds.includes(exercise.id)
                   const dose = doses[exercise.id] ?? {
                     sets: exercise.sets,
                     reps: exercise.reps,
                   }
                   return (
-                    <li
+                    <AssignExerciseRow
                       key={exercise.id}
-                      className={cn(
-                        "grid grid-cols-[auto_minmax(0,1fr)_4rem_4rem] items-center gap-2 px-3 py-2.5",
-                        checked && "bg-teal-50/60",
-                      )}
-                    >
-                      <label className="flex size-8 cursor-pointer items-center justify-center">
-                        <span
-                          className={cn(
-                            "flex size-5 items-center justify-center rounded-md border",
-                            checked
-                              ? "border-[#042f2e] bg-[#042f2e] text-white"
-                              : "border-slate-300 bg-white",
-                          )}
-                        >
-                          {checked ? <Check className="size-3" /> : null}
-                        </span>
-                        <input
-                          type="checkbox"
-                          className="sr-only"
-                          checked={checked}
-                          onChange={() => toggleExercise(exercise.id)}
-                        />
-                      </label>
-
-                      <button
-                        type="button"
-                        onClick={() => toggleExercise(exercise.id)}
-                        className="min-w-0 text-left"
-                      >
-                        <span className="block truncate text-sm font-medium text-slate-900">
-                          {exercise.title}
-                        </span>
-                        <span className="mt-0.5 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                          {exercise.regions.map((id) => regionById(id).shortLabel).join(" · ")}
-                        </span>
-                      </button>
-
-                      <label className="text-[10px] font-medium text-slate-500">
-                        Seturi
-                        <Input
-                          type="number"
-                          min={1}
-                          max={99}
-                          value={dose.sets}
-                          onChange={(event) => updateDose(exercise.id, "sets", event.target.value)}
-                          className="mt-0.5 h-8 px-2 text-center text-xs"
-                        />
-                      </label>
-                      <label className="text-[10px] font-medium text-slate-500">
-                        Repetări
-                        <Input
-                          type="number"
-                          min={1}
-                          max={99}
-                          value={dose.reps}
-                          onChange={(event) => updateDose(exercise.id, "reps", event.target.value)}
-                          className="mt-0.5 h-8 px-2 text-center text-xs"
-                        />
-                      </label>
-                    </li>
+                      exercise={exercise}
+                      checked={selectedIds.includes(exercise.id)}
+                      sets={dose.sets}
+                      reps={dose.reps}
+                      onToggle={toggleExercise}
+                      onDoseChange={updateDose}
+                    />
                   )
                 })
               )}
@@ -355,3 +301,76 @@ function AssignExercisesModalContent({
     </div>
   )
 }
+
+const AssignExerciseRow = memo(function AssignExerciseRow({
+  exercise,
+  checked,
+  sets,
+  reps,
+  onToggle,
+  onDoseChange,
+}: {
+  exercise: LibraryExercise
+  checked: boolean
+  sets: number
+  reps: number
+  onToggle: (id: string) => void
+  onDoseChange: (id: string, field: keyof Dose, raw: string) => void
+}) {
+  return (
+    <li
+      className={cn(
+        "grid grid-cols-[auto_minmax(0,1fr)_4rem_4rem] items-center gap-2 px-3 py-2.5",
+        checked && "bg-teal-50/60",
+      )}
+    >
+      <label className="flex size-8 cursor-pointer items-center justify-center">
+        <span
+          className={cn(
+            "flex size-5 items-center justify-center rounded-md border",
+            checked ? "border-[#042f2e] bg-[#042f2e] text-white" : "border-slate-300 bg-white",
+          )}
+        >
+          {checked ? <Check className="size-3" /> : null}
+        </span>
+        <input
+          type="checkbox"
+          className="sr-only"
+          checked={checked}
+          onChange={() => onToggle(exercise.id)}
+        />
+      </label>
+
+      <button type="button" onClick={() => onToggle(exercise.id)} className="min-w-0 text-left">
+        <span className="block truncate text-sm font-medium text-slate-900">{exercise.title}</span>
+        <span className="mt-0.5 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+          {exercise.regions.map((id) => regionById(id).shortLabel).join(" · ")}
+        </span>
+      </button>
+
+      <label className="text-[10px] font-medium text-slate-500">
+        Seturi
+        <Input
+          type="number"
+          min={1}
+          max={99}
+          value={sets}
+          onChange={(event) => onDoseChange(exercise.id, "sets", event.target.value)}
+          className="mt-0.5 h-8 px-2 text-center text-xs"
+        />
+      </label>
+      <label className="text-[10px] font-medium text-slate-500">
+        Repetări
+        <Input
+          type="number"
+          min={1}
+          max={99}
+          value={reps}
+          onChange={(event) => onDoseChange(exercise.id, "reps", event.target.value)}
+          className="mt-0.5 h-8 px-2 text-center text-xs"
+        />
+      </label>
+    </li>
+  )
+})
+

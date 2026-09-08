@@ -1,20 +1,24 @@
 "use client"
 
+import { memo } from "react"
+
 import type { ClinicTherapistOption } from "@/lib/clinics/types"
 import { cn } from "@/lib/utils"
 
 const UNASSIGNED = ""
 
-export function AssignedTherapistSelect({
+export const AssignedTherapistSelect = memo(function AssignedTherapistSelect({
+  patientId,
   assignedTherapistId,
   therapists,
-  onSelect,
+  onAssign,
   className,
   fullWidth = false,
 }: {
+  patientId: string
   assignedTherapistId: string | null
   therapists: ClinicTherapistOption[]
-  onSelect: (assignedTherapistId: string | null) => void
+  onAssign: (patientId: string, previous: string | null, next: string | null) => void
   className?: string
   fullWidth?: boolean
 }) {
@@ -26,7 +30,9 @@ export function AssignedTherapistSelect({
     <select
       aria-label="Terapeut responsabil"
       value={value}
-      onChange={(event) => onSelect(event.target.value === UNASSIGNED ? null : event.target.value)}
+      onChange={(event) =>
+        onAssign(patientId, assignedTherapistId, event.target.value === UNASSIGNED ? null : event.target.value)
+      }
       className={cn(
         "min-w-0 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 outline-none focus-visible:border-[#042f2e]",
         fullWidth
@@ -44,4 +50,4 @@ export function AssignedTherapistSelect({
       {isAssigned && !known ? <option value={value}>Terapeut din alt cabinet</option> : null}
     </select>
   )
-}
+})

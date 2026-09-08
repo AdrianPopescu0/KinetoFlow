@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react"
+import { useCallback, useEffect, useState, useSyncExternalStore, useTransition } from "react"
 
 import { submitPatientCheckin } from "@/app/dashboard/patients/actions"
 import { AppShell } from "@/components/brand/app-atmosphere"
@@ -76,7 +76,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
     }
   }, [localDate, program.completedExerciseIdsToday, program.token])
 
-  async function toggleExercise(exerciseId: string, completed: boolean) {
+  const toggleExercise = useCallback(async (exerciseId: string, completed: boolean) => {
     const previous = completedIds
     const next = completed
       ? mergeIds(completedIds, [exerciseId])
@@ -139,7 +139,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
     } finally {
       setPendingExerciseId(null)
     }
-  }
+  }, [canPersistToServer, completedIds, localDate, program.patientId, program.token])
 
   function submitCheckin() {
     setError(null)

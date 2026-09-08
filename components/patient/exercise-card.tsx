@@ -1,5 +1,7 @@
 "use client"
 
+import { memo } from "react"
+
 import { VideoPreview } from "@/components/media/video-preview"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Button } from "@/components/ui/button"
@@ -13,7 +15,12 @@ type ExerciseCardProps = {
   onToggle: (exerciseId: string, completed: boolean) => void
 }
 
-export function ExerciseCard({ exercise, completed, pending = false, onToggle }: ExerciseCardProps) {
+export const ExerciseCard = memo(function ExerciseCard({
+  exercise,
+  completed,
+  pending = false,
+  onToggle,
+}: ExerciseCardProps) {
   const src = exercise.videoUrl ?? (exercise.youtubeId ? `https://www.youtube.com/watch?v=${exercise.youtubeId}` : null)
 
   return (
@@ -66,4 +73,5 @@ export function ExerciseCard({ exercise, completed, pending = false, onToggle }:
       </div>
     </article>
   )
-}
+})
+

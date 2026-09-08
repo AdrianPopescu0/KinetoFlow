@@ -1,11 +1,11 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { memo, useCallback, useMemo, useState, useTransition, type ChangeEvent } from "react"
+import dynamic from "next/dynamic"
 import { Plus, Search, X } from "lucide-react"
 
 import { deleteLibraryExercise } from "@/app/dashboard/exercises/actions"
 import { LibraryCard } from "@/app/dashboard/exercises/library-card"
-import { AddExerciseDialog, AssignDialog, PreviewDialog } from "@/app/dashboard/exercises/library-dialogs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/toaster"
@@ -35,6 +35,28 @@ import type {
   TherapeuticObjective,
 } from "@/lib/exercises/types"
 import { cn } from "@/lib/utils"
+
+const PreviewDialog = dynamic(
+  () => import("@/app/dashboard/exercises/library-dialogs").then((mod) => ({ default: mod.PreviewDialog })),
+  { ssr: false },
+)
+const AssignDialog = dynamic(
+  () => import("@/app/dashboard/exercises/library-dialogs").then((mod) => ({ default: mod.AssignDialog })),
+  { ssr: false },
+)
+const AddExerciseDialog = dynamic(
+  () => import("@/app/dashboard/exercises/library-dialogs").then((mod) => ({ default: mod.AddExerciseDialog })),
+  { ssr: false },
+)
+
+const REGION_FILTER_OPTIONS = [
+  { id: "all", label: "Toate regiunile" },
+  ...REGIONS.map((region) => ({ id: region.id, label: region.label })),
+]
+const OBJECTIVE_FILTER_OPTIONS = [{ id: "all", label: "Toate obiectivele" }, ...OBJECTIVES]
+const DIFFICULTY_FILTER_OPTIONS = [{ id: "all", label: "Orice nivel" }, ...DIFFICULTIES]
+const EQUIPMENT_FILTER_OPTIONS = [{ id: "all", label: "Orice echipament" }, ...EQUIPMENT]
+const POSITION_FILTER_OPTIONS = [{ id: "all", label: "Orice poziție" }, ...POSITIONS]
 
 export function ExerciseLibrary({
   patients,
@@ -69,49 +91,127 @@ export function ExerciseLibrary({
       }),
     [catalog, filters.difficulty, filters.equipment, filters.position, filters.query],
   )
-  function update<K extends keyof LibraryFilters>(key: K, value: LibraryFilters[K]) {
+
+  const update = useCallback(<K extends keyof LibraryFilters>(key: K, value: LibraryFilters[K]) => {
     setFilters((current) => ({
       ...current,
       [key]: value,
     }))
-  }
+  }, [])
 
-  const tags: Array<{ key: string; label: string; onClear: () => void }> = []
-  if (filters.region !== "all") {
-    tags.push({
-      key: "region",
-      label: regionById(filters.region).label,
-      onClear: () => update("region", "all"),
-    })
-  }
-  if (filters.subcategory !== "all") {
-    tags.push({
-      key: "subcategory",
-      label: subcategoryLabel(filters.subcategory),
-      onClear: () => update("subcategory", "all"),
-    })
-  }
-  if (filters.difficulty !== "all") {
-    tags.push({
-      key: "difficulty",
-      label: difficultyLabel(filters.difficulty),
-      onClear: () => update("difficulty", "all"),
-    })
-  }
-  if (filters.equipment !== "all") {
-    tags.push({
-      key: "equipment",
-      label: equipmentLabel(filters.equipment),
-      onClear: () => update("equipment", "all"),
-    })
-  }
-  if (filters.position !== "all") {
-    tags.push({
-      key: "position",
-      label: positionLabel(filters.position),
-      onClear: () => update("position", "all"),
-    })
-  }
+  const setQuery = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    setFilters((current) => ({ ...current, query: event.target.value }))
+  }, [])
+
+  const setRegion = useCallback((value: string) => {
+    update("region", value as AnatomicalRegion | "all")
+  }, [update])
+
+  const setObjective = useCallback((value: string) => {
+    update("subcategory", value as TherapeuticObjective | "all")
+  }, [update])
+
+  const setDifficulty = useCallback((value: string) => {
+    update("difficulty", value as Difficulty | "all")
+  }, [update])
+
+  const setEquipment = useCallback((value: string) => {
+    update("equipment", value as Equipment | "all")
+  }, [update])
+
+  const setPosition = useCallback((value: string) => {
+    update("position", value as ExercisePosition | "all")
+  }, [update])
+
+  const resetFilters = useCallback(() => {
+    setFilters(EMPTY_FILTERS)
+  }, [])
+
+  const openPreview = useCallback((exercise: LibraryExercise) => {
+    setPreview(exercise)
+  }, [])
+
+  const openAssign = useCallback((exercise: LibraryExercise) => {
+    setAssign(exercise)
+  }, [])
+
+  const closePreview = useCallback(() => {
+    setPreview(null)
+  }, [])
+
+  const closeAssign = useCallback(() => {
+    setAssign(null)
+  }, [])
+
+  const closeAdding = useCallback(() => {
+    setAdding(false)
+  }, [])
+
+  const assignFromPreview = useCallback(() => {
+    if (preview) {
+      setAssign(preview)
+    }
+    setPreview(null)
+  }, [preview])
+
+  const onCreated = useCallback((exercise: LibraryExercise) => {
+    setExtras((current) => [exercise, ...current])
+  }, [])
+
+  const deleteExercise = useCallback(
+    (id: string) => {
+      startDelete(async () => {
+        const result = await deleteLibraryExercise(id)
+        if (result.error) {
+          toast(result.error)
+          return
+        }
+        setExtras((current) => current.filter((item) => item.id !== id))
+        toast("Exercițiul a fost șters din bibliotecă.")
+      })
+    },
+    [],
+  )
+
+  const tags = useMemo(() => {
+    const next: Array<{ key: string; label: string; onClear: () => void }> = []
+    if (filters.region !== "all") {
+      next.push({
+        key: "region",
+        label: regionById(filters.region).label,
+        onClear: () => update("region", "all"),
+      })
+    }
+    if (filters.subcategory !== "all") {
+      next.push({
+        key: "subcategory",
+        label: subcategoryLabel(filters.subcategory),
+        onClear: () => update("subcategory", "all"),
+      })
+    }
+    if (filters.difficulty !== "all") {
+      next.push({
+        key: "difficulty",
+        label: difficultyLabel(filters.difficulty),
+        onClear: () => update("difficulty", "all"),
+      })
+    }
+    if (filters.equipment !== "all") {
+      next.push({
+        key: "equipment",
+        label: equipmentLabel(filters.equipment),
+        onClear: () => update("equipment", "all"),
+      })
+    }
+    if (filters.position !== "all") {
+      next.push({
+        key: "position",
+        label: positionLabel(filters.position),
+        onClear: () => update("position", "all"),
+      })
+    }
+    return next
+  }, [filters.difficulty, filters.equipment, filters.position, filters.region, filters.subcategory, update])
 
   return (
     <div className="flex w-full max-w-full flex-1 flex-col overflow-x-hidden">
@@ -136,7 +236,7 @@ export function ExerciseLibrary({
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-slate-400" />
           <Input
             value={filters.query}
-            onChange={(event) => update("query", event.target.value)}
+            onChange={setQuery}
             placeholder="Caută după titlu sau descriere…"
             className="h-12 w-full rounded-xl pl-11 text-base"
             aria-label="Caută exerciții"
@@ -146,35 +246,32 @@ export function ExerciseLibrary({
           <FilterSelect
             label="Regiuni"
             value={filters.region}
-            onChange={(value) => update("region", value as AnatomicalRegion | "all")}
-            options={[
-              { id: "all", label: "Toate regiunile" },
-              ...REGIONS.map((region) => ({ id: region.id, label: region.label })),
-            ]}
+            onChange={setRegion}
+            options={REGION_FILTER_OPTIONS}
           />
           <FilterSelect
             label="Obiectiv"
             value={filters.subcategory}
-            onChange={(value) => update("subcategory", value as TherapeuticObjective | "all")}
-            options={[{ id: "all", label: "Toate obiectivele" }, ...OBJECTIVES]}
+            onChange={setObjective}
+            options={OBJECTIVE_FILTER_OPTIONS}
           />
           <FilterSelect
             label="Nivel"
             value={filters.difficulty}
-            onChange={(value) => update("difficulty", value as Difficulty | "all")}
-            options={[{ id: "all", label: "Orice nivel" }, ...DIFFICULTIES]}
+            onChange={setDifficulty}
+            options={DIFFICULTY_FILTER_OPTIONS}
           />
           <FilterSelect
             label="Echipament"
             value={filters.equipment}
-            onChange={(value) => update("equipment", value as Equipment | "all")}
-            options={[{ id: "all", label: "Orice echipament" }, ...EQUIPMENT]}
+            onChange={setEquipment}
+            options={EQUIPMENT_FILTER_OPTIONS}
           />
           <FilterSelect
             label="Poziție"
             value={filters.position}
-            onChange={(value) => update("position", value as ExercisePosition | "all")}
-            options={[{ id: "all", label: "Orice poziție" }, ...POSITIONS]}
+            onChange={setPosition}
+            options={POSITION_FILTER_OPTIONS}
           />
         </div>
       </div>
@@ -187,7 +284,8 @@ export function ExerciseLibrary({
         <div className="flex w-max min-w-full gap-2">
           <RegionPill
             active={filters.region === "all"}
-            onClick={() => update("region", "all")}
+            regionId="all"
+            onSelect={setRegion}
             label="Toate"
             count={counts.all}
           />
@@ -195,7 +293,8 @@ export function ExerciseLibrary({
             <RegionPill
               key={region.id}
               active={filters.region === region.id}
-              onClick={() => update("region", region.id)}
+              regionId={region.id}
+              onSelect={setRegion}
               label={region.label}
               count={counts[region.id]}
             />
@@ -218,7 +317,7 @@ export function ExerciseLibrary({
           ))}
           <button
             type="button"
-            onClick={() => setFilters(EMPTY_FILTERS)}
+            onClick={resetFilters}
             className="px-1.5 text-xs font-medium text-teal-800 underline-offset-4 hover:underline"
           >
             Resetează
@@ -231,12 +330,7 @@ export function ExerciseLibrary({
           <div className="w-full max-w-md rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center">
             <p className="font-medium text-slate-800">Niciun exercițiu nu corespunde filtrelor.</p>
             <p className="mt-1 text-sm text-slate-600">Șterge un filtru sau caută alt termen.</p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4 h-11 rounded-xl"
-              onClick={() => setFilters(EMPTY_FILTERS)}
-            >
+            <Button type="button" variant="outline" className="mt-4 h-11 rounded-xl" onClick={resetFilters}>
               Resetează filtrele
             </Button>
           </div>
@@ -247,52 +341,24 @@ export function ExerciseLibrary({
             <LibraryCard
               key={exercise.id}
               exercise={exercise}
-              onPreview={() => setPreview(exercise)}
-              onAssign={() => setAssign(exercise)}
-              onDelete={
-                canModifyLibrary && exercise.custom
-                  ? () => {
-                      startDelete(async () => {
-                        const result = await deleteLibraryExercise(exercise.id)
-                        if (result.error) {
-                          toast(result.error)
-                          return
-                        }
-                        setExtras((current) => current.filter((item) => item.id !== exercise.id))
-                        toast("Exercițiul a fost șters din bibliotecă.")
-                      })
-                    }
-                  : undefined
-              }
+              onPreview={openPreview}
+              onAssign={openAssign}
+              onDelete={canModifyLibrary && exercise.custom ? deleteExercise : undefined}
             />
           ))}
         </div>
       )}
 
       {preview ? (
-        <PreviewDialog
-          exercise={preview}
-          onClose={() => setPreview(null)}
-          onAssign={() => {
-            setAssign(preview)
-            setPreview(null)
-          }}
-        />
+        <PreviewDialog exercise={preview} onClose={closePreview} onAssign={assignFromPreview} />
       ) : null}
-      {assign ? (
-        <AssignDialog exercise={assign} patients={patients} onClose={() => setAssign(null)} />
-      ) : null}
-      {adding && canModifyLibrary ? (
-        <AddExerciseDialog
-          onClose={() => setAdding(false)}
-          onCreated={(exercise) => setExtras((current) => [exercise, ...current])}
-        />
-      ) : null}
+      {assign ? <AssignDialog exercise={assign} patients={patients} onClose={closeAssign} /> : null}
+      {adding && canModifyLibrary ? <AddExerciseDialog onClose={closeAdding} onCreated={onCreated} /> : null}
     </div>
   )
 }
 
-function FilterSelect({
+const FilterSelect = memo(function FilterSelect({
   label,
   value,
   onChange,
@@ -323,16 +389,18 @@ function FilterSelect({
       </select>
     </label>
   )
-}
+})
 
-function RegionPill({
+const RegionPill = memo(function RegionPill({
   active,
-  onClick,
+  regionId,
+  onSelect,
   label,
   count,
 }: {
   active: boolean
-  onClick: () => void
+  regionId: string
+  onSelect: (value: string) => void
   label: string
   count: number
 }) {
@@ -341,7 +409,7 @@ function RegionPill({
       type="button"
       role="tab"
       aria-selected={active}
-      onClick={onClick}
+      onClick={() => onSelect(regionId)}
       className={cn(
         "h-10 shrink-0 rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition",
         active
@@ -353,4 +421,4 @@ function RegionPill({
       <span className={cn("ml-1.5 tabular-nums text-xs", active ? "text-white/75" : "text-slate-400")}>{count}</span>
     </button>
   )
-}
+})

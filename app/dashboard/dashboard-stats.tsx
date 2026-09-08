@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { Activity, AlertTriangle, ClipboardCheck, Users } from "lucide-react"
 
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
@@ -20,7 +21,7 @@ const CARDS = [
   icon: typeof Users
 }>
 
-export function DashboardStats({
+export const DashboardStats = memo(function DashboardStats({
   stats,
   filter,
   onSelect,
@@ -66,4 +67,4 @@ export function DashboardStats({
       })}
     </section>
   )
-}
+})
