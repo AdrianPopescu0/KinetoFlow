@@ -1,6 +1,6 @@
 import "server-only"
 
-import { getFirebaseMessagingAdmin, isFirebaseAdminConfigured } from "@/lib/patients/fcm-admin"
+import { getFirebaseMessagingAdmin } from "@/lib/patients/fcm-admin"
 import { deletePatientPushTokens } from "@/lib/patients/push-tokens"
 import { reminderLog, reminderWarn } from "@/lib/reminders/log"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
@@ -28,17 +28,14 @@ export async function sendPushToTokens(
     return { sent: false, provider: null, successCount: 0, failureCount: 0, error: "Niciun token FCM." }
   }
 
-  let adminReady = false
-  let messaging: ReturnType<typeof getFirebaseMessagingAdmin> = null
+  let messaging = null
   try {
-    adminReady = isFirebaseAdminConfigured()
-    messaging = adminReady ? getFirebaseMessagingAdmin() : null
+    messaging = await getFirebaseMessagingAdmin()
   } catch {
-    adminReady = false
     messaging = null
   }
 
-  if (!adminReady || !messaging) {
+  if (!messaging) {
     reminderLog("Firebase Admin lipsește — trimitere push simulată (dev/mock).", {
       tokenCount: unique.length,
       title: input.title,

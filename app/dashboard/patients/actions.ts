@@ -27,7 +27,6 @@ import {
   isWriteConflict,
   type PatientFileSnapshot,
 } from "@/lib/patients/optimistic"
-import { sendManualCheckinReminder } from "@/lib/reminders/manual-checkin"
 
 export type MutationState = {
   error: string | null
@@ -572,6 +571,7 @@ export async function sendCheckinReminder(patientId: string): Promise<{
   }
 
   try {
+    const { sendManualCheckinReminder } = await import("@/lib/reminders/manual-checkin")
     return await sendManualCheckinReminder(supabase, user.id, patientId)
   } catch {
     return {

@@ -1,17 +1,14 @@
 import "server-only"
 
-import { cert, getApps, initializeApp, type ServiceAccount } from "firebase-admin/app"
-import { getMessaging, type Messaging } from "firebase-admin/messaging"
+import { parseFirebaseServiceAccountJson } from "@/lib/patients/fcm-private-key"
 
-import {
-  parseFirebaseServiceAccountJson,
-  type FirebaseServiceAccountJson,
-} from "@/lib/patients/fcm-private-key"
+import type { App, ServiceAccount } from "firebase-admin/app"
+import type { Messaging } from "firebase-admin/messaging"
 
 const UNAVAILABLE_WARNING =
   "Firebase Admin indisponibil. Aplicația continuă fără notificări push."
 
-let messagingSingleton: Messaging | null | undefined
+let messagingPromise: Promise<Messaging | null> | undefined
 let didWarnUnavailable = false
 
 function warnUnavailable(): void {
@@ -22,46 +19,37 @@ function warnUnavailable(): void {
   console.warn(UNAVAILABLE_WARNING)
 }
 
-export function readFirebaseServiceAccount(
-  env: NodeJS.ProcessEnv = process.env,
-): FirebaseServiceAccountJson | null {
-  try {
-    return parseFirebaseServiceAccountJson(env.FIREBASE_SERVICE_ACCOUNT)
-  } catch {
-    warnUnavailable()
-    return null
-  }
-}
-
 /**
- * True doar dacă Firebase Admin s-a inițializat cu succes.
- * JSON prezent dar cheie invalidă → false, fără throw.
+ * Verifică doar prezența JSON-ului. Nu apelează `cert()` — OpenSSL nu rulează pe dashboard.
  */
 export function isFirebaseAdminConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
   try {
-    if (env !== process.env) {
-      return Boolean(readFirebaseServiceAccount(env))
-    }
-    return getFirebaseMessagingAdmin() !== null
+    return Boolean(parseFirebaseServiceAccountJson(env.FIREBASE_SERVICE_ACCOUNT))
   } catch {
-    warnUnavailable()
     return false
   }
 }
 
-function createMessaging(): Messaging | null {
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT
-  if (!raw?.trim()) {
+export function readFirebaseServiceAccount(env: NodeJS.ProcessEnv = process.env) {
+  try {
+    return parseFirebaseServiceAccountJson(env.FIREBASE_SERVICE_ACCOUNT)
+  } catch {
     return null
   }
+}
 
-  const serviceAccount = parseFirebaseServiceAccountJson(raw)
+async function createMessaging(): Promise<Messaging | null> {
+  const serviceAccount = parseFirebaseServiceAccountJson(process.env.FIREBASE_SERVICE_ACCOUNT)
   if (!serviceAccount) {
-    warnUnavailable()
     return null
   }
 
-  const existing = getApps()[0]
+  const [{ cert, getApps, initializeApp }, { getMessaging }] = await Promise.all([
+    import("firebase-admin/app"),
+    import("firebase-admin/messaging"),
+  ])
+
+  const existing: App | undefined = getApps()[0]
   const app =
     existing ??
     initializeApp({
@@ -72,20 +60,22 @@ function createMessaging(): Messaging | null {
 }
 
 /**
- * Inițializează Firebase Admin din `FIREBASE_SERVICE_ACCOUNT`.
- * Orice eșec (JSON invalid, cheie PEM, OpenSSL) e înghițit: un warn în consolă, `null`.
+ * Încarcă Firebase Admin doar când e nevoie (trimitere push).
+ * Cheie invalidă / OpenSSL: un `console.warn`, fără throw către dashboard.
  */
-export function getFirebaseMessagingAdmin(): Messaging | null {
-  if (messagingSingleton !== undefined) {
-    return messagingSingleton
+export async function getFirebaseMessagingAdmin(): Promise<Messaging | null> {
+  if (!messagingPromise) {
+    messagingPromise = createMessaging().catch(() => {
+      warnUnavailable()
+      return null
+    })
   }
 
   try {
-    messagingSingleton = createMessaging()
+    return await messagingPromise
   } catch {
     warnUnavailable()
-    messagingSingleton = null
+    messagingPromise = Promise.resolve(null)
+    return null
   }
-
-  return messagingSingleton
 }
