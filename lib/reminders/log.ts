@@ -31,7 +31,11 @@ export function maskPhone(phone: string | null | undefined): string | null {
 }
 
 export function providerFlags(): { fcm: boolean } {
-  return {
-    fcm: isFirebaseAdminConfigured(),
+  try {
+    return {
+      fcm: isFirebaseAdminConfigured(),
+    }
+  } catch {
+    return { fcm: false }
   }
 }

@@ -28,7 +28,17 @@ export async function sendPushToTokens(
     return { sent: false, provider: null, successCount: 0, failureCount: 0, error: "Niciun token FCM." }
   }
 
-  if (!isFirebaseAdminConfigured()) {
+  let adminReady = false
+  let messaging: ReturnType<typeof getFirebaseMessagingAdmin> = null
+  try {
+    adminReady = isFirebaseAdminConfigured()
+    messaging = adminReady ? getFirebaseMessagingAdmin() : null
+  } catch {
+    adminReady = false
+    messaging = null
+  }
+
+  if (!adminReady || !messaging) {
     reminderLog("Firebase Admin lipsește — trimitere push simulată (dev/mock).", {
       tokenCount: unique.length,
       title: input.title,
@@ -43,17 +53,6 @@ export async function sendPushToTokens(
         process.env.NODE_ENV === "production"
           ? "Firebase Admin nu e configurat pe server."
           : undefined,
-    }
-  }
-
-  const messaging = getFirebaseMessagingAdmin()
-  if (!messaging) {
-    return {
-      sent: false,
-      provider: null,
-      successCount: 0,
-      failureCount: unique.length,
-      error: "Firebase Admin nu a putut fi inițializat.",
     }
   }
 

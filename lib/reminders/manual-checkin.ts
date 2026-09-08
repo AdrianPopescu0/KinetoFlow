@@ -67,13 +67,21 @@ export async function sendManualCheckinReminder(
   const firstName = fullName.trim().split(/\s+/)[0] || fullName
   const portalUrl = token ? patientPortalUrl(token) : patientAccessUrlWithCode(accessCode)
 
-  const push = await sendPushToTokens(pushTokens, {
-    title: `${clinicName}: check-in`,
-    body: `Bună, ${firstName}! Nu ai făcut încă check-in-ul de azi. Deschide programul și notează cum te simți.`,
-    url: portalUrl,
-  })
-  if (push.sent) {
-    return { error: null, sent: true, channel: "push" }
+  try {
+    const push = await sendPushToTokens(pushTokens, {
+      title: `${clinicName}: check-in`,
+      body: `Bună, ${firstName}! Nu ai făcut încă check-in-ul de azi. Deschide programul și notează cum te simți.`,
+      url: portalUrl,
+    })
+    if (push.sent) {
+      return { error: null, sent: true, channel: "push" }
+    }
+    return { error: push.error ?? "Nu am putut trimite notificarea push.", sent: false, channel: "push" }
+  } catch {
+    return {
+      error: "Notificările push nu sunt disponibile momentan.",
+      sent: false,
+      channel: null,
+    }
   }
-  return { error: push.error ?? "Nu am putut trimite notificarea push.", sent: false, channel: "push" }
 }

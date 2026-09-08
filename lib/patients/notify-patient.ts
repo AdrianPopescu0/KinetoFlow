@@ -19,19 +19,27 @@ export type PatientNotifyResult = {
 
 /** Canale disponibile pentru invitații (SMS Twilio). WhatsApp nu e folosit la trimitere. */
 export function configuredNotifyChannels(): { whatsapp: boolean; sms: boolean; push: boolean } {
-  return {
-    whatsapp: false,
-    sms: isTwilioSmsConfigured(),
-    push: isFirebaseAdminConfigured(),
+  try {
+    return {
+      whatsapp: false,
+      sms: isTwilioSmsConfigured(),
+      push: isFirebaseAdminConfigured(),
+    }
+  } catch {
+    return { whatsapp: false, sms: false, push: false }
   }
 }
 
 /** Reminderele de check-in merg exclusiv prin FCM. SMS/WhatsApp sunt oprite pe acest canal. */
 export function configuredReminderChannels(): { whatsapp: boolean; sms: boolean; push: boolean } {
-  return {
-    whatsapp: false,
-    sms: false,
-    push: isFirebaseAdminConfigured(),
+  try {
+    return {
+      whatsapp: false,
+      sms: false,
+      push: isFirebaseAdminConfigured(),
+    }
+  } catch {
+    return { whatsapp: false, sms: false, push: false }
   }
 }
 

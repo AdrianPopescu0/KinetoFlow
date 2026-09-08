@@ -571,6 +571,14 @@ export async function sendCheckinReminder(patientId: string): Promise<{
     return { error: "Lipsește pacientul.", sent: false, channel: null }
   }
 
-  return sendManualCheckinReminder(supabase, user.id, patientId)
+  try {
+    return await sendManualCheckinReminder(supabase, user.id, patientId)
+  } catch {
+    return {
+      error: "Notificările push nu sunt disponibile momentan.",
+      sent: false,
+      channel: null,
+    }
+  }
 }
 
