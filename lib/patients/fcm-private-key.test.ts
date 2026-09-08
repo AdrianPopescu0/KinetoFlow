@@ -1,93 +1,54 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import {
-  normalizeFirebasePrivateKey,
-  parseFirebaseServiceAccountJson,
-} from "./fcm-private-key.ts"
+import { parseFirebaseServiceAccountJson } from "./fcm-private-key.ts"
 
-const BODY = "MIIFakeBase64PayloadForTestsPlusPaddingEquals=="
-const CANONICAL = [
-  "-----BEGIN PRIVATE KEY-----",
-  "MIIFakeBase64PayloadForTestsPlusPaddingEquals==",
-  "-----END PRIVATE KEY-----",
-  "",
-].join("\n")
+const PEM = "-----BEGIN PRIVATE KEY-----\nMIIFakeBase64PayloadForTests\n-----END PRIVATE KEY-----\n"
 
-test("înlocuiește \\n literale din Vercel cu PEM canonic", () => {
-  const raw = `-----BEGIN PRIVATE KEY-----\\n${BODY}\\n-----END PRIVATE KEY-----\\n`
-  assert.equal(normalizeFirebasePrivateKey(raw), CANONICAL)
-})
-
-test("scoate ghilimelele și escape-ul dublu (\\\\n)", () => {
-  const raw = `"-----BEGIN PRIVATE KEY-----\\\\n${BODY}\\\\n-----END PRIVATE KEY-----\\\\n"`
-  assert.equal(normalizeFirebasePrivateKey(raw), CANONICAL)
-})
-
-test("parsează valoarea ca string JSON (ghilimele + \\n)", () => {
-  const raw = JSON.stringify(`-----BEGIN PRIVATE KEY-----\n${BODY}\n-----END PRIVATE KEY-----\n`)
-  assert.equal(normalizeFirebasePrivateKey(raw), CANONICAL)
-})
-
-test("păstrează un PEM care are deja newline-uri reale", () => {
-  const raw = `-----BEGIN RSA PRIVATE KEY-----\n${BODY}\n-----END RSA PRIVATE KEY-----\n`
-  const normalized = normalizeFirebasePrivateKey(raw)
-  assert.ok(normalized)
-  assert.ok(normalized.startsWith("-----BEGIN RSA PRIVATE KEY-----\n"))
-  assert.ok(normalized.includes(BODY.replace(/=/g, "").slice(0, 20)) || normalized.includes(BODY.slice(0, 20)))
-  assert.ok(normalized.includes("-----END RSA PRIVATE KEY-----"))
-  assert.equal(normalized.includes("\\n"), false)
-})
-
-test("reconstruiește PEM-ul lipit pe un singur rând, cu spații", () => {
-  const raw = `  "-----BEGIN PRIVATE KEY----- ${BODY} -----END PRIVATE KEY-----"  `
-  assert.equal(normalizeFirebasePrivateKey(raw), CANONICAL)
-})
-
-test("decodează PEM-ul întreg salvat ca Base64", () => {
-  const pem = `-----BEGIN PRIVATE KEY-----\n${BODY}\n-----END PRIVATE KEY-----\n`
-  const encoded = Buffer.from(pem, "utf8").toString("base64")
-  assert.equal(normalizeFirebasePrivateKey(encoded), CANONICAL)
-})
-
-test("extrage cheia din JSON-ul contului de serviciu pus greșit în FIREBASE_PRIVATE_KEY", () => {
-  const json = JSON.stringify({
+function serviceAccountJson(extra: Record<string, unknown> = {}): string {
+  return JSON.stringify({
     type: "service_account",
-    project_id: "demo",
-    client_email: "demo@demo.iam.gserviceaccount.com",
-    private_key: `-----BEGIN PRIVATE KEY-----\n${BODY}\n-----END PRIVATE KEY-----\n`,
+    project_id: "demo-project",
+    client_email: "demo@demo-project.iam.gserviceaccount.com",
+    private_key: PEM,
+    ...extra,
   })
-  assert.equal(normalizeFirebasePrivateKey(json), CANONICAL)
+}
+
+test("JSON.parse pe FIREBASE_SERVICE_ACCOUNT lasă private_key cu newline-uri reale", () => {
+  const parsed = parseFirebaseServiceAccountJson(serviceAccountJson())
+  assert.ok(parsed)
+  assert.equal(parsed.project_id, "demo-project")
+  assert.equal(parsed.client_email, "demo@demo-project.iam.gserviceaccount.com")
+  assert.equal(parsed.private_key, PEM)
+  assert.equal(String(parsed.private_key).includes("\n"), true)
+  assert.equal(String(parsed.private_key).includes("\\n"), false)
 })
 
-test("este idempotent după prima normalizare", () => {
-  const once = normalizeFirebasePrivateKey(`-----BEGIN PRIVATE KEY-----\\n${BODY}\\n-----END PRIVATE KEY-----`)
-  assert.equal(normalizeFirebasePrivateKey(once), once)
+test("acceptă JSON-ul pe un rând, cu \\n escapate ca în Vercel", () => {
+  const raw = `{"type":"service_account","project_id":"demo","client_email":"a@b.c","private_key":"-----BEGIN PRIVATE KEY-----\\nMIIFake\\n-----END PRIVATE KEY-----\\n"}`
+  const parsed = parseFirebaseServiceAccountJson(raw)
+  assert.ok(parsed)
+  assert.equal(parsed.project_id, "demo")
+  assert.equal(parsed.private_key, "-----BEGIN PRIVATE KEY-----\nMIIFake\n-----END PRIVATE KEY-----\n")
 })
 
-test("respinge valori fără header PEM", () => {
-  assert.equal(normalizeFirebasePrivateKey(""), null)
-  assert.equal(normalizeFirebasePrivateKey("not-a-key"), null)
-  assert.equal(normalizeFirebasePrivateKey(undefined), null)
+test("dacă valoarea e un string JSON (dublu-encodat), parsează de două ori", () => {
+  const parsed = parseFirebaseServiceAccountJson(JSON.stringify(serviceAccountJson()))
+  assert.equal(parsed?.project_id, "demo-project")
+  assert.equal(parsed?.private_key, PEM)
 })
 
-test("parsează FIREBASE_SERVICE_ACCOUNT cu \\n literale în private_key", () => {
-  const json = `{"project_id":"demo","client_email":"a@b.c","private_key":"-----BEGIN PRIVATE KEY-----\\n${BODY}\\n-----END PRIVATE KEY-----\\n"}`
-  const parsed = parseFirebaseServiceAccountJson(json)
-  assert.deepEqual(parsed, {
-    projectId: "demo",
-    clientEmail: "a@b.c",
-    privateKey: CANONICAL,
-  })
+test("scoate un rând de ghilimele extra și apoi face JSON.parse", () => {
+  const parsed = parseFirebaseServiceAccountJson(`'${serviceAccountJson()}'`)
+  assert.equal(parsed?.project_id, "demo-project")
+  assert.equal(parsed?.private_key, PEM)
 })
 
-test("parsează JSON-ul contului dublu-escapat și cu ghilimele extra", () => {
-  const inner = JSON.stringify({
-    project_id: "demo",
-    client_email: "a@b.c",
-    private_key: `-----BEGIN PRIVATE KEY-----\n${BODY}\n-----END PRIVATE KEY-----\n`,
-  })
-  const parsed = parseFirebaseServiceAccountJson(`'${JSON.stringify(inner)}'`)
-  assert.equal(parsed?.projectId, "demo")
-  assert.equal(parsed?.privateKey, CANONICAL)
+test("respinge JSON incomplet sau invalid", () => {
+  assert.equal(parseFirebaseServiceAccountJson(""), null)
+  assert.equal(parseFirebaseServiceAccountJson("not-json"), null)
+  assert.equal(parseFirebaseServiceAccountJson("{}"), null)
+  assert.equal(parseFirebaseServiceAccountJson(JSON.stringify({ project_id: "demo" })), null)
+  assert.equal(parseFirebaseServiceAccountJson(undefined), null)
 })
