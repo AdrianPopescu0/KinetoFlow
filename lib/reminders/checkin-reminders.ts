@@ -240,10 +240,14 @@ export async function runCheckinReminders(
       }
 
       if (!providers.fcm) {
-        reminderWarn("Canal push, dar Firebase Admin nu e configurat pe server.", {
-          ...base,
-          providers,
+        skipped += 1
+        outcomes.push({
+          patientId: patient.id,
+          fullName: patient.full_name,
+          status: "skipped",
+          reason: "push-disabled",
         })
+        continue
       }
 
       eligible += 1
@@ -292,6 +296,17 @@ export async function runCheckinReminders(
           status: "sent",
           channel: "push",
           provider: push.provider,
+        })
+        continue
+      }
+
+      if (!push.error) {
+        skipped += 1
+        outcomes.push({
+          patientId: patient.id,
+          fullName: patient.full_name,
+          status: "skipped",
+          reason: "push-disabled",
         })
         continue
       }

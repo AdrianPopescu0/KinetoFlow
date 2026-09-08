@@ -2,7 +2,7 @@ import "server-only"
 
 import { getFirebaseMessagingAdmin } from "@/lib/patients/fcm-admin"
 import { deletePatientPushTokens } from "@/lib/patients/push-tokens"
-import { reminderLog, reminderWarn } from "@/lib/reminders/log"
+import { reminderWarn } from "@/lib/reminders/log"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
 export type PushSendResult = {
@@ -36,20 +36,11 @@ export async function sendPushToTokens(
   }
 
   if (!messaging) {
-    reminderLog("Firebase Admin lipsește — trimitere push simulată (dev/mock).", {
-      tokenCount: unique.length,
-      title: input.title,
-      url: input.url,
-    })
     return {
-      sent: process.env.NODE_ENV !== "production",
-      provider: "fcm-mock",
-      successCount: process.env.NODE_ENV !== "production" ? unique.length : 0,
-      failureCount: process.env.NODE_ENV === "production" ? unique.length : 0,
-      error:
-        process.env.NODE_ENV === "production"
-          ? "Firebase Admin nu e configurat pe server."
-          : undefined,
+      sent: false,
+      provider: null,
+      successCount: 0,
+      failureCount: unique.length,
     }
   }
 

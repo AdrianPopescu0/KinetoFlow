@@ -76,12 +76,11 @@ export async function sendManualCheckinReminder(
     if (push.sent) {
       return { error: null, sent: true, channel: "push" }
     }
-    return { error: push.error ?? "Nu am putut trimite notificarea push.", sent: false, channel: "push" }
-  } catch {
-    return {
-      error: "Notificările push nu sunt disponibile momentan.",
-      sent: false,
-      channel: null,
+    if (!push.error) {
+      return { error: null, sent: false, channel: null }
     }
+    return { error: push.error, sent: false, channel: "push" }
+  } catch {
+    return { error: null, sent: false, channel: null }
   }
 }

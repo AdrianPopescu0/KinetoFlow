@@ -154,7 +154,9 @@ const PendingCheckinRow = memo(function PendingCheckinRow({ patient }: { patient
         toast(result.error)
         return
       }
-      toast(`Reminder push trimis către ${patient.full_name}.`)
+      if (result.sent) {
+        toast(`Reminder push trimis către ${patient.full_name}.`)
+      }
     })
   }
 

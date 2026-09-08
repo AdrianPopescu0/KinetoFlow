@@ -574,11 +574,7 @@ export async function sendCheckinReminder(patientId: string): Promise<{
     const { sendManualCheckinReminder } = await import("@/lib/reminders/manual-checkin")
     return await sendManualCheckinReminder(supabase, user.id, patientId)
   } catch {
-    return {
-      error: "Notificările push nu sunt disponibile momentan.",
-      sent: false,
-      channel: null,
-    }
+    return { error: null, sent: false, channel: null }
   }
 }
 
