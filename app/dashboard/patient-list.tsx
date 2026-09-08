@@ -16,6 +16,7 @@ import {
   PATIENT_SCOPE_STORAGE_KEY,
   patientMatchesAssignmentScope,
   patientMatchesListFilter,
+  sortPatientsForList,
   type PatientAssignmentScope,
   type PatientListFilter,
 } from "@/lib/patients/dashboard-filter"
@@ -44,7 +45,7 @@ export function PatientList({
   const [assignments, setAssignments] = useState<Record<string, string | null>>({})
   const [source, setSource] = useState(patients)
   const [exerciseTarget, setExerciseTarget] = useState<{ id: string; name: string } | null>(null)
-  const [expandOverrides, setExpandOverrides] = useState<Record<string, boolean>>({})
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({})
   const [, startAssign] = useTransition()
 
   // Datele proaspete de pe server înlocuiesc suprascrierile optimiste.
@@ -110,22 +111,15 @@ export function PatientList({
   }, [])
 
   const isRowExpanded = useCallback(
-    (patient: PatientListItem) => {
-      if (Object.hasOwn(expandOverrides, patient.id)) {
-        return expandOverrides[patient.id] === true
-      }
-      return isHighPainVas(patient.lastVas)
-    },
-    [expandOverrides],
+    (patient: PatientListItem) => expandedIds[patient.id] === true,
+    [expandedIds],
   )
 
   const toggleRowExpanded = useCallback((patient: PatientListItem) => {
-    setExpandOverrides((current) => {
-      const currentlyOpen = Object.hasOwn(current, patient.id)
-        ? current[patient.id] === true
-        : isHighPainVas(patient.lastVas)
-      return { ...current, [patient.id]: !currentlyOpen }
-    })
+    setExpandedIds((current) => ({
+      ...current,
+      [patient.id]: !current[patient.id],
+    }))
   }, [])
 
   const scoped = useMemo(() => {
@@ -146,8 +140,13 @@ export function PatientList({
     if (filter === "checkins") {
       return scoped
     }
-    return scoped.filter((patient) => patientMatchesListFilter(patient, filter))
+    return sortPatientsForList(scoped.filter((patient) => patientMatchesListFilter(patient, filter)))
   }, [filter, scoped])
+
+  const painAlertCount = useMemo(
+    () => filtered.filter((patient) => isHighPainVas(patient.lastVas)).length,
+    [filtered],
+  )
 
   return (
     <div className="min-w-0 overflow-x-hidden">
@@ -191,6 +190,16 @@ export function PatientList({
             className="h-11 w-full border-slate-300 pl-9"
           />
         </div>
+        {filter !== "checkins" && painAlertCount > 0 ? (
+          <p className="mt-3 text-sm text-red-800">
+            {painAlertCount === 1
+              ? "1 pacient cu VAS ≥ 7 este evidențiat și afișat primul."
+              : `${painAlertCount} pacienți cu VAS ≥ 7 sunt evidențiați și afișați primii.`}
+          </p>
+        ) : null}
+        {filter === "alert" && painAlertCount === 0 ? (
+          <p className="mt-3 text-sm text-slate-600">Niciun pacient cu VAS ≥ 7 momentan. Lista rămâne completă.</p>
+        ) : null}
       </div>
 
       {filter === "checkins" ? (
@@ -225,7 +234,7 @@ export function PatientList({
             <table className="w-full min-w-[52rem] text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 <tr>
-                  <th className="px-5 py-3">Pacient</th>
+                  <th className="border-l-4 border-l-transparent px-5 py-3">Pacient</th>
                   <th className="px-5 py-3">Diagnostic</th>
                   <th className="px-5 py-3">Ultimul VAS</th>
                   <th className="px-5 py-3">Terapeut responsabil</th>

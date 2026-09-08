@@ -48,14 +48,21 @@ export const DashboardStats = memo(function DashboardStats({
             aria-pressed={selected}
             className={cn(
               surfaceCardClassName(
-                "flex cursor-pointer items-start gap-3 p-4 text-left transition-all hover:scale-[1.01] hover:border-teal-500",
+                "flex cursor-pointer items-start gap-3 p-4 text-left transition-all hover:scale-[1.01]",
               ),
-              selected
-                ? "border-teal-600 bg-teal-50/70 ring-2 ring-teal-500/70"
-                : "hover:bg-white",
+              selected && card.key === "alert"
+                ? "border-red-400 bg-red-50/80 ring-2 ring-red-400/70 hover:border-red-500"
+                : selected
+                  ? "border-teal-600 bg-teal-50/70 ring-2 ring-teal-500/70 hover:border-teal-500"
+                  : "hover:border-teal-500 hover:bg-white",
             )}
           >
-            <span className="flex size-10 items-center justify-center rounded-xl bg-teal-50 text-[#042f2e]">
+            <span
+              className={cn(
+                "flex size-10 items-center justify-center rounded-xl",
+                card.key === "alert" ? "bg-red-50 text-red-700" : "bg-teal-50 text-[#042f2e]",
+              )}
+            >
               <Icon className="size-5" />
             </span>
             <div>

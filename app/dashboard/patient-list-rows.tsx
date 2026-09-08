@@ -2,7 +2,7 @@
 
 import { memo, type MouseEvent, type ReactNode } from "react"
 import Link from "next/link"
-import { ChevronDown, FolderOpen, Plus } from "lucide-react"
+import { AlertTriangle, ChevronDown, FolderOpen, Plus } from "lucide-react"
 
 import { AssignedTherapistSelect } from "@/app/dashboard/assigned-therapist-select"
 import { VasChart } from "@/app/dashboard/patients/vas-chart"
@@ -97,7 +97,15 @@ function ExpandNameButton({
         )}
       />
       <span className="min-w-0">
-        <span className="block break-words font-medium text-slate-800">{patient.full_name}</span>
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="block break-words font-medium text-slate-800">{patient.full_name}</span>
+          {isHighPainVas(patient.lastVas) ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-red-800 uppercase">
+              <AlertTriangle className="size-3" />
+              Alertă
+            </span>
+          ) : null}
+        </span>
         {subtitle}
       </span>
     </button>
@@ -114,11 +122,15 @@ export const PatientMobileCard = memo(function PatientMobileCard({
 }: {
   patient: PatientListItem
 } & PatientRowHandlers) {
+  const highPain = isHighPainVas(patient.lastVas)
+
   return (
     <li
       className={cn(
-        "flex min-w-0 flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm",
-        expanded && isHighPainVas(patient.lastVas) ? "border-red-200" : "border-slate-200",
+        "flex min-w-0 flex-col gap-3 rounded-2xl border p-4 shadow-sm",
+        highPain
+          ? "border-red-300 bg-red-50/70 ring-1 ring-red-200"
+          : "border-slate-200 bg-white",
       )}
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
@@ -188,16 +200,19 @@ export const PatientTableRow = memo(function PatientTableRow({
 }: {
   patient: PatientListItem
 } & PatientRowHandlers) {
+  const highPain = isHighPainVas(patient.lastVas)
+
   return (
     <>
       <tr
         className={cn(
-          "cursor-pointer border-b border-slate-100 hover:bg-slate-50/80",
-          expanded && "bg-slate-50",
+          "cursor-pointer border-b border-slate-100",
+          highPain ? "bg-red-50/70 hover:bg-red-50" : "hover:bg-slate-50/80",
+          expanded && !highPain && "bg-slate-50",
         )}
         onClick={(event) => toggleFromRowClick(event, patient, onToggleExpanded)}
       >
-        <td className="px-5 py-4">
+        <td className={cn("border-l-4 px-5 py-4", highPain ? "border-l-red-500" : "border-l-transparent")}>
           <ExpandNameButton
             patient={patient}
             expanded={expanded}
@@ -249,8 +264,11 @@ export const PatientTableRow = memo(function PatientTableRow({
         </td>
       </tr>
       {expanded ? (
-        <tr className="border-b border-slate-100 bg-slate-50">
-          <td colSpan={5} className="px-5 py-4">
+        <tr className={cn("border-b border-slate-100", highPain ? "bg-red-50/50" : "bg-slate-50")}>
+          <td
+            colSpan={5}
+            className={cn("border-l-4 px-5 py-4", highPain ? "border-l-red-500" : "border-l-transparent")}
+          >
             <PatientVasExpandPanel patient={patient} />
           </td>
         </tr>

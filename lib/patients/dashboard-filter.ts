@@ -34,7 +34,8 @@ export function patientMatchesListFilter(
     return true
   }
   if (filter === "alert") {
-    return isHighPainVas(patient.lastVas)
+    // Alertele rămân în lista completă, evidențiate și sortate sus — nu le izolăm.
+    return true
   }
   if (filter === "silent") {
     return patient.lastVas === null
@@ -49,10 +50,29 @@ export function patientMatchesListFilter(
   return true
 }
 
+export function comparePatientsForList(left: PatientListItem, right: PatientListItem): number {
+  const leftAlert = isHighPainVas(left.lastVas)
+  const rightAlert = isHighPainVas(right.lastVas)
+  if (leftAlert !== rightAlert) {
+    return leftAlert ? -1 : 1
+  }
+  if (leftAlert && rightAlert) {
+    const vasDiff = (right.lastVas ?? 0) - (left.lastVas ?? 0)
+    if (vasDiff !== 0) {
+      return vasDiff
+    }
+  }
+  return left.full_name.localeCompare(right.full_name, "ro")
+}
+
+export function sortPatientsForList(patients: PatientListItem[]): PatientListItem[] {
+  return [...patients].sort(comparePatientsForList)
+}
+
 export function emptyFilterMessage(filter: PatientListFilter): string {
   switch (filter) {
     case "alert":
-      return "Niciun pacient cu VAS ≥ 7 momentan."
+      return "Nu există pacienți în listă."
     case "checkins":
       return "Nu există pacienți în vizualizarea de check-in de azi."
     case "compliance":

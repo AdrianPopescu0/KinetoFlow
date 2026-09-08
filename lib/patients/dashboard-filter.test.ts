@@ -4,6 +4,8 @@ import { test } from "node:test"
 import {
   patientHasCheckInToday,
   patientMatchesAssignmentScope,
+  patientMatchesListFilter,
+  sortPatientsForList,
   splitPatientsByTodayCheckIn,
 } from "./dashboard-filter.ts"
 import type { PatientListItem } from "./types-db.ts"
@@ -96,4 +98,24 @@ test("split-ul de check-in respectă pacienții din scope-ul terapeutului", () =
     ["mine"],
   )
   assert.equal(split.pending.length, 0)
+})
+
+test("filtrul de alerte nu ascunde pacienții fără durere mare", () => {
+  const calm = patient({ id: "calm", full_name: "Ana", lastVas: 2 })
+  const alert = patient({ id: "alert", full_name: "Dan", lastVas: 8 })
+  assert.equal(patientMatchesListFilter(calm, "alert"), true)
+  assert.equal(patientMatchesListFilter(alert, "alert"), true)
+})
+
+test("sortPatientsForList pune VAS ≥ 7 sus, apoi după scor și nume", () => {
+  const ana = patient({ id: "ana", full_name: "Ana Pop", lastVas: 2 })
+  const dan = patient({ id: "dan", full_name: "Dan Ionescu", lastVas: 8 })
+  const eva = patient({ id: "eva", full_name: "Eva Marinescu", lastVas: 9 })
+  const ion = patient({ id: "ion", full_name: "Ion Pop", lastVas: 7 })
+  const mia = patient({ id: "mia", full_name: "Mia Radu", lastVas: null })
+
+  assert.deepEqual(
+    sortPatientsForList([mia, ana, ion, dan, eva]).map((item) => item.id),
+    ["eva", "dan", "ion", "ana", "mia"],
+  )
 })

@@ -42,7 +42,7 @@ export function DashboardOverview({
           <p className="text-sm text-slate-600">
             {filter === "checkins"
               ? "Cine a trimis formularul azi și cine e încă în așteptare, după vizualizarea selectată."
-              : "Caută după pacient sau apasă un card de metrici pentru a filtra lista."}
+              : "Toți pacienții rămân în listă. Durerea mare (VAS ≥ 7) e evidențiată și urcă primele. Apasă un rând pentru graficul VAS."}
           </p>
         </div>
         <PatientList
