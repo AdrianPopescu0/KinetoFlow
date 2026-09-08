@@ -1,7 +1,7 @@
 "use client"
 
 import { memo } from "react"
-import { AlertTriangle, CalendarDays, ClipboardCheck, Users } from "lucide-react"
+import { CalendarDays, ClipboardCheck, Users } from "lucide-react"
 
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { formatRealFrequency } from "@/lib/patients/compliance"
@@ -12,11 +12,10 @@ import { cn } from "@/lib/utils"
 const CARDS = [
   { key: "all", statKey: "activePatients", label: "Pacienți activi", icon: Users },
   { key: "checkins", statKey: "checkInsToday", label: "Check-in-uri azi", icon: ClipboardCheck },
-  { key: "alert", statKey: "painAlerts", label: "Alerte durere VAS ≥ 7", icon: AlertTriangle },
   { key: "compliance", statKey: "realFrequency", label: "Frecvență reală", icon: CalendarDays },
 ] as const satisfies ReadonlyArray<{
   key: PatientListFilter
-  statKey: "activePatients" | "checkInsToday" | "painAlerts" | "realFrequency"
+  statKey: "activePatients" | "checkInsToday" | "realFrequency"
   label: string
   icon: typeof Users
 }>
@@ -31,7 +30,7 @@ export const DashboardStats = memo(function DashboardStats({
   onSelect: (filter: PatientListFilter) => void
 }) {
   return (
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="grid gap-3 sm:grid-cols-3">
       {CARDS.map((card) => {
         const Icon = card.icon
         const value =
@@ -48,21 +47,14 @@ export const DashboardStats = memo(function DashboardStats({
             aria-pressed={selected}
             className={cn(
               surfaceCardClassName(
-                "flex cursor-pointer items-start gap-3 p-4 text-left transition-all hover:scale-[1.01]",
+                "flex cursor-pointer items-start gap-3 p-4 text-left transition-all hover:scale-[1.01] hover:border-teal-500",
               ),
-              selected && card.key === "alert"
-                ? "border-red-400 bg-red-50/80 ring-2 ring-red-400/70 hover:border-red-500"
-                : selected
-                  ? "border-teal-600 bg-teal-50/70 ring-2 ring-teal-500/70 hover:border-teal-500"
-                  : "hover:border-teal-500 hover:bg-white",
+              selected
+                ? "border-teal-600 bg-teal-50/70 ring-2 ring-teal-500/70"
+                : "hover:bg-white",
             )}
           >
-            <span
-              className={cn(
-                "flex size-10 items-center justify-center rounded-xl",
-                card.key === "alert" ? "bg-red-50 text-red-700" : "bg-teal-50 text-[#042f2e]",
-              )}
-            >
+            <span className="flex size-10 items-center justify-center rounded-xl bg-teal-50 text-[#042f2e]">
               <Icon className="size-5" />
             </span>
             <div>

@@ -4,7 +4,6 @@ import { test } from "node:test"
 import {
   patientHasCheckInToday,
   patientMatchesAssignmentScope,
-  patientMatchesListFilter,
   sortPatientsForList,
   splitPatientsByTodayCheckIn,
 } from "./dashboard-filter.ts"
@@ -98,13 +97,6 @@ test("split-ul de check-in respectă pacienții din scope-ul terapeutului", () =
     ["mine"],
   )
   assert.equal(split.pending.length, 0)
-})
-
-test("filtrul de alerte nu ascunde pacienții fără durere mare", () => {
-  const calm = patient({ id: "calm", full_name: "Ana", lastVas: 2 })
-  const alert = patient({ id: "alert", full_name: "Dan", lastVas: 8 })
-  assert.equal(patientMatchesListFilter(calm, "alert"), true)
-  assert.equal(patientMatchesListFilter(alert, "alert"), true)
 })
 
 test("sortPatientsForList pune VAS ≥ 7 sus, apoi după scor și nume", () => {

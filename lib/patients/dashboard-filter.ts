@@ -3,7 +3,7 @@ import { isLowRealFrequency } from "./compliance.ts"
 import { isHighPainVas } from "./vas-history.ts"
 import { bucharestDateKey, isBucharestToday } from "../time/bucharest.ts"
 
-export type PatientListFilter = "all" | "checkins" | "alert" | "compliance" | "silent"
+export type PatientListFilter = "all" | "checkins" | "compliance" | "silent"
 
 export type PatientAssignmentScope = "mine" | "clinic"
 
@@ -31,10 +31,6 @@ export function patientMatchesListFilter(
   filter: PatientListFilter,
 ): boolean {
   if (filter === "all") {
-    return true
-  }
-  if (filter === "alert") {
-    // Alertele rămân în lista completă, evidențiate și sortate sus — nu le izolăm.
     return true
   }
   if (filter === "silent") {
@@ -71,8 +67,6 @@ export function sortPatientsForList(patients: PatientListItem[]): PatientListIte
 
 export function emptyFilterMessage(filter: PatientListFilter): string {
   switch (filter) {
-    case "alert":
-      return "Nu există pacienți în listă."
     case "checkins":
       return "Nu există pacienți în vizualizarea de check-in de azi."
     case "compliance":

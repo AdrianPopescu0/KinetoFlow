@@ -21,7 +21,6 @@ import {
   type PatientListFilter,
 } from "@/lib/patients/dashboard-filter"
 import type { PatientListItem } from "@/lib/patients/types-db"
-import { isHighPainVas } from "@/lib/patients/vas-history"
 import { cn } from "@/lib/utils"
 
 const AssignExercisesModal = dynamic(
@@ -143,11 +142,6 @@ export function PatientList({
     return sortPatientsForList(scoped.filter((patient) => patientMatchesListFilter(patient, filter)))
   }, [filter, scoped])
 
-  const painAlertCount = useMemo(
-    () => filtered.filter((patient) => isHighPainVas(patient.lastVas)).length,
-    [filtered],
-  )
-
   return (
     <div className="min-w-0 overflow-x-hidden">
       <div className="border-b border-slate-200 px-5 py-4">
@@ -190,16 +184,6 @@ export function PatientList({
             className="h-11 w-full border-slate-300 pl-9"
           />
         </div>
-        {filter !== "checkins" && painAlertCount > 0 ? (
-          <p className="mt-3 text-sm text-red-800">
-            {painAlertCount === 1
-              ? "1 pacient cu VAS ≥ 7 este evidențiat și afișat primul."
-              : `${painAlertCount} pacienți cu VAS ≥ 7 sunt evidențiați și afișați primii.`}
-          </p>
-        ) : null}
-        {filter === "alert" && painAlertCount === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">Niciun pacient cu VAS ≥ 7 momentan. Lista rămâne completă.</p>
-        ) : null}
       </div>
 
       {filter === "checkins" ? (

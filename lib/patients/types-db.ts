@@ -50,7 +50,6 @@ export type PatientListItem = PatientRecord & {
 export type DashboardStats = {
   activePatients: number
   checkInsToday: number
-  painAlerts: number
   realFrequencyActiveDays: number
   realFrequencyWindowDays: number
 }

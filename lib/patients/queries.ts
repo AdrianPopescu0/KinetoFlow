@@ -6,7 +6,6 @@ import {
   clinicAverageFrequency,
   countActiveFrequencyDays,
 } from "@/lib/patients/compliance"
-import { isHighPainVas } from "@/lib/patients/vas-history"
 import { addBucharestCalendarDays, bucharestDateKey, isBucharestToday } from "@/lib/time/bucharest"
 import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
 import type {
@@ -87,7 +86,6 @@ export const listTherapistPatients = cache(async (): Promise<{
   const emptyStats: DashboardStats = {
     activePatients: 0,
     checkInsToday: 0,
-    painAlerts: 0,
     realFrequencyActiveDays: 0,
     realFrequencyWindowDays: REAL_FREQUENCY_WINDOW_DAYS,
   }
@@ -267,7 +265,6 @@ async function assemblePatientList(
   })
 
   const checkInsToday = checkIns.filter((row) => isBucharestToday(row.created_at)).length
-  const painAlerts = list.filter((patient) => isHighPainVas(patient.lastVas)).length
   const clinicFrequency = clinicAverageFrequency(list)
 
   return {
@@ -275,7 +272,6 @@ async function assemblePatientList(
     stats: {
       activePatients: list.length,
       checkInsToday,
-      painAlerts,
       realFrequencyActiveDays: clinicFrequency.activeDays,
       realFrequencyWindowDays: clinicFrequency.windowDays,
     },
