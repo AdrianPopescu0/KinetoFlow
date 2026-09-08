@@ -3,9 +3,12 @@ import { test } from "node:test"
 
 import {
   authorizationMatchesCronSecret,
+  describeCronAuthFailure,
   isAuthorizedCronRequest,
   isVercelCronInvocation,
+  readCronSecret,
   shouldRunDailyProgressReset,
+  unwrapCronAuthToken,
 } from "./authorize.ts"
 
 const SECRET = "cron-secret-value-16"
@@ -15,7 +18,6 @@ test("Bearer exact cu CRON_SECRET e acceptat; lipsa sau token greșit nu", () =>
   assert.equal(authorizationMatchesCronSecret(null, SECRET), false)
   assert.equal(authorizationMatchesCronSecret("", SECRET), false)
   assert.equal(authorizationMatchesCronSecret("Bearer wrong", SECRET), false)
-  assert.equal(authorizationMatchesCronSecret(SECRET, SECRET), false)
   assert.equal(authorizationMatchesCronSecret(`Bearer ${SECRET}`, undefined), false)
   assert.equal(authorizationMatchesCronSecret(`Bearer ${SECRET}`, ""), false)
   assert.equal(authorizationMatchesCronSecret(`Bearer ${SECRET}`, "   "), false)
@@ -25,6 +27,16 @@ test("trim pe secret/header și bearer lowercase rămân valide", () => {
   assert.equal(authorizationMatchesCronSecret(`Bearer ${SECRET}`, ` ${SECRET} \n`), true)
   assert.equal(authorizationMatchesCronSecret(`  Bearer ${SECRET}  `, SECRET), true)
   assert.equal(authorizationMatchesCronSecret(`bearer ${SECRET}`, SECRET), true)
+})
+
+test("cron-job.org: secret brut, Bearer dublu și ghilimele", () => {
+  assert.equal(readCronSecret(`"${SECRET}"`), SECRET)
+  assert.equal(readCronSecret(`'${SECRET}'`), SECRET)
+  assert.equal(unwrapCronAuthToken(`Bearer Bearer ${SECRET}`), SECRET)
+  assert.equal(unwrapCronAuthToken(`"${SECRET}"`), SECRET)
+  assert.equal(authorizationMatchesCronSecret(SECRET, SECRET), true)
+  assert.equal(authorizationMatchesCronSecret(`Bearer Bearer ${SECRET}`, SECRET), true)
+  assert.equal(authorizationMatchesCronSecret(`"Bearer ${SECRET}"`, `"${SECRET}"`), true)
 })
 
 test("isAuthorizedCronRequest citește Authorization de pe Request", () => {
@@ -64,6 +76,16 @@ test("cron-job.org: secret în X-Cron-Secret sau X-Api-Key, nu doar Authorizatio
     ),
     false,
   )
+})
+
+test("describeCronAuthFailure nu divulgă secretul", () => {
+  const noHeader = new Request("https://example.com/api/cron/reminders")
+  assert.equal(describeCronAuthFailure(noHeader, SECRET).reason, "missing_header")
+  assert.equal(describeCronAuthFailure(noHeader, "").reason, "missing_secret")
+  const mismatch = new Request("https://example.com/api/cron/reminders", {
+    headers: { authorization: "Bearer other" },
+  })
+  assert.equal(describeCronAuthFailure(mismatch, SECRET).reason, "mismatch")
 })
 
 test("detectează invocarea Vercel Cron din header / user-agent", () => {

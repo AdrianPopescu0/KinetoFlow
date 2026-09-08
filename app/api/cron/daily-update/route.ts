@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server"
 
+import { isAuthorizedCronRequest } from "@/lib/cron/authorize"
 import { runResetDailyProgress } from "@/lib/exercises/reset-daily-progress"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function isAuthorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim()
-  return Boolean(secret && request.headers.get("authorization") === `Bearer ${secret}`)
-}
-
 async function handleDailyUpdate(request: Request) {
-  if (!isAuthorized(request)) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Neautorizat." }, { status: 401 })
   }
 

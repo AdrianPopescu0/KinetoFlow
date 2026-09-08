@@ -1,8 +1,11 @@
-import { type NextRequest } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 
 import { updateSession } from "@/utils/supabase/middleware"
 
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith("/api/cron")) {
+    return NextResponse.next()
+  }
   return updateSession(request)
 }
 

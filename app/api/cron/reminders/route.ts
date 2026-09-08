@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { cronErrorMessage, isAuthorizedCronRequest } from "@/lib/cron/authorize"
+import { cronErrorMessage, describeCronAuthFailure, isAuthorizedCronRequest } from "@/lib/cron/authorize"
 import { configuredNotifyChannels } from "@/lib/patients/notify-patient"
 import { runCheckinReminders } from "@/lib/reminders/checkin-reminders"
 import {
@@ -12,10 +12,6 @@ import { createServiceRoleClient } from "@/utils/supabase/admin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-function unauthorized() {
-  return NextResponse.json({ ok: false, error: "Neautorizat." }, { status: 401 })
-}
 
 function failure(error: unknown, status = 500) {
   const message = cronErrorMessage(error)
@@ -35,12 +31,17 @@ function failure(error: unknown, status = 500) {
 async function handleReminders(request: Request) {
   try {
     if (!isAuthorizedCronRequest(request)) {
-      console.warn("[checkin-reminders] Cerere respinsă: secret cron lipsă sau header greșit.", {
+      const denied = describeCronAuthFailure(request)
+      console.warn("[checkin-reminders] Cerere respinsă.", {
+        reason: denied.reason,
         hasCronSecret: Boolean(process.env.CRON_SECRET?.trim()),
         hasAuthorization: Boolean(request.headers.get("authorization")),
         hasCronSecretHeader: Boolean(request.headers.get("x-cron-secret") || request.headers.get("x-api-key")),
       })
-      return unauthorized()
+      return NextResponse.json(
+        { ok: false, error: "Neautorizat.", reason: denied.reason, hint: denied.message },
+        { status: 401 },
+      )
     }
 
     const url = new URL(request.url)

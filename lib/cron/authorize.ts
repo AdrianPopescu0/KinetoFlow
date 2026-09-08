@@ -9,72 +9,114 @@ function buffersEqual(left: string, right: string): boolean {
   return timingSafeEqual(a, b)
 }
 
-function secretTokenMatches(token: string, secret: string): boolean {
-  return buffersEqual(token, secret)
+/** Scoate BOM, newline, spații și ghilimelele puse din greșeală în Vercel / .env. */
+export function readCronSecret(raw: string | undefined | null = process.env.CRON_SECRET): string | undefined {
+  if (raw == null) {
+    return undefined
+  }
+  let value = raw.replace(/^\uFEFF/, "").trim()
+  if (
+    (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
+    (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
+  ) {
+    value = value.slice(1, -1).trim()
+  }
+  return value.length > 0 ? value : undefined
+}
+
+function stripWrappingQuotes(value: string): string {
+  let next = value.replace(/^\uFEFF/, "").trim()
+  if (
+    (next.startsWith('"') && next.endsWith('"') && next.length >= 2) ||
+    (next.startsWith("'") && next.endsWith("'") && next.length >= 2)
+  ) {
+    next = next.slice(1, -1).trim()
+  }
+  return next
 }
 
 /**
- * Vercel și cron-job.org trimit `Authorization: Bearer ${CRON_SECRET}`.
- * Acceptă și spații accidentale / `bearer` lowercase, dar respinge lipsa prefixului
- * pe acest header (ca să nu confunde un Bearer malformat cu un secret brut).
+ * cron-job.org pune valoarea header-ului ca `Bearer SECRET`, uneori doar `SECRET`,
+ * uneori `Bearer Bearer SECRET` dacă prefixul e scris și în UI.
  */
+export function unwrapCronAuthToken(header: string): string {
+  let value = stripWrappingQuotes(header)
+  for (let i = 0; i < 3; i += 1) {
+    const match = /^Bearer\s+(.+)$/i.exec(value)
+    if (!match?.[1]) {
+      break
+    }
+    value = stripWrappingQuotes(match[1])
+  }
+  return value
+}
+
 export function authorizationMatchesCronSecret(
   authorization: string | null,
   cronSecret: string | undefined,
 ): boolean {
-  if (!cronSecret || !authorization) {
+  const secret = readCronSecret(cronSecret)
+  if (!secret || !authorization) {
     return false
   }
-  if (authorization === `Bearer ${cronSecret}`) {
-    return true
-  }
-
-  const secret = cronSecret.trim()
-  if (!secret) {
-    return false
-  }
-
-  const header = authorization.trim()
-  if (header === `Bearer ${secret}`) {
-    return true
-  }
-
-  const match = /^Bearer\s+(.+)$/i.exec(header)
-  const token = match?.[1]?.trim()
+  const token = unwrapCronAuthToken(authorization)
   if (!token) {
     return false
   }
-  return secretTokenMatches(token, secret)
+  return buffersEqual(token, secret)
 }
 
 /** Header custom (cron-job.org → Advanced): valoarea e secretul sau `Bearer …`. */
 export function headerMatchesCronSecret(value: string | null, cronSecret: string | undefined): boolean {
-  if (!cronSecret || !value) {
-    return false
-  }
-  const secret = cronSecret.trim()
-  const token = value.trim()
-  if (!secret || !token) {
-    return false
-  }
-  if (secretTokenMatches(token, secret)) {
-    return true
-  }
-  return authorizationMatchesCronSecret(token, secret)
+  return authorizationMatchesCronSecret(value, cronSecret)
 }
 
 const CRON_SECRET_HEADERS = ["x-cron-secret", "x-cron-job-secret", "x-api-key"] as const
 
-export function isAuthorizedCronRequest(request: Request, cronSecret = process.env.CRON_SECRET): boolean {
-  if (authorizationMatchesCronSecret(request.headers.get("authorization"), cronSecret)) {
-    return true
+export function cronAuthHeaderValue(request: Request): string | null {
+  const authorization = request.headers.get("authorization")
+  if (authorization?.trim()) {
+    return authorization
   }
   for (const name of CRON_SECRET_HEADERS) {
-    if (headerMatchesCronSecret(request.headers.get(name), cronSecret)) {
-      return true
+    const value = request.headers.get(name)
+    if (value?.trim()) {
+      return value
     }
   }
-  return false
+  return null
+}
+
+export function isAuthorizedCronRequest(request: Request, cronSecret = process.env.CRON_SECRET): boolean {
+  const secret = readCronSecret(cronSecret)
+  const header = cronAuthHeaderValue(request)
+  return authorizationMatchesCronSecret(header, secret)
+}
+
+export type CronAuthFailureReason = "missing_secret" | "missing_header" | "mismatch"
+
+export function describeCronAuthFailure(
+  request: Request,
+  cronSecret = process.env.CRON_SECRET,
+): { reason: CronAuthFailureReason; message: string } {
+  const secret = readCronSecret(cronSecret)
+  if (!secret) {
+    return {
+      reason: "missing_secret",
+      message: "CRON_SECRET nu este setat pe server (Vercel → Settings → Environment Variables).",
+    }
+  }
+  const header = cronAuthHeaderValue(request)
+  if (!header) {
+    return {
+      reason: "missing_header",
+      message: "Lipsește header-ul Authorization (sau X-Cron-Secret).",
+    }
+  }
+  return {
+    reason: "mismatch",
+    message: "Secretul din Authorization nu se potrivește cu CRON_SECRET (verifică ghilimelele și prefixul Bearer).",
+  }
 }
 
 /** Invocare din Vercel Cron (header-ele sunt în plus față de Bearer; nu înlocuiesc secretul). */

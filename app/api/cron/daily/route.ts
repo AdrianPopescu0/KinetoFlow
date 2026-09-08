@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { isAuthorizedCronRequest } from "@/lib/cron/authorize"
 import { runResetDailyProgress } from "@/lib/exercises/reset-daily-progress"
 import {
   CHECKIN_REMINDER_HOUR_BUCHAREST,
@@ -15,11 +16,6 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 type CronTask = "program" | "reminders" | "all"
-
-function authorizeCron(request: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim()
-  return Boolean(secret && request.headers.get("authorization") === `Bearer ${secret}`)
-}
 
 function parseTask(raw: string | null): CronTask | null {
   if (raw === "program" || raw === "reminders" || raw === "all") {
@@ -57,7 +53,7 @@ function resolveTasks(task: CronTask | null, force: boolean, now: Date): {
 }
 
 async function handleDailyCron(request: Request) {
-  if (!authorizeCron(request)) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Neautorizat." }, { status: 401 })
   }
 
