@@ -557,24 +557,3 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
   return { error: null }
 }
 
-export async function sendCheckinReminder(patientId: string): Promise<{
-  error: string | null
-  sent: boolean
-  channel: "push" | null
-}> {
-  const { supabase, user } = await requireUser()
-  if (!user) {
-    return { error: "Sesiunea a expirat. Autentifică-te din nou.", sent: false, channel: null }
-  }
-  if (typeof patientId !== "string" || patientId.length < 8) {
-    return { error: "Lipsește pacientul.", sent: false, channel: null }
-  }
-
-  try {
-    const { sendManualCheckinReminder } = await import("@/lib/reminders/manual-checkin")
-    return await sendManualCheckinReminder(supabase, user.id, patientId)
-  } catch {
-    return { error: null, sent: false, channel: null }
-  }
-}
-

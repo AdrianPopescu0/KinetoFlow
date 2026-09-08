@@ -104,7 +104,7 @@ Trigger manual: `GET /api/cron/reset-daily-progress?force=1` cu `Authorization: 
 
 Reminder-ul de check-in de la 18:00 **nu** poate rula în același cron Hobby (ar trebui o a doua declanșare). Rămâne pe `/api/cron/reminders` (sau `?task=reminders` pe `/api/cron/daily`) pentru trigger manual, **cron-job.org** sau plan Pro. Endpoint-ul **nu e public**. În cron-job.org: Advanced → Request headers, Key `Authorization`, Value `Bearer ` + **exact** valoarea `CRON_SECRET` din Vercel (fără ghilimele). Acceptă și secretul brut sau `X-Cron-Secret`. Fără secret pe server, fără header sau valoare diferită → 401 `{ "ok": false, "error": "Neautorizat.", "reason": "missing_secret" | "missing_header" | "mismatch", "hint": "…" }`. Dacă 401-ul e HTML (nu JSON), e **Vercel Deployment Protection** — Bypass for Automation, nu rutele din app. Erorile de bază sau de pacient se întorc ca 500 JSON; un pacient eșuat nu oprește restul job-ului. `?force=1` ignoră fereastra 18:00.
 
-Reminder-ele de check-in (cron 18:00 și butonul „Trimite reminder” din dashboard) trimit **doar** notificări push FCM către tokenurile din `patient_push_tokens`. Fără token, pacientul e sărit (`Pacientul nu a activat notificările push.`). Dacă FCM eșuează, job-ul marchează eșecul și **nu** apelează Twilio / WhatsApp.
+Reminder-ele de check-in se trimit **doar automat** la 18:00 prin `/api/cron/reminders` (cron-job.org). Sunt notificări push FCM către tokenurile din `patient_push_tokens`. Fără token, pacientul e sărit (`Pacientul nu a activat notificările push.`). Dacă FCM eșuează, job-ul marchează eșecul și **nu** apelează Twilio / WhatsApp. Nu există buton de reminder manual în dashboard.
 
 ## Notificări push (Firebase Cloud Messaging)
 

@@ -1,12 +1,9 @@
 "use client"
 
-import { memo, useMemo, useState, useTransition } from "react"
+import { memo, useMemo, useState } from "react"
 import Link from "next/link"
-import { Bell, FolderOpen, Loader2 } from "lucide-react"
+import { FolderOpen } from "lucide-react"
 
-import { sendCheckinReminder } from "@/app/dashboard/patients/actions"
-import { Button } from "@/components/ui/button"
-import { toast } from "@/components/ui/toaster"
 import {
   emptyAssignmentScopeMessage,
   splitPatientsByTodayCheckIn,
@@ -145,21 +142,6 @@ const CompletedCheckinRow = memo(function CompletedCheckinRow({ patient }: { pat
 })
 
 const PendingCheckinRow = memo(function PendingCheckinRow({ patient }: { patient: PatientListItem }) {
-  const [isPending, startSend] = useTransition()
-
-  function remind() {
-    startSend(async () => {
-      const result = await sendCheckinReminder(patient.id)
-      if (result.error) {
-        toast(result.error)
-        return
-      }
-      if (result.sent) {
-        toast(`Reminder push trimis către ${patient.full_name}.`)
-      }
-    })
-  }
-
   return (
     <li className="flex min-w-0 flex-col gap-3 rounded-2xl border border-amber-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
@@ -182,16 +164,6 @@ const PendingCheckinRow = memo(function PendingCheckinRow({ patient }: { patient
         <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 ring-1 ring-amber-200 ring-inset">
           În așteptare
         </span>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={remind}
-          disabled={isPending}
-          className="h-11 min-h-[44px] rounded-xl border-amber-200 text-amber-950 hover:bg-amber-50"
-        >
-          {isPending ? <Loader2 className="size-4 animate-spin" /> : <Bell className="size-4" />}
-          Trimite reminder
-        </Button>
         <OpenFileLink patientId={patient.id} />
       </div>
     </li>
