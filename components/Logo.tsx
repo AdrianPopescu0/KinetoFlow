@@ -37,7 +37,7 @@ export function Logo({
         className,
       )}
     >
-      <KineticWaveMark
+      <KineticMark
         className={cn("shrink-0", scale.icon)}
         variant={variant}
         decorative={showText}
@@ -56,7 +56,7 @@ export function Logo({
   )
 }
 
-export function KineticWaveMark({
+export function KineticMark({
   className,
   variant = "default",
   decorative = true,
@@ -66,8 +66,9 @@ export function KineticWaveMark({
   decorative?: boolean
 }) {
   const reactId = useId().replace(/:/g, "")
-  const gradientId = `kf-wave-${reactId}`
+  const gradientId = `kf-mark-${reactId}`
   const onDark = variant === "onDark"
+  const arc = onDark ? "#2DD4BF" : "#14B8A6"
 
   return (
     <svg
@@ -79,31 +80,30 @@ export function KineticWaveMark({
       aria-label={decorative ? undefined : "KinetoFlow"}
     >
       <defs>
-        <linearGradient id={gradientId} x1="7" y1="24" x2="25" y2="8" gradientUnits="userSpaceOnUse">
-          <stop stopColor={onDark ? "#2DD4BF" : "#0D9488"} />
-          <stop offset="1" stopColor={onDark ? "#5EEAD4" : "#14B8A6"} />
+        <linearGradient id={gradientId} x1="12" y1="26" x2="26" y2="8" gradientUnits="userSpaceOnUse">
+          <stop stopColor={onDark ? "#2DD4BF" : "#14B8A6"} />
+          <stop offset="1" stopColor={onDark ? "#99F6E4" : "#5EEAD4"} />
         </linearGradient>
       </defs>
-      <rect width="32" height="32" rx="8" fill={onDark ? "rgba(255,255,255,0.12)" : "#0F172A"} />
+      <rect width="32" height="32" rx="8" fill={onDark ? "rgba(255,255,255,0.12)" : "#042f2e"} />
       <path
-        d="M7.2 22.8C10.2 12.4 14 12.2 16 16c2 3.8 5.6 4 8.8-6.4"
+        d="M19.4 25.8C12.1 25.2 7.1 19.4 7.6 12.8C8 7.8 12.2 4.8 17.2 5.6"
+        stroke={arc}
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <circle cx="18.35" cy="11.35" r="2.4" fill={`url(#${gradientId})`} />
+      <path
+        d="M17.85 13.85c-1.7 2.55-2.55 5.15-1.15 8.55.85 2.05 1.45 2.95.95 3.55"
         stroke={`url(#${gradientId})`}
-        strokeWidth="2.15"
+        strokeWidth="2.45"
         strokeLinecap="round"
       />
       <path
-        d="M8.7 23.6C11.6 13.6 14.6 13.4 16.3 16.2c1.8 3.4 5.2 3.6 8.2-5.6"
+        d="M18.7 15.15c2.55.15 5.15-1.55 7.35-4.55"
         stroke={`url(#${gradientId})`}
-        strokeWidth="2.15"
+        strokeWidth="2.45"
         strokeLinecap="round"
-        opacity="0.78"
-      />
-      <path
-        d="M10.2 24.2C12.8 14.8 15.2 14.6 16.6 16.4c1.6 3 4.6 3.2 7.4-4.8"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="2.15"
-        strokeLinecap="round"
-        opacity="0.55"
       />
     </svg>
   )
