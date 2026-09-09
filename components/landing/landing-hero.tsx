@@ -15,6 +15,9 @@ export function LandingHero({ unlockOpen = false }: { unlockOpen?: boolean }) {
         <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance text-slate-900 sm:text-5xl sm:leading-[1.12]">
           Optimizează activitatea. Gestionează recuperarea dintr-un singur loc.
         </h1>
+        <p className="mt-4 max-w-2xl text-lg font-medium tracking-tight text-pretty text-[#0f766e] sm:text-xl sm:leading-snug">
+          KinetoFlow – Fluxul mișcării și al recuperării.
+        </p>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-pretty text-slate-600 sm:text-lg">
           KinetoFlow aduce pacienții, programele de exerciții și echipa clinicii în același flux de
           lucru. Platforma este în Early Access: intrați cu un cod de 12 caractere primit de la

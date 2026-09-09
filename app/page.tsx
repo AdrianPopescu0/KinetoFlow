@@ -9,7 +9,7 @@ import { LandingHero } from "@/components/landing/landing-hero"
 export const metadata: Metadata = {
   title: "KinetoFlow — optimizează activitatea clinicii",
   description:
-    "Platformă pentru kinetoterapie: gestionează pacienții, programele de recuperare și echipa. Acces timpuriu pe bază de cod.",
+    "KinetoFlow – Fluxul mișcării și al recuperării. Platformă pentru kinetoterapie: gestionează pacienții, programele de recuperare și echipa. Acces timpuriu pe bază de cod.",
 }
 
 export default async function HomePage({
