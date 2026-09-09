@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 
 import { AcceptTherapistInviteForm } from "@/app/auth/invitatie/accept-form"
+import { LeaveUnavailableInviteButton } from "@/app/auth/invitatie/leave-unavailable-button"
 import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Logo } from "@/components/Logo"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
@@ -84,12 +84,7 @@ export default async function TherapistInvitePage({ params, searchParams }: Invi
                     ? "Invitațiile nu sunt încă activate în baza de date. Administratorul trebuie să ruleze sql/027_therapist_invites.sql."
                     : "Linkul de invitație lipsește sau este invalid. Cere administratorului un mesaj nou."}
               </p>
-              <Link
-                href="/login"
-                className="inline-flex h-12 min-h-[48px] w-full items-center justify-center rounded-xl border border-slate-300 bg-white text-sm font-medium text-slate-800"
-              >
-                Mergi la autentificare
-              </Link>
+              <LeaveUnavailableInviteButton />
             </>
           )}
         </div>
