@@ -47,7 +47,7 @@ export default async function ClinicTeamPage() {
           <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase">Administrare echipă</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-800">Echipa clinicii</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Invită terapeuți în {profile.clinic_name}. Trimite linkul de activare pe WhatsApp — fără email.
+            Invită terapeuți în {profile.clinic_name}. După salvare trimiți codul și linkul pe WhatsApp sau prin SMS.
           </p>
         </div>
         <InviteTherapistDialog />

@@ -9,11 +9,13 @@ import {
   resolveInviteSiteUrl,
   whatsAppInviteUrlFromGenerateLink,
 } from "@/lib/auth/invite-link"
+import { therapistInviteMessage } from "@/lib/clinics/invite-message"
 import { newTherapistTechnicalEmail, randomAccountPassword } from "@/lib/clinics/technical-email"
 import { canRemoveClinicMember, isClinicAdmin } from "@/lib/clinics/types"
 import { ForbiddenError } from "@/lib/http/forbidden"
+import { generateAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
-import { patientWhatsAppHref } from "@/lib/patients/whatsapp"
+import { patientWhatsAppHref, patientWhatsAppWebHref } from "@/lib/patients/whatsapp"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
@@ -23,7 +25,11 @@ export type InviteTherapistState = {
   ok?: boolean
   therapistName?: string
   inviteLink?: string
+  accessCode?: string
+  phone?: string
+  inviteMessage?: string
   whatsappHref?: string
+  whatsappWebHref?: string
 }
 
 export type RemoveTherapistState = {
@@ -83,19 +89,6 @@ function readTrimmed(formData: FormData, key: string): string {
   return typeof value === "string" ? value.trim() : ""
 }
 
-function therapistInviteMessage(input: {
-  therapistName: string
-  clinicName: string
-  inviteLink: string
-}): string {
-  const firstName = input.therapistName.trim().split(/\s+/)[0] ?? input.therapistName
-  return [
-    `Salut ${firstName}! Te-am adăugat în echipa clinicii ${input.clinicName} pe KinetoFlow.`,
-    "Activează-ți accesul (fără email) și setează-ți parola de pe acest link unic:",
-    input.inviteLink,
-  ].join("\n")
-}
-
 export async function inviteTherapistAction(formData: FormData): Promise<InviteTherapistState> {
   const therapistName = readTrimmed(formData, "therapist_name")
   const phoneRaw = readTrimmed(formData, "phone")
@@ -130,6 +123,7 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
     return { error: "Profilul cabinetului este incomplet. Reîncarcă pagina." }
   }
   const clinicOwnerId = profile.user_id
+  const accessCode = generateAccessCode()
   const technicalEmail = newTherapistTechnicalEmail(therapistName)
   const siteUrl = await resolveInviteSiteUrl()
   const redirectTo = recoveryRedirectTo(siteUrl)
@@ -159,6 +153,7 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
         phone,
         invited_by: user.id,
         role: "therapist",
+        access_code: accessCode,
       },
       app_metadata: {
         clinic_id: clinicOwnerId,
@@ -199,8 +194,10 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
       therapistName,
       clinicName,
       inviteLink,
+      accessCode,
     })
     const whatsappHref = patientWhatsAppHref(phone, message)
+    const whatsappWebHref = patientWhatsAppWebHref(phone, message)
 
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/echipa")
@@ -208,7 +205,11 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
       ok: true,
       therapistName,
       inviteLink,
+      accessCode,
+      phone,
+      inviteMessage: message,
       whatsappHref: whatsappHref ?? undefined,
+      whatsappWebHref: whatsappWebHref ?? undefined,
     }
   } catch (error) {
     if (error instanceof ForbiddenError) {

@@ -1,9 +1,11 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Check, Copy, Loader2, MessageCircle, Plus, UserPlus } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Check, Copy, Loader2, Plus, UserPlus } from "lucide-react"
 
 import { inviteTherapistAction } from "@/app/dashboard/echipa/actions"
+import { ShareInviteActions } from "@/components/invite/share-invite-actions"
 import { isForbiddenError } from "@/lib/http/forbidden"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,7 +16,11 @@ import { cn } from "@/lib/utils"
 type InviteReady = {
   therapistName: string
   inviteLink: string
+  accessCode: string
+  phone: string | null
+  inviteMessage: string
   whatsappHref: string | null
+  whatsappWebHref: string | null
 }
 
 export function InviteTherapistDialog({
@@ -24,10 +30,11 @@ export function InviteTherapistDialog({
   triggerLabel?: string
   triggerClassName?: string
 }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState<InviteReady | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [copiedCode, setCopiedCode] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function close() {
@@ -37,7 +44,7 @@ export function InviteTherapistDialog({
     setOpen(false)
     setError(null)
     setReady(null)
-    setCopied(false)
+    setCopiedCode(false)
   }
 
   function handleSubmit(formData: FormData) {
@@ -49,15 +56,20 @@ export function InviteTherapistDialog({
           setError(result.error ?? "Nu ai permisiunea de a invita terapeuți.")
           return
         }
-        if (result.error || !result.ok || !result.inviteLink || !result.therapistName) {
+        if (result.error || !result.ok || !result.inviteLink || !result.therapistName || !result.accessCode) {
           setError(result.error ?? "Nu am putut crea invitația.")
           return
         }
         setReady({
           therapistName: result.therapistName,
           inviteLink: result.inviteLink,
+          accessCode: result.accessCode,
+          phone: result.phone ?? null,
+          inviteMessage: result.inviteMessage ?? "",
           whatsappHref: result.whatsappHref ?? null,
+          whatsappWebHref: result.whatsappWebHref ?? null,
         })
+        router.refresh()
       } catch (caught) {
         if (isForbiddenError(caught) || (caught instanceof Error && caught.message.includes("administrator"))) {
           setError(caught instanceof Error ? caught.message : "Acces interzis (403).")
@@ -68,11 +80,11 @@ export function InviteTherapistDialog({
     })
   }
 
-  async function copyLink(link: string) {
-    await navigator.clipboard.writeText(link)
-    setCopied(true)
-    toast("Linkul de acces a fost copiat.")
-    window.setTimeout(() => setCopied(false), 2000)
+  async function copyCode(code: string) {
+    await navigator.clipboard.writeText(code)
+    setCopiedCode(true)
+    toast("Codul de acces a fost copiat.")
+    window.setTimeout(() => setCopiedCode(false), 2000)
   }
 
   return (
@@ -85,46 +97,47 @@ export function InviteTherapistDialog({
       {open ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
           <button type="button" className="absolute inset-0 bg-slate-900/40" aria-label="Închide" onClick={close} />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="invite-therapist-title"
+            className="relative max-h-[90vh] w-full max-w-md min-w-0 overflow-x-hidden overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6"
+          >
             {ready ? (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-start gap-3">
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">
-                    <MessageCircle className="size-5" />
-                  </span>
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900">Invitația e gata</h2>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Trimite-i lui {ready.therapistName} linkul pe WhatsApp. La deschidere își confirmă invitația
-                      și își alege parola — fără email.
-                    </p>
-                  </div>
-                </div>
-                {ready.whatsappHref ? (
-                  <a
-                    href={ready.whatsappHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-12 min-h-[48px] items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700"
-                  >
-                    <MessageCircle className="size-5" />
-                    Deschide WhatsApp și trimite invitația
-                  </a>
-                ) : (
-                  <p className="text-sm text-amber-800">
-                    Nu am putut construi linkul WhatsApp. Copiază linkul și trimite-l manual.
+              <div className="flex min-w-0 flex-col gap-4">
+                <div>
+                  <h2 id="invite-therapist-title" className="text-lg font-semibold text-slate-800">
+                    Terapeut adăugat
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {ready.therapistName} poate activa contul de terapeut cu telefonul și acest cod.
                   </p>
-                )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 rounded-xl"
-                  onClick={() => void copyLink(ready.inviteLink)}
-                >
-                  {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                  Copiază linkul
-                </Button>
-                <Button type="button" variant="ghost" className="h-11 rounded-xl text-slate-600" onClick={close}>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-center">
+                  <p className="text-xs font-semibold tracking-wide text-slate-400 uppercase">Cod unic de acces</p>
+                  <p className="mt-2 font-mono text-4xl font-semibold tracking-[0.2em] text-slate-900">
+                    {ready.accessCode}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => copyCode(ready.accessCode)}
+                    className="mt-4 h-11 rounded-xl"
+                  >
+                    {copiedCode ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    Copiază codul
+                  </Button>
+                </div>
+                {ready.inviteLink ? (
+                  <p className="break-all text-center text-xs text-slate-500">{ready.inviteLink}</p>
+                ) : null}
+                <ShareInviteActions
+                  phone={ready.phone}
+                  message={ready.inviteMessage || ready.inviteLink}
+                  whatsappHref={ready.whatsappHref}
+                  whatsappWebHref={ready.whatsappWebHref}
+                />
+                <Button type="button" variant="outline" onClick={close} className="h-11 w-full rounded-xl">
                   Închide
                 </Button>
               </div>
@@ -135,9 +148,11 @@ export function InviteTherapistDialog({
                     <UserPlus className="size-5" />
                   </span>
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">Adaugă terapeut</h2>
+                    <h2 id="invite-therapist-title" className="text-lg font-semibold text-slate-900">
+                      Adaugă terapeut
+                    </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      Doar nume și telefon. Trimitem invitația pe WhatsApp, fără email.
+                      Doar nume și telefon. După salvare trimiți invitația pe WhatsApp sau prin SMS.
                     </p>
                   </div>
                 </div>
