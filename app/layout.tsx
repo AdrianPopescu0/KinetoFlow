@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "KinetoFlow",
   description:
-    "Platformă clinică pentru kinetoterapie: autentificare securizată, programe și progresul pacienților.",
+    "Platformă clinică pentru kinetoterapie: optimizează activitatea cabinetului, programele de recuperare și accesul securizat.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

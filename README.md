@@ -48,6 +48,7 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 
 | Rută | Rol |
 | --- | --- |
+| `/` | Landing de prezentare: beneficiile platformei și **Intră în cont** → `/login`. Fără cumpărare abonament. |
 | `/login` | Intră în cont (`?mode=signin`) sau înregistrează clinică (`?mode=signup`); email+parolă sau **Sign in with Google**; la signup e obligatoriu consimțământul la Termeni și Politica de Confidențialitate; accesul complet după confirmarea emailului |
 | `/termeni` | Termeni și Condiții (inclusiv disclaimer medical) |
 | `/confidentialitate` | Politica de Confidențialitate și prelucrare date (GDPR) |
