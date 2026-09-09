@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation"
 
 import { InviteTherapistDialog } from "@/app/dashboard/echipa/invite-therapist-dialog"
+import { RemoveTherapistButton } from "@/app/dashboard/echipa/remove-therapist-button"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { getCachedUser } from "@/lib/auth/session"
 import { privilegedClinicClient } from "@/lib/clinics/members"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
-import { isClinicAdmin } from "@/lib/clinics/types"
+import { canRemoveClinicMember, isClinicAdmin } from "@/lib/clinics/types"
 
 export const metadata = {
   title: "Echipă | KinetoFlow",
@@ -63,18 +64,36 @@ export default async function ClinicTeamPage() {
                 <th className="px-5 py-3">Nume</th>
                 <th className="px-5 py-3">Rol</th>
                 <th className="px-5 py-3">Telefon</th>
+                <th className="px-5 py-3 text-right">Acțiuni</th>
               </tr>
             </thead>
             <tbody>
-              {(members ?? []).map((member) => (
-                <tr key={String(member.user_id)} className="border-b border-slate-100 last:border-0">
-                  <td className="px-5 py-4 font-medium text-slate-800">{member.therapist_name}</td>
-                  <td className="px-5 py-4 text-slate-600">
-                    {member.role === "admin" ? "Admin" : "Terapeut"}
-                  </td>
-                  <td className="px-5 py-4 text-slate-600">{member.phone || "—"}</td>
-                </tr>
-              ))}
+              {(members ?? []).map((member) => {
+                const memberUserId = String(member.user_id)
+                const showRemove = canRemoveClinicMember({
+                  actorIsAdmin: true,
+                  actorUserId: user.id,
+                  memberRole: typeof member.role === "string" ? member.role : null,
+                  memberUserId,
+                })
+                return (
+                  <tr key={memberUserId} className="border-b border-slate-100 last:border-0">
+                    <td className="px-5 py-4 font-medium text-slate-800">{member.therapist_name}</td>
+                    <td className="px-5 py-4 text-slate-600">
+                      {member.role === "admin" ? "Admin" : "Terapeut"}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">{member.phone || "—"}</td>
+                    <td className="px-5 py-4 text-right">
+                      {showRemove ? (
+                        <RemoveTherapistButton
+                          userId={memberUserId}
+                          therapistName={String(member.therapist_name ?? "")}
+                        />
+                      ) : null}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
