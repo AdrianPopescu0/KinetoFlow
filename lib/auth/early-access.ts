@@ -42,7 +42,7 @@ function timingSafeEqualBytes(left: Uint8Array, right: Uint8Array): boolean {
   return diff === 0
 }
 
-function bytesFromText(value: string): Uint8Array {
+function bytesFromText(value: string): Uint8Array<ArrayBuffer> {
   return new TextEncoder().encode(value)
 }
 
