@@ -1,12 +1,19 @@
 "use server"
 
+import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
 import {
   EMAIL_CONFIRM_REQUIRED,
+  REGISTER_CONFIRM_INFO,
   isEmailConfirmedUser,
   isEmailNotConfirmedAuthError,
 } from "@/lib/auth/email-confirmed"
 import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
-import { AUTH_ERROR_MESSAGE, parseLoginCredentials } from "@/lib/auth/validation"
+import {
+  AUTH_ERROR_MESSAGE,
+  parseLoginCredentials,
+  parseRegisterCredentials,
+  REGISTER_ERROR_MESSAGE,
+} from "@/lib/auth/validation"
 import { createClient } from "@/utils/supabase/server"
 
 export type LoginActionState = {
@@ -47,6 +54,37 @@ export async function login(formData: FormData): Promise<LoginActionState> {
   return null
 }
 
-export async function register(_formData: FormData): Promise<LoginActionState> {
-  return { error: "Înregistrarea de clinici noi nu este disponibilă. Autentifică-te dacă ai deja cont." }
+export async function register(formData: FormData): Promise<LoginActionState> {
+  const parsed = parseRegisterCredentials(formData)
+  if ("error" in parsed) {
+    return { error: parsed.error }
+  }
+
+  const supabase = await createClient()
+  const origin = await appOrigin()
+  const { data, error } = await supabase.auth.signUp({
+    email: parsed.email,
+    password: parsed.password,
+    options: {
+      emailRedirectTo: oauthCallbackUrl(origin, "/onboarding"),
+    },
+  })
+
+  if (error) {
+    if (isEmailNotConfirmedAuthError(error)) {
+      return { info: REGISTER_CONFIRM_INFO }
+    }
+    return { error: REGISTER_ERROR_MESSAGE }
+  }
+
+  if (data.user?.identities && data.user.identities.length === 0) {
+    return { error: "Există deja un cont cu acest email. Intră în cont din tabul de autentificare." }
+  }
+
+  // Nu acordăm acces până la confirmarea din email, chiar dacă Supabase a creat o sesiune.
+  if (data.session) {
+    await supabase.auth.signOut()
+  }
+
+  return { info: REGISTER_CONFIRM_INFO }
 }
