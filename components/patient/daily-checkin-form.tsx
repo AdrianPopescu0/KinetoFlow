@@ -17,6 +17,9 @@ type DailyCheckinFormProps = {
   notes: string
   error: string | null
   pending: boolean
+  submitEnabled: boolean
+  exercisesDone: number
+  exercisesTotal: number
   onPainChange: (value: number) => void
   onSleepChange: (value: SleepQuality) => void
   onEnergyChange: (value: EnergyLevel) => void
@@ -31,6 +34,9 @@ export function DailyCheckinForm({
   notes,
   error,
   pending,
+  submitEnabled,
+  exercisesDone,
+  exercisesTotal,
   onPainChange,
   onSleepChange,
   onEnergyChange,
@@ -118,14 +124,21 @@ export function DailyCheckinForm({
           />
         </div>
 
-        <Button
-          type="button"
-          onClick={onSubmit}
-          disabled={pending}
-          className="h-12 min-h-[48px] w-full rounded-2xl px-8 text-base font-semibold lg:w-auto lg:min-w-[14rem]"
-        >
-          {pending ? "Se trimite…" : "Trimite check-in-ul"}
-        </Button>
+        <div className="flex min-w-0 flex-col gap-2">
+          <Button
+            type="button"
+            onClick={onSubmit}
+            disabled={pending || !submitEnabled}
+            className="h-12 min-h-[48px] w-full rounded-2xl px-8 text-base font-semibold lg:w-auto lg:min-w-[14rem]"
+          >
+            {pending ? "Se trimite…" : "Trimite check-in-ul"}
+          </Button>
+          {!submitEnabled && exercisesTotal > 0 ? (
+            <p className="text-sm text-slate-600">
+              Bifează toate exercițiile de azi ({exercisesDone}/{exercisesTotal}) ca să deblochezi trimiterea.
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {error ? (

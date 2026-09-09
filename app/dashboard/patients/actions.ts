@@ -486,7 +486,14 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
   const sleepQuality: "odihnitor" | "moderat" | "intrerupt" = sleepRaw
 
   const { createServiceRoleClient } = await import("@/utils/supabase/admin")
-  const { syncExerciseCompletionsForDay } = await import("@/lib/patients/exercise-completions")
+  const {
+    listActiveExerciseIdsForDay,
+    listCompletedExerciseIdsForDay,
+    syncExerciseCompletionsForDay,
+  } = await import("@/lib/patients/exercise-completions")
+  const { allExercisesCompleted, CHECKIN_REQUIRES_EXERCISES_MESSAGE } = await import(
+    "@/lib/patients/checkin-exercises"
+  )
   const { bucharestDateKey } = await import("@/lib/time/bucharest")
   const admin = createServiceRoleClient()
   const { data: patient, error: patientError } = await admin
@@ -517,6 +524,16 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
       })
     }
     return { error: null }
+  }
+
+  const todayKey = bucharestDateKey()
+  const activeExerciseIds = await listActiveExerciseIdsForDay(admin, patient.id, todayKey)
+  if (activeExerciseIds === null) {
+    return { error: "Nu am putut verifica exercițiile de azi. Încearcă din nou." }
+  }
+  const completedToday = await listCompletedExerciseIdsForDay(admin, patient.id, todayKey)
+  if (!allExercisesCompleted(activeExerciseIds, completedToday)) {
+    return { error: CHECKIN_REQUIRES_EXERCISES_MESSAGE }
   }
 
   const base = {

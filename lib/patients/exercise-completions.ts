@@ -2,7 +2,7 @@ import "server-only"
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-import { isDateKey } from "@/lib/exercises/schedule"
+import { isDateKey, isExerciseActiveOnDate } from "@/lib/exercises/schedule"
 import { bucharestDateKey } from "@/lib/time/bucharest"
 
 const UUID_PATTERN =
@@ -50,6 +50,33 @@ export async function listCompletedExerciseIdsForDay(
   return (data ?? [])
     .map((row) => (typeof row.exercise_id === "string" ? row.exercise_id : null))
     .filter((id): id is string => Boolean(id))
+}
+
+export async function listActiveExerciseIdsForDay(
+  supabase: SupabaseClient,
+  patientId: string,
+  completedOn = bucharestDateKey(),
+): Promise<string[] | null> {
+  if (!isUuid(patientId) || !isDateKey(completedOn)) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from("exercises")
+    .select("id, notes")
+    .eq("patient_id", patientId)
+
+  if (error) {
+    console.error("[exercises] list active for day", error.message)
+    return null
+  }
+
+  return (data ?? [])
+    .filter((row) =>
+      isExerciseActiveOnDate(typeof row.notes === "string" ? row.notes : null, completedOn),
+    )
+    .map((row) => (typeof row.id === "string" ? row.id : ""))
+    .filter(Boolean)
 }
 
 export async function setExerciseCompletion(input: {

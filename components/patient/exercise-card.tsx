@@ -5,6 +5,7 @@ import { memo } from "react"
 import { VideoPreview } from "@/components/media/video-preview"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import type { Exercise } from "@/lib/patients/types"
 import { cn } from "@/lib/utils"
 
@@ -57,7 +58,25 @@ export const ExerciseCard = memo(function ExerciseCard({
           {exercise.instructions || "Fără instrucțiuni suplimentare."}
         </p>
 
-        <div className="mt-auto pt-1">
+        <div className="mt-auto flex flex-col gap-3 pt-1">
+          <label
+            className={cn(
+              "flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border px-3 py-2",
+              completed ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-slate-50",
+              pending && "pointer-events-none opacity-60",
+            )}
+          >
+            <Checkbox
+              checked={completed}
+              disabled={pending}
+              onCheckedChange={(next) => onToggle(exercise.id, next === true)}
+              className="size-5 border-slate-400 data-checked:border-[#042f2e] data-checked:bg-[#042f2e]"
+              aria-label={`Efectuat: ${exercise.title}`}
+            />
+            <span className="text-sm font-semibold text-slate-800">
+              {completed ? "Efectuat" : "Bifează după video"}
+            </span>
+          </label>
           <Button
             type="button"
             disabled={pending}

@@ -20,6 +20,10 @@ import {
 import { isPatientUuidToken } from "@/lib/patients/session"
 import { formatRomanianDate, todayInBucharest } from "@/lib/patients/program"
 import {
+  allExercisesCompleted,
+  CHECKIN_REQUIRES_EXERCISES_MESSAGE,
+} from "@/lib/patients/checkin-exercises"
+import {
   loadCompletedExercisesSnapshot,
   loadTodaysCheckin,
   saveCompletedExercises,
@@ -63,6 +67,11 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
 
   const [guideOpen, setGuideOpen] = useState(false)
   const [tipsOpen, setTipsOpen] = useState(false)
+
+  const exerciseIds = program.exercises.map((exercise) => exercise.id)
+  const exercisesDone = exerciseIds.filter((id) => completedIds.includes(id)).length
+  const exercisesComplete = allExercisesCompleted(exerciseIds, completedIds)
+  const submitEnabled = exercisesComplete && pendingExerciseId === null
 
   // Hidratează din localStorage + server după mount.
   useEffect(() => {
@@ -143,6 +152,10 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
 
   function submitCheckin() {
     setError(null)
+    if (!allExercisesCompleted(exerciseIds, completedIds)) {
+      setError(CHECKIN_REQUIRES_EXERCISES_MESSAGE)
+      return
+    }
     if (sleep === null) {
       setError("Alege calitatea somnului ca să trimiți check-in-ul.")
       return
@@ -208,6 +221,9 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
               notes={notes}
               error={error}
               pending={pending}
+              submitEnabled={submitEnabled}
+              exercisesDone={exercisesDone}
+              exercisesTotal={exerciseIds.length}
               onPainChange={setPain}
               onSleepChange={setSleep}
               onEnergyChange={setEnergy}
@@ -233,13 +249,13 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
               Exercițiile de azi
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Urmărește video-ul, apoi marchează-le ca efectuate.
+              Urmărește video-ul, apoi bifează exercițiul. Check-in-ul se deblochează când sunt toate efectuate.
             </p>
           </div>
 
           {program.exercises.length === 0 ? (
             <p className="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-sm text-slate-600 shadow-sm">
-              Terapeutul nu a alocat încă exerciții. Completează totuși check-in-ul.
+              Terapeutul nu a alocat încă exerciții pentru azi. Poți trimite check-in-ul.
             </p>
           ) : (
             <div className="grid grid-cols-1 items-stretch gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
