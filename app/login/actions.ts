@@ -91,7 +91,7 @@ export async function login(formData: FormData): Promise<LoginActionState> {
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: credentials.email,
     password: credentials.password,
   })
@@ -103,10 +103,7 @@ export async function login(formData: FormData): Promise<LoginActionState> {
     return { error: AUTH_ERROR_MESSAGE }
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const user = data.user ?? data.session?.user
   if (!isEmailConfirmedUser(user)) {
     await supabase.auth.signOut()
     return { info: EMAIL_CONFIRM_REQUIRED }

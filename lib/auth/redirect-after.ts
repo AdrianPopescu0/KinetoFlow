@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
-import { therapistHasClinicProfile } from "@/lib/clinics/profile"
+import { therapistAppPath } from "@/lib/auth/paths"
+import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import { createClient } from "@/utils/supabase/server"
 
 export async function redirectAfterTherapistAuth() {
@@ -22,7 +23,8 @@ export async function redirectAfterTherapistAuth() {
     redirect("/login?reason=confirm_email")
   }
 
-  const ready = await therapistHasClinicProfile(supabase, user.id)
-  revalidatePath("/", "layout")
-  redirect(ready ? "/dashboard" : "/onboarding")
+  const ready = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
+  revalidatePath("/dashboard")
+  revalidatePath("/onboarding")
+  redirect(therapistAppPath(ready))
 }

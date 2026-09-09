@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { EARLY_ACCESS_COOKIE, hasValidEarlyAccessCookie } from "@/lib/auth/early-access"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
+import { isPublicMarketingPath, therapistAppPath } from "@/lib/auth/paths"
+import { redirectWithAuthCookies } from "@/lib/auth/session-response"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import {
   PATIENT_RESUME_COOKIE,
@@ -64,7 +66,10 @@ async function isEarlyAccessUnlocked(request: NextRequest): Promise<boolean> {
   return hasValidEarlyAccessCookie(request.cookies.get(EARLY_ACCESS_COOKIE)?.value)
 }
 
-function redirectToEarlyAccess(request: NextRequest): NextResponse {
+function redirectToEarlyAccess(request: NextRequest, source?: NextResponse): NextResponse {
+  if (source) {
+    return redirectWithAuthCookies(request, source, "/early-access")
+  }
   const redirectUrl = request.nextUrl.clone()
   redirectUrl.pathname = "/early-access"
   redirectUrl.search = ""
@@ -131,7 +136,7 @@ export async function updateSession(request: NextRequest) {
           request,
         })
         cookiesToSet.forEach(({ name, value, options }) => {
-          supabaseResponse.cookies.set(name, value, options)
+          supabaseResponse.cookies.set(name, value, { ...options, path: "/" })
         })
         if (urlToken) {
           stampPatientCookies(supabaseResponse, urlToken)
@@ -149,7 +154,7 @@ export async function updateSession(request: NextRequest) {
   const emailConfirmed = isEmailConfirmedUser(authenticatedUser)
 
   if (!authenticatedUser && isTherapistAuthPage(pathname) && !(await isEarlyAccessUnlocked(request))) {
-    return redirectToEarlyAccess(request)
+    return redirectToEarlyAccess(request, supabaseResponse)
   }
 
   if (
@@ -159,47 +164,34 @@ export async function updateSession(request: NextRequest) {
     (isProtectedPath(pathname) || isOnboardingPath(pathname))
   ) {
     await supabase.auth.signOut()
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/login"
-    redirectUrl.search = "reason=confirm_email"
-    const redirect = NextResponse.redirect(redirectUrl)
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirect.cookies.set(cookie.name, cookie.value)
-    })
-    return redirect
+    return redirectWithAuthCookies(request, supabaseResponse, "/login", "reason=confirm_email")
   }
 
   if (!authenticatedUser && (isProtectedPath(pathname) || isOnboardingPath(pathname))) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/login"
-    redirectUrl.searchParams.set("redirectTo", pathname)
-    return NextResponse.redirect(redirectUrl)
+    return redirectWithAuthCookies(
+      request,
+      supabaseResponse,
+      "/login",
+      `redirectTo=${encodeURIComponent(pathname)}`,
+    )
   }
 
   if (authenticatedUser && emailConfirmed) {
     const clinicReady = clinicReadyFromUser(authenticatedUser)
       ? true
       : await therapistHasClinicProfile(supabase, authenticatedUser.id)
+    const appPath = therapistAppPath(clinicReady)
 
-    if (isTherapistAuthPage(pathname)) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = clinicReady ? "/dashboard" : "/onboarding"
-      redirectUrl.search = ""
-      return NextResponse.redirect(redirectUrl)
+    if (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname)) {
+      return redirectWithAuthCookies(request, supabaseResponse, appPath)
     }
 
     if (isOnboardingPath(pathname) && clinicReady) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/dashboard"
-      redirectUrl.search = ""
-      return NextResponse.redirect(redirectUrl)
+      return redirectWithAuthCookies(request, supabaseResponse, "/dashboard")
     }
 
     if (isProtectedPath(pathname) && !clinicReady) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/onboarding"
-      redirectUrl.search = ""
-      return NextResponse.redirect(redirectUrl)
+      return redirectWithAuthCookies(request, supabaseResponse, "/onboarding")
     }
   }
 

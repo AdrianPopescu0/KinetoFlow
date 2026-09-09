@@ -2,8 +2,9 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import type { EmailOtpType } from "@supabase/supabase-js"
 
-import { SET_PASSWORD_PATH, safeAuthNextPath } from "@/lib/auth/paths"
-import { therapistHasClinicProfile } from "@/lib/clinics/profile"
+import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
+import { SET_PASSWORD_PATH, safeAuthNextPath, therapistAppPath } from "@/lib/auth/paths"
+import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import type { Database } from "@/lib/supabase/database.types"
 import { getSupabasePublicEnv } from "@/utils/supabase/env"
 
@@ -37,7 +38,7 @@ function callbackAbsoluteUrl(request: NextRequest, path: string) {
 function redirectWithCookies(request: NextRequest, path: string, cookiesToSet: SessionCookie[]) {
   const response = NextResponse.redirect(callbackAbsoluteUrl(request, path))
   for (const { name, value, options } of cookiesToSet) {
-    response.cookies.set(name, value, options)
+    response.cookies.set(name, value, { ...options, path: "/" })
   }
   return response
 }
@@ -115,13 +116,17 @@ export async function GET(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (user && !isEmailConfirmedUser(user)) {
+    return redirectWithCookies(request, "/login?reason=confirm_email", sessionCookies)
+  }
+
   if (user) {
-    const clinicReady = await therapistHasClinicProfile(supabase, user.id)
+    const clinicReady = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
     if (!clinicReady) {
-      return redirectWithCookies(request, "/onboarding", sessionCookies)
+      return redirectWithCookies(request, therapistAppPath(false), sessionCookies)
     }
   }
 
-  const destination = next === "/onboarding" ? "/dashboard" : next
+  const destination = next === "/onboarding" ? therapistAppPath(true) : next
   return redirectWithCookies(request, destination, sessionCookies)
 }
