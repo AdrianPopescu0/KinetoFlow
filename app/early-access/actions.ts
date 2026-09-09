@@ -3,11 +3,7 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-import {
-  EMAIL_CONFIRM_REQUIRED,
-  isEmailConfirmedUser,
-  isEmailNotConfirmedAuthError,
-} from "@/lib/auth/email-confirmed"
+import { isEmailAlreadyRegisteredError } from "@/lib/auth/email-confirmed"
 import {
   EARLY_ACCESS_COOKIE,
   EARLY_ACCESS_TTL_MS,
@@ -25,7 +21,10 @@ import {
   parseRegisterCredentials,
   REGISTER_ERROR_MESSAGE,
 } from "@/lib/auth/validation"
-import { createServiceRoleClient } from "@/utils/supabase/admin"
+import {
+  signInAfterEmailVerified,
+  verifiedSignInFailureMessage,
+} from "@/lib/auth/verified-password-session"
 import { createClient } from "@/utils/supabase/server"
 
 export type EarlyAccessState = {
@@ -137,23 +136,13 @@ export async function finishEarlyAccessLogin(formData: FormData): Promise<EarlyA
     return { error: otpError }
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const signedIn = await signInAfterEmailVerified({
     email: credentials.email,
     password: credentials.password,
+    emailJustVerified: true,
   })
-
-  if (error) {
-    if (isEmailNotConfirmedAuthError(error)) {
-      return { info: EMAIL_CONFIRM_REQUIRED }
-    }
-    return { error: AUTH_ERROR_MESSAGE }
-  }
-
-  const user = data.user ?? data.session?.user
-  if (!isEmailConfirmedUser(user)) {
-    await supabase.auth.signOut()
-    return { info: EMAIL_CONFIRM_REQUIRED }
+  if (!signedIn.ok) {
+    return verifiedSignInFailureMessage(signedIn, AUTH_ERROR_MESSAGE)
   }
 
   await clearVerifiedEmailCookie()
@@ -182,48 +171,37 @@ export async function finishEarlyAccessRegister(formData: FormData): Promise<Ear
     },
   })
 
-  if (error) {
-    if (isEmailNotConfirmedAuthError(error)) {
-      return { error: REGISTER_ERROR_MESSAGE }
-    }
+  const duplicateIdentity = Boolean(data.user?.identities && data.user.identities.length === 0)
+  if (error && !isEmailAlreadyRegisteredError(error) && !duplicateIdentity) {
     return { error: REGISTER_ERROR_MESSAGE }
   }
 
-  if (data.user?.identities && data.user.identities.length === 0) {
-    return { error: "Există deja un cont cu acest email. Alege „Am deja cont” și introdu parola." }
-  }
-
-  if (data.user?.id) {
-    try {
-      const admin = createServiceRoleClient()
-      await admin.auth.admin.updateUserById(data.user.id, { email_confirm: true })
-    } catch {
-      // Dacă confirmarea admin eșuează, încercăm totuși autentificarea cu parola.
-    }
-  }
-
-  if (data.session) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (isEmailConfirmedUser(user)) {
+  if (duplicateIdentity || isEmailAlreadyRegisteredError(error)) {
+    const signedIn = await signInAfterEmailVerified({
+      email: parsed.email,
+      password: parsed.password,
+      emailJustVerified: true,
+    })
+    if (signedIn.ok) {
       await clearVerifiedEmailCookie()
       await redirectAfterTherapistAuth()
       return null
     }
+    return { error: "Există deja un cont cu acest email. Alege „Am deja cont” și introdu parola." }
+  }
+
+  if (data.session) {
     await supabase.auth.signOut()
   }
 
-  const { error: signInError } = await supabase.auth.signInWithPassword({
+  const signedIn = await signInAfterEmailVerified({
     email: parsed.email,
     password: parsed.password,
+    userId: data.user?.id ?? null,
+    emailJustVerified: true,
   })
-
-  if (signInError) {
-    if (isEmailNotConfirmedAuthError(signInError)) {
-      return { info: EMAIL_CONFIRM_REQUIRED }
-    }
-    return { error: REGISTER_ERROR_MESSAGE }
+  if (!signedIn.ok) {
+    return verifiedSignInFailureMessage(signedIn, REGISTER_ERROR_MESSAGE)
   }
 
   await clearVerifiedEmailCookie()

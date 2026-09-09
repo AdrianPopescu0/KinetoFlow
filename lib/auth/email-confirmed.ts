@@ -33,3 +33,54 @@ export function isEmailNotConfirmedAuthError(error: {
   const message = (error.message ?? "").toLowerCase()
   return message.includes("email not confirmed") || message.includes("email_not_confirmed")
 }
+
+export function isInvalidLoginCredentialsError(error: {
+  code?: string
+  message?: string
+} | null | undefined): boolean {
+  if (!error) {
+    return false
+  }
+  const code = (error.code ?? "").toLowerCase()
+  const message = (error.message ?? "").toLowerCase()
+  return (
+    code === "invalid_credentials" ||
+    message.includes("invalid login credentials") ||
+    message.includes("invalid email or password")
+  )
+}
+
+export function isEmailAlreadyRegisteredError(error: {
+  code?: string
+  message?: string
+} | null | undefined): boolean {
+  if (!error) {
+    return false
+  }
+  const code = (error.code ?? "").toLowerCase()
+  const message = (error.message ?? "").toLowerCase()
+  return (
+    code.includes("email_exists") ||
+    code.includes("user_already_exists") ||
+    message.includes("already been registered") ||
+    message.includes("already registered") ||
+    message.includes("user already exists")
+  )
+}
+
+/**
+ * După OTP pe email, „Invalid login credentials” înseamnă adesea utilizator
+ * neconfirmat (protecție anti-enumerare), nu parolă greșită.
+ */
+export function shouldConfirmEmailAndRetrySignIn(params: {
+  error: { code?: string; message?: string } | null | undefined
+  emailJustVerified: boolean
+}): boolean {
+  if (!params.error) {
+    return false
+  }
+  if (isEmailNotConfirmedAuthError(params.error)) {
+    return true
+  }
+  return params.emailJustVerified && isInvalidLoginCredentialsError(params.error)
+}

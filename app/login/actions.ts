@@ -3,12 +3,7 @@
 import { cookies } from "next/headers"
 
 import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
-import {
-  EMAIL_CONFIRM_REQUIRED,
-  REGISTER_CONFIRM_INFO,
-  isEmailConfirmedUser,
-  isEmailNotConfirmedAuthError,
-} from "@/lib/auth/email-confirmed"
+import { isEmailAlreadyRegisteredError } from "@/lib/auth/email-confirmed"
 import { readVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
@@ -18,6 +13,10 @@ import {
   parseRegisterCredentials,
   REGISTER_ERROR_MESSAGE,
 } from "@/lib/auth/validation"
+import {
+  signInAfterEmailVerified,
+  verifiedSignInFailureMessage,
+} from "@/lib/auth/verified-password-session"
 import { createClient } from "@/utils/supabase/server"
 
 export type LoginActionState = {
@@ -26,6 +25,9 @@ export type LoginActionState = {
   otpSent?: boolean
   devCode?: string
 } | null
+
+const EXISTING_ACCOUNT_MESSAGE =
+  "Există deja un cont cu acest email. Intră în cont din tabul de autentificare."
 
 async function requireEmailOtp(email: string, formData: FormData): Promise<string | null> {
   const jar = await cookies()
@@ -90,23 +92,13 @@ export async function login(formData: FormData): Promise<LoginActionState> {
     return { error: otpError }
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const signedIn = await signInAfterEmailVerified({
     email: credentials.email,
     password: credentials.password,
+    emailJustVerified: true,
   })
-
-  if (error) {
-    if (isEmailNotConfirmedAuthError(error)) {
-      return { info: EMAIL_CONFIRM_REQUIRED }
-    }
-    return { error: AUTH_ERROR_MESSAGE }
-  }
-
-  const user = data.user ?? data.session?.user
-  if (!isEmailConfirmedUser(user)) {
-    await supabase.auth.signOut()
-    return { info: EMAIL_CONFIRM_REQUIRED }
+  if (!signedIn.ok) {
+    return verifiedSignInFailureMessage(signedIn, AUTH_ERROR_MESSAGE)
   }
 
   await redirectAfterTherapistAuth()
@@ -134,21 +126,39 @@ export async function register(formData: FormData): Promise<LoginActionState> {
     },
   })
 
-  if (error) {
-    if (isEmailNotConfirmedAuthError(error)) {
-      return { info: REGISTER_CONFIRM_INFO }
-    }
+  const duplicateIdentity = Boolean(data.user?.identities && data.user.identities.length === 0)
+  if (error && !isEmailAlreadyRegisteredError(error) && !duplicateIdentity) {
     return { error: REGISTER_ERROR_MESSAGE }
   }
 
-  if (data.user?.identities && data.user.identities.length === 0) {
-    return { error: "Există deja un cont cu acest email. Intră în cont din tabul de autentificare." }
+  if (duplicateIdentity || isEmailAlreadyRegisteredError(error)) {
+    const signedIn = await signInAfterEmailVerified({
+      email: parsed.email,
+      password: parsed.password,
+      emailJustVerified: true,
+    })
+    if (signedIn.ok) {
+      await redirectAfterTherapistAuth()
+      return null
+    }
+    return { error: EXISTING_ACCOUNT_MESSAGE }
   }
 
-  // Nu acordăm acces până la confirmarea din email, chiar dacă Supabase a creat o sesiune.
+  // Semnătura din signUp e adesea fără email_confirmed_at. O înlocuim după confirmare.
   if (data.session) {
     await supabase.auth.signOut()
   }
 
-  return { info: REGISTER_CONFIRM_INFO }
+  const signedIn = await signInAfterEmailVerified({
+    email: parsed.email,
+    password: parsed.password,
+    userId: data.user?.id ?? null,
+    emailJustVerified: true,
+  })
+  if (!signedIn.ok) {
+    return verifiedSignInFailureMessage(signedIn, REGISTER_ERROR_MESSAGE)
+  }
+
+  await redirectAfterTherapistAuth()
+  return null
 }

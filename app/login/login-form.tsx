@@ -133,7 +133,6 @@ export function LoginForm({
         setInfo(result.info)
         if (tab === "register") {
           setTab("login")
-          setPassword("")
           setAcceptedTerms(false)
           setOtp("")
           setOtpSent(false)
