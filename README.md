@@ -22,7 +22,7 @@ cp .env.example .env.local
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
 - `NEXT_PUBLIC_SITE_URL` — originea publică a aplicației (invitații terapeuți `/auth/activare` și recuperare parolă). Nu folosi un URL de preview Vercel (`*-git-*.vercel.app`).
 - `CRON_SECRET` — secret pentru cron-uri (`Authorization: Bearer …` pe `/api/cron/reset-daily-progress`, `/api/cron/reminders` și `/api/cron/daily-update`); pe Vercel, dacă e setat, header-ul e trimis automat
-- Opțional, pentru **invitații** SMS (nu pentru reminder-e): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` și `TWILIO_PHONE_NUMBER` (E.164, ex. `+4915888623971`, fără `whatsapp:`). Alias-uri acceptate: `TWILIO_SMS_FROM`, `TWILIO_FROM`. Fără acestea, invitațiile rămân pe Click-to-Chat.
+- Opțional, pentru **emailuri** (suport + OTP autentificare): `RESEND_API_KEY`. OTP-ul de login/înregistrare clinică pleacă de pe `no-reply@kinetoflow.ro` (`RESEND_AUTH_FROM`). Fără cheie, în dezvoltare codul e logat.
 - Pentru reminder-e și notificări de check-in (**doar Web Push / FCM**): cheile `NEXT_PUBLIC_FIREBASE_*` (inclusiv `NEXT_PUBLIC_FIREBASE_VAPID_KEY`) plus pe server **`FIREBASE_SERVICE_ACCOUNT`** (JSON-ul complet al contului de serviciu, `JSON.parse`). Fără token FCM salvat, reminder-ul se sare — nu există fallback SMS sau WhatsApp. Local, fără Firebase Admin, trimiterea push e simulată în loguri.
 
 În dashboard-ul Supabase, **Authentication → Providers → Email** trebuie să fie activ, cu **Confirm email** pornit. La înregistrare, `signUp` trimite `emailRedirectTo` către `/auth/callback?next=/onboarding`; utilizatorul primește un email și nu are acces la dashboard/onboarding până confirmă adresa. Pentru **Google**, activează providerul Google (Client ID + secret din Google Cloud Console). Redirect-ul din consola Google este `https://<proiect>.supabase.co/auth/v1/callback`; în aplicație, după OAuth, utilizatorul revine pe `/auth/callback`.
@@ -49,7 +49,8 @@ Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau progra
 | Rută | Rol |
 | --- | --- |
 | `/` | Landing de prezentare: beneficiile platformei și **Intră în cont** → `/login`. Fără cumpărare abonament. |
-| `/login` | Intră în cont (`?mode=signin`) sau înregistrează clinică (`?mode=signup`); email+parolă sau **Sign in with Google**; la signup e obligatoriu consimțământul la Termeni și Politica de Confidențialitate; accesul complet după confirmarea emailului |
+| `/login` | Intră în cont (`?mode=signin`) sau înregistrează clinică (`?mode=signup`); email+parolă, apoi **cod OTP pe email** (Resend, `no-reply@kinetoflow.ro`) sau **Sign in with Google**; la signup e obligatoriu consimțământul la Termeni; accesul complet după confirmarea emailului |
+| `/auth/email-cod` | Linkul din emailul OTP confirmă adresa și întoarce utilizatorul la `/login` |
 | `/termeni` | Termeni și Condiții (inclusiv disclaimer medical) |
 | `/confidentialitate` | Politica de Confidențialitate și prelucrare date (GDPR) |
 | `/onboarding` | Configurare clinică (obligatorie înainte de dashboard) |
@@ -74,6 +75,8 @@ Fișa clinică: `/dashboard/patients/[id]`. La salvare, aplicația compară `upd
 Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql`, apoi `017_clinic_profiles_rls.sql` în SQL Editor. Ultima migrare permite INSERT doar când `auth.uid() = user_id` și elimină recursia din politica de citire a colegilor. Coloane: `id`, `user_id` (= `auth.uid()`), `clinic_name`, `therapist_name`, `phone`, `role` (`admin` | `therapist`). Colegii din același cabinet se leagă prin `clinic_name` (nu există `clinic_id` pe această tabelă). Invitare colegi: `011_clinic_roles.sql`. Fără rând în `clinic_profiles`, terapeutul e redirecționat la `/onboarding`. Doar `admin` vede Administrare Echipă, butonul „Adaugă Terapeut” (pe pagina de echipă, nu în header) și **Ștergere** (doar pe rândurile de terapeut, cu `window.confirm` înainte de a scoate contul din Auth). După adăugare, modalul arată **codul unic de acces** și aceleași acțiuni ca la pacient: WhatsApp Web, aplicație, SMS, copiere mesaj. Pacienții acelui terapeut sunt reasignați adminului, ca să nu se șteargă odată cu `auth.users`.
 
 Formularul de suport din footer: rulează `supabase/migrations/007_support_tickets.sql`. Tabela `support_tickets` (id, name, contact, message, created_at, status) primește inserări publice; citirea nu e permisă din aplicație. După salvare, serverul trimite o notificare prin [Resend](https://resend.com) către `SUPPORT_NOTIFY_EMAIL` (implicit `kinetic01flow@gmail.com`). Fără `RESEND_API_KEY`, tichetul se salvează oricum; utilizatorul vede confirmarea chiar dacă emailul eșuează.
+
+OTP de autentificare (admin / terapeut): rulează `sql/026_auth_email_otps.sql` (sau `supabase/migrations/019_auth_email_otps.sql`). `POST /api/auth/email-otp` primește `{ email, purpose: "login" | "register" }`, generează un cod de 6 cifre, îl salvează hashed 10 minute și trimite emailul de pe `KinetoFlow <no-reply@kinetoflow.ro>` (`RESEND_AUTH_FROM`). Verificare: `POST /api/auth/email-otp/verify` cu `{ email, code }` sau `{ token }`. Fără `RESEND_API_KEY`, în dezvoltare codul e logat și întors ca `devCode`. Domain-ul `kinetoflow.ro` trebuie verificat în Resend.
 
 Reguli de securitate aplicate:
 

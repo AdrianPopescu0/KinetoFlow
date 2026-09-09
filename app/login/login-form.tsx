@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
 
-import { login, register } from "@/app/login/actions"
+import { login, register, requestAuthEmailOtpAction } from "@/app/login/actions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,10 +22,12 @@ export function LoginForm({
   initialTab,
   initialError = null,
   initialInfo = null,
+  initialOtpVerified = false,
 }: {
   initialTab: AuthTab
   initialError?: string | null
   initialInfo?: string | null
+  initialOtpVerified?: boolean
 }) {
   const router = useRouter()
   const [tab, setTab] = useState<AuthTab>(initialTab)
@@ -33,6 +35,9 @@ export function LoginForm({
   const [info, setInfo] = useState<string | null>(initialInfo)
   const [showPassword, setShowPassword] = useState(false)
   const [password, setPassword] = useState("")
+  const [otp, setOtp] = useState("")
+  const [otpSent, setOtpSent] = useState(initialOtpVerified)
+  const [devCode, setDevCode] = useState<string | null>(null)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [googlePending, setGooglePending] = useState(false)
@@ -50,6 +55,9 @@ export function LoginForm({
     setInfo(null)
     setPassword("")
     setAcceptedTerms(false)
+    setOtp("")
+    setOtpSent(false)
+    setDevCode(null)
     router.replace(loginHref(next === "register" ? "signup" : "signin"), { scroll: false })
   }
 
@@ -99,6 +107,23 @@ export function LoginForm({
           return
         }
       }
+
+      if (!otpSent) {
+        formData.set("purpose", tab)
+        const requested = await requestAuthEmailOtpAction(formData)
+        if (requested?.error) {
+          setError(requested.error)
+          return
+        }
+        setOtpSent(true)
+        setInfo(requested?.info ?? "Ți-am trimis un cod de acces pe email.")
+        setDevCode(requested?.devCode ?? null)
+        return
+      }
+
+      if (otp.trim()) {
+        formData.set("otp", otp.trim())
+      }
       const result = tab === "register" ? await register(formData) : await login(formData)
       if (result?.error) {
         setError(result.error)
@@ -109,6 +134,9 @@ export function LoginForm({
           setTab("login")
           setPassword("")
           setAcceptedTerms(false)
+          setOtp("")
+          setOtpSent(false)
+          setDevCode(null)
           router.replace(loginHref("signin"), { scroll: false })
         }
       }
@@ -141,7 +169,7 @@ export function LoginForm({
       {info ? (
         <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
           <Mail />
-          <AlertTitle>Confirmă adresa de email</AlertTitle>
+          <AlertTitle>{otpSent ? "Verifică emailul" : "Confirmă adresa de email"}</AlertTitle>
           <AlertDescription>{info}</AlertDescription>
         </Alert>
       ) : null}
@@ -197,6 +225,8 @@ export function LoginForm({
             </p>
           ) : null}
         </div>
+
+        <input type="hidden" name="purpose" value={tab} />
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-3">
@@ -302,6 +332,46 @@ export function LoginForm({
           </label>
         ) : null}
 
+        {otpSent ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="otp" className="text-slate-900">
+              Cod de acces din email
+            </Label>
+            <Input
+              id="otp"
+              name="otp"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="\d{6}"
+              maxLength={6}
+              required={!initialOtpVerified}
+              disabled={busy}
+              value={otp}
+              onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="000000"
+              className="h-12 min-h-12 border-slate-300 px-3 font-mono tracking-[0.28em]"
+            />
+            {devCode ? (
+              <p className="text-xs text-amber-800">Mediu local, fără Resend: folosește codul {devCode}.</p>
+            ) : (
+              <p className="text-xs text-slate-500">6 cifre, valabile 10 minute. Verifică și folderul Spam.</p>
+            )}
+            <button
+              type="button"
+              disabled={busy}
+              className="self-start text-sm font-medium text-[#042f2e] underline-offset-4 hover:underline disabled:opacity-50"
+              onClick={() => {
+                setOtpSent(false)
+                setOtp("")
+                setInfo(null)
+                setDevCode(null)
+              }}
+            >
+              Trimite un cod nou
+            </button>
+          </div>
+        ) : null}
+
         <Button
           type="submit"
           disabled={busy || (tab === "register" && !canSubmitRegister)}
@@ -310,8 +380,14 @@ export function LoginForm({
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              {tab === "register" ? "Se trimite emailul de confirmare…" : "Se autentifică…"}
+              {otpSent
+                ? "Se verifică…"
+                : tab === "register"
+                  ? "Se trimite codul…"
+                  : "Se trimite codul…"}
             </>
+          ) : otpSent ? (
+            "Verifică și continuă"
           ) : tab === "register" ? (
             "Creează cont"
           ) : (

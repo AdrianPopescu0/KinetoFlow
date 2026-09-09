@@ -235,6 +235,32 @@ export type Database = {
         Update: Record<string, unknown>
         Relationships: []
       }
+      auth_email_otps: {
+        Row: {
+          id: string
+          email: string
+          code_hash: string
+          link_token_hash: string
+          purpose: "login" | "register"
+          expires_at: string
+          consumed_at: string | null
+          attempt_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          code_hash: string
+          link_token_hash: string
+          purpose: "login" | "register"
+          expires_at: string
+          consumed_at?: string | null
+          attempt_count?: number
+          created_at?: string
+        }
+        Update: Record<string, unknown>
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
