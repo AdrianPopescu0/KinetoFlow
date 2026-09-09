@@ -2,6 +2,7 @@
 
 import { AUTH_ERROR_MESSAGE, parseRegisterCredentials } from "@/lib/auth/validation"
 import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
+import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
 import {
   isMissingTherapistInvitesTable,
   isTherapistInviteOpen,
@@ -15,19 +16,6 @@ import { createClient } from "@/utils/supabase/server"
 export type AcceptTherapistInviteState = {
   error?: string
 } | null
-
-type InviteRow = {
-  id: string
-  token: string
-  clinic_name: string
-  clinic_owner_id: string
-  invited_by: string
-  therapist_name: string
-  phone: string
-  expires_at: string
-  accepted_at: string | null
-  accepted_user_id: string | null
-}
 
 function emailAlreadyRegistered(error: { message?: string; code?: string } | null): boolean {
   if (!error) {
@@ -44,8 +32,38 @@ function emailAlreadyRegistered(error: { message?: string; code?: string } | nul
   )
 }
 
-function normalizeClinicName(value: unknown): string {
-  return String(value ?? "").trim().toLocaleLowerCase("ro-RO")
+export async function prepareTherapistInviteOAuth(token: string): Promise<AcceptTherapistInviteState> {
+  if (!isTherapistInviteToken(token)) {
+    return { error: "Linkul de invitație este invalid." }
+  }
+
+  try {
+    const admin = createServiceRoleClient()
+    const { data, error } = await admin
+      .from("therapist_invites")
+      .select("expires_at, accepted_at")
+      .eq("token", token)
+      .maybeSingle()
+
+    if (error) {
+      if (isMissingTherapistInvitesTable(error)) {
+        return { error: MISSING_THERAPIST_INVITES_TABLE }
+      }
+      return { error: formatSupabaseError(error) }
+    }
+
+    if (!data || !isTherapistInviteOpen(data)) {
+      return { error: "Invitația a expirat sau a fost deja folosită. Cere administratorului un link nou." }
+    }
+
+    return null
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Nu am putut verifica invitația."
+    if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+      return { error: "Lipsește cheia de serviciu. Adaugă SUPABASE_SERVICE_ROLE_KEY în .env.local." }
+    }
+    return { error: message }
+  }
 }
 
 export async function acceptTherapistInvite(
@@ -65,9 +83,7 @@ export async function acceptTherapistInvite(
     const admin = createServiceRoleClient()
     const { data, error } = await admin
       .from("therapist_invites")
-      .select(
-        "id, token, clinic_name, clinic_owner_id, invited_by, therapist_name, phone, expires_at, accepted_at, accepted_user_id",
-      )
+      .select("id, expires_at, accepted_at, therapist_name, clinic_name, clinic_owner_id, invited_by, phone")
       .eq("token", token)
       .maybeSingle()
 
@@ -78,8 +94,7 @@ export async function acceptTherapistInvite(
       return { error: formatSupabaseError(error) }
     }
 
-    const invite = data as InviteRow | null
-    if (!invite || !isTherapistInviteOpen(invite)) {
+    if (!data || !isTherapistInviteOpen(data)) {
       return { error: "Invitația a expirat sau a fost deja folosită. Cere administratorului un link nou." }
     }
 
@@ -88,20 +103,21 @@ export async function acceptTherapistInvite(
       password: parsed.password,
       email_confirm: true,
       user_metadata: {
-        full_name: invite.therapist_name,
-        clinic_name: invite.clinic_name,
-        clinic_id: invite.clinic_owner_id,
-        phone: invite.phone,
-        invited_by: invite.invited_by,
+        full_name: data.therapist_name,
+        clinic_name: data.clinic_name,
+        clinic_id: data.clinic_owner_id,
+        phone: data.phone,
+        invited_by: data.invited_by,
         role: "therapist",
       },
       app_metadata: {
-        clinic_id: invite.clinic_owner_id,
+        clinic_id: data.clinic_owner_id,
         role: "therapist",
       },
     })
 
     let userId = created.user?.id ?? null
+    const createdNewUser = Boolean(created.user?.id) && !emailAlreadyRegistered(createError)
 
     if (createError && emailAlreadyRegistered(createError)) {
       const supabase = await createClient()
@@ -124,45 +140,21 @@ export async function acceptTherapistInvite(
       return { error: AUTH_ERROR_MESSAGE }
     }
 
-    const { data: existingProfile, error: profileReadError } = await admin
-      .from("clinic_profiles")
-      .select("user_id, clinic_name, role")
-      .eq("user_id", userId)
-      .maybeSingle()
-
-    if (profileReadError) {
-      return { error: formatSupabaseError(profileReadError) }
+    const attached = await attachTherapistInviteToUser({
+      token,
+      user: { id: userId, email: parsed.email },
+    })
+    if (!attached.ok) {
+      if (createdNewUser) {
+        await admin.auth.admin.deleteUser(userId)
+      } else {
+        const supabase = await createClient()
+        await supabase.auth.signOut()
+      }
+      return { error: attached.error }
     }
 
-    if (existingProfile) {
-      if (normalizeClinicName(existingProfile.clinic_name) !== normalizeClinicName(invite.clinic_name)) {
-        return { error: "Acest email aparține deja altei clinici. Folosește o altă adresă sau cere ajutorul administratorului." }
-      }
-    } else {
-      const { error: insertProfileError } = await admin.from("clinic_profiles").insert({
-        user_id: userId,
-        clinic_name: invite.clinic_name,
-        therapist_name: invite.therapist_name,
-        phone: invite.phone,
-        role: "therapist",
-      })
-      if (insertProfileError) {
-        if (created.user?.id && !emailAlreadyRegistered(createError)) {
-          await admin.auth.admin.deleteUser(userId)
-        }
-        return { error: formatSupabaseError(insertProfileError) }
-      }
-    }
-
-    await admin
-      .from("therapist_invites")
-      .update({
-        accepted_at: new Date().toISOString(),
-        accepted_user_id: userId,
-      })
-      .eq("id", invite.id)
-
-    if (!created.user || emailAlreadyRegistered(createError)) {
+    if (!createdNewUser) {
       await redirectAfterTherapistAuth()
       return null
     }

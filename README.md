@@ -34,6 +34,7 @@ Adaugă URL-urile de redirect pentru recuperarea parolei și invitațiile WhatsA
 - `http://127.0.0.1:43123/auth/callback`
 - domeniul de producție + `/auth/callback`
 - domeniul de producție + `/auth/callback?next=/auth/set-password`
+- domeniul de producție + `/auth/callback?next=/dashboard` (inclusiv `?invite=` pentru invitațiile de terapeut)
 - domeniul de producție + `/auth/activare`
 
 3. Instalează dependențele și pornește serverul de dezvoltare:
@@ -61,7 +62,7 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi 
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
 | `/auth/callback` | Schimb `code` (PKCE) sau `token_hash` (recovery) → sesiune, apoi redirect |
-| `/auth/invitatie/[token]` | Link unic din WhatsApp/SMS: terapeutul își pune emailul personal și parola și își creează contul, fără ca adminul să-i fi făcut unul dinainte |
+| `/auth/invitatie/[token]` | Link unic din WhatsApp/SMS: terapeutul continuă cu **Google** sau își pune emailul personal și parola. După Google, aplicația verifică emailul primit, leagă invitația activă de clinica respectivă și îl duce în dashboard |
 | `/auth/activare` | Pagină intermediară pentru invitațiile vechi (recovery Supabase) |
 | `/auth/set-password` | Setare parolă după invitațiile vechi |
 | `/acces` | Login pacient: telefon + cod 8 cifre (opțional, dacă nu ai linkul cu token) |
@@ -76,7 +77,7 @@ Tabele: `patients` (token UUID unic pentru `/patient/[token]`; **fără** coloan
 
 Fișa clinică: `/dashboard/patients/[id]`. La salvare, aplicația compară `updated_at` cu momentul deschiderii ecranului; dacă altcineva a modificat fișa, terapeutul e avertizat și poate reîncărca datele. Rulează `supabase/migrations/009_patients_updated_at.sql`. Asignare terapeut: `010_assigned_therapist.sql` (`assigned_therapist_id`). Note clinice: `002_clinical_notes.sql`. Cod de acces 8 cifre: `003_access_code.sql`. Email-ul pacientului e opțional; telefonul e obligatoriu la pacienți noi.
 
-Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql`, apoi `017_clinic_profiles_rls.sql` în SQL Editor. Ultima migrare permite INSERT doar când `auth.uid() = user_id` și elimină recursia din politica de citire a colegilor. Coloane: `id`, `user_id` (= `auth.uid()`), `clinic_name`, `therapist_name`, `phone`, `role` (`admin` | `therapist`). Colegii din același cabinet se leagă prin `clinic_name` (nu există `clinic_id` pe această tabelă). **Invitare colegi:** adminul introduce nume + telefon; aplicația salvează un rând în `therapist_invites` (rulează `sql/027_therapist_invites.sql` în SQL Editor, nu la build-ul Vercel) și generează `/auth/invitatie/<token>`. Modalul oferă WhatsApp Web, aplicație, SMS și copiere. Terapeutul deschide linkul, își pune emailul și parola și își creează contul singur; adminul **nu** mai creează un user Auth dinainte. Doar `admin` vede Administrare Echipă, butonul „Adaugă Terapeut” (pe pagina de echipă, nu în header) și **Ștergere** (doar pe rândurile de terapeut, cu `window.confirm` înainte de a scoate contul din Auth). Pacienții acelui terapeut sunt reasignați adminului, ca să nu se șteargă odată cu `auth.users`.
+Profil clinică (onboarding): rulează `supabase/migrations/004_clinic_profiles.sql`, apoi `017_clinic_profiles_rls.sql` în SQL Editor. Ultima migrare permite INSERT doar când `auth.uid() = user_id` și elimină recursia din politica de citire a colegilor. Coloane: `id`, `user_id` (= `auth.uid()`), `clinic_name`, `therapist_name`, `phone`, `role` (`admin` | `therapist`). Colegii din același cabinet se leagă prin `clinic_name` (nu există `clinic_id` pe această tabelă). **Invitare colegi:** adminul introduce nume + telefon; aplicația salvează un rând în `therapist_invites` (rulează `sql/027_therapist_invites.sql` în SQL Editor, nu la build-ul Vercel) și generează `/auth/invitatie/<token>`. Modalul oferă WhatsApp Web, aplicație, SMS și copiere. Terapeutul deschide linkul, continuă cu Google sau își pune emailul și parola și își creează contul singur; adminul **nu** mai creează un user Auth dinainte. Doar `admin` vede Administrare Echipă, butonul „Adaugă Terapeut” (pe pagina de echipă, nu în header) și **Ștergere** (doar pe rândurile de terapeut, cu `window.confirm` înainte de a scoate contul din Auth). Pacienții acelui terapeut sunt reasignați adminului, ca să nu se șteargă odată cu `auth.users`.
 
 Formularul de suport din footer: rulează `supabase/migrations/007_support_tickets.sql`. Tabela `support_tickets` (id, name, contact, message, created_at, status) primește inserări publice; citirea nu e permisă din aplicație. După salvare, serverul trimite o notificare prin [Resend](https://resend.com) către `SUPPORT_NOTIFY_EMAIL` (implicit `kinetic01flow@gmail.com`). Fără `RESEND_API_KEY`, tichetul se salvează oricum; utilizatorul vede confirmarea chiar dacă emailul eșuează.
 

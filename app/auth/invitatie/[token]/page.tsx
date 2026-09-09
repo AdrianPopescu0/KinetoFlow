@@ -10,18 +10,21 @@ import {
   isTherapistInviteOpen,
   isTherapistInviteToken,
 } from "@/lib/clinics/therapist-invite"
+import { therapistInviteReasonMessage } from "@/lib/clinics/invite-attach"
 
 export const metadata: Metadata = {
   title: "Invitație în clinică | KinetoFlow",
-  description: "Creează-ți contul de terapeut cu emailul personal și o parolă aleasă de tine.",
+  description: "Creează-ți contul de terapeut cu Google sau cu emailul personal.",
 }
 
 type InvitePageProps = {
   params: Promise<{ token: string }>
+  searchParams: Promise<{ reason?: string }>
 }
 
-export default async function TherapistInvitePage({ params }: InvitePageProps) {
+export default async function TherapistInvitePage({ params, searchParams }: InvitePageProps) {
   const { token: rawToken } = await params
+  const { reason } = await searchParams
   const token = decodeURIComponent(rawToken ?? "").trim()
 
   let status: "ok" | "invalid" | "expired" | "missing-table" = "invalid"
@@ -63,11 +66,11 @@ export default async function TherapistInvitePage({ params }: InvitePageProps) {
                 Creează-ți contul de terapeut
               </h1>
               <p className="mt-2 mb-6 text-sm leading-relaxed text-slate-600">
-                {clinicName} te-a invitat{therapistName ? ` ca ${therapistName}` : ""}. Introdu
-                emailul tău personal și o parolă. Contul se creează acum, fără ca
+                {clinicName} te-a invitat{therapistName ? ` ca ${therapistName}` : ""}. Continuă cu
+                Google sau introdu emailul personal și o parolă. Contul se creează acum, fără ca
                 administratorul să-ți fi făcut unul dinainte.
               </p>
-              <AcceptTherapistInviteForm token={token} />
+              <AcceptTherapistInviteForm token={token} initialError={therapistInviteReasonMessage(reason)} />
             </>
           ) : (
             <>

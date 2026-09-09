@@ -4,6 +4,8 @@ import type { EmailOtpType } from "@supabase/supabase-js"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { SET_PASSWORD_PATH, safeAuthNextPath, therapistAppPath } from "@/lib/auth/paths"
+import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
+import { readTherapistInviteToken, therapistInvitePagePath } from "@/lib/clinics/invite-attach"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import type { Database } from "@/lib/supabase/database.types"
 import { getSupabasePublicEnv } from "@/utils/supabase/env"
@@ -55,16 +57,23 @@ export async function GET(request: NextRequest) {
   const otpType = searchParams.get("type")
   const errorCode = searchParams.get("error_code") ?? searchParams.get("error")
   const next = safeAuthNextPath(searchParams.get("next")) ?? "/dashboard"
+  const inviteToken = readTherapistInviteToken(searchParams.get("invite"))
 
   if (errorCode === "otp_expired") {
     return NextResponse.redirect(callbackAbsoluteUrl(request, "/login?reason=otp_expired"))
   }
 
   if (errorCode && !code && !(tokenHash && isEmailOtpType(otpType))) {
+    if (inviteToken) {
+      return NextResponse.redirect(callbackAbsoluteUrl(request, therapistInvitePagePath(inviteToken, "oauth")))
+    }
     return NextResponse.redirect(callbackAbsoluteUrl(request, "/login?reason=oauth"))
   }
 
   if (!code && !(tokenHash && isEmailOtpType(otpType))) {
+    if (inviteToken) {
+      return NextResponse.redirect(callbackAbsoluteUrl(request, therapistInvitePagePath(inviteToken, "oauth")))
+    }
     return NextResponse.redirect(callbackAbsoluteUrl(request, "/login"))
   }
 
@@ -103,6 +112,11 @@ export async function GET(request: NextRequest) {
       sessionError.toLowerCase().includes("expired") ||
       sessionError.toLowerCase().includes("otp") ||
       sessionError.toLowerCase().includes("invalid")
+    if (inviteToken) {
+      return NextResponse.redirect(
+        callbackAbsoluteUrl(request, therapistInvitePagePath(inviteToken, expired ? "expired" : "oauth")),
+      )
+    }
     return NextResponse.redirect(
       callbackAbsoluteUrl(request, expired ? "/login?reason=otp_expired" : "/login"),
     )
@@ -117,7 +131,24 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   if (user && !isEmailConfirmedUser(user)) {
+    if (inviteToken) {
+      return redirectWithCookies(request, therapistInvitePagePath(inviteToken, "failed"), sessionCookies)
+    }
     return redirectWithCookies(request, "/login?reason=confirm_email", sessionCookies)
+  }
+
+  if (inviteToken) {
+    if (!user) {
+      return redirectWithCookies(request, therapistInvitePagePath(inviteToken, "oauth"), sessionCookies)
+    }
+
+    const attached = await attachTherapistInviteToUser({ token: inviteToken, user })
+    if (!attached.ok) {
+      await supabase.auth.signOut()
+      return redirectWithCookies(request, therapistInvitePagePath(inviteToken, attached.reason), sessionCookies)
+    }
+
+    return redirectWithCookies(request, "/dashboard", sessionCookies)
   }
 
   if (user) {
