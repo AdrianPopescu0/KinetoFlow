@@ -24,7 +24,12 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 function isTherapistAuthPage(pathname: string): boolean {
-  return pathname === "/login" || pathname === "/register" || pathname === "/recuperare-parola"
+  return (
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/recuperare-parola" ||
+    pathname === "/early-access/cont"
+  )
 }
 
 function isOnboardingPath(pathname: string): boolean {

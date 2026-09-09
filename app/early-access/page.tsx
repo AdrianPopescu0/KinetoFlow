@@ -18,7 +18,7 @@ export const metadata = {
 export default async function EarlyAccessPage() {
   const jar = await cookies()
   if (await hasValidEarlyAccessCookie(jar.get(EARLY_ACCESS_COOKIE)?.value)) {
-    redirect("/login")
+    redirect("/early-access/cont")
   }
 
   return (
@@ -39,8 +39,8 @@ export default async function EarlyAccessPage() {
               </h1>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 KinetoFlow este în Early Access. Introduceți codul secret de 12 caractere
-                primit de la noi. După validare, puteți să vă înregistrați clinica sau să
-                intrați în contul existent.
+                primit de la noi. După validare, veți introduce adresa de email ca să
+                primiți un cod de acces și să creați sau să asociați contul.
               </p>
             </div>
           </div>

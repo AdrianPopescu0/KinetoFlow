@@ -43,16 +43,17 @@ npm install
 npm run dev -- --port 43123 --hostname 127.0.0.1
 ```
 
-Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) după cod, sau programul pacient [http://127.0.0.1:43123/patient/demo](http://127.0.0.1:43123/patient/demo).
+Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi după cod [http://127.0.0.1:43123/early-access/cont](http://127.0.0.1:43123/early-access/cont) pentru email + OTP, sau programul pacient [http://127.0.0.1:43123/patient/demo](http://127.0.0.1:43123/patient/demo).
 
 ## Autentificare
 
 | Rută | Rol |
 | --- | --- |
 | `/` | Landing de prezentare: un singur buton **Early Access** deschide formularul de cod (12 caractere). Fără cumpărare abonament. |
-| `/early-access` | Pagină dedicată pentru același cod; middleware trimite aici `/login`, `/register` și `/recuperare-parola` dacă lipsește cookie-ul valid. Portalul pacient (`/acces`) rămâne public. |
-| `/login` | După Early Access: Intră în cont (`?mode=signin`) sau înregistrează clinică (`?mode=signup`); email+parolă, apoi **cod OTP pe email** (Resend, `no-reply@kinetoflow.ro`) sau **Sign in with Google**; la signup e obligatoriu consimțământul la Termeni; accesul complet după confirmarea emailului |
-| `/auth/email-cod` | Linkul din emailul OTP confirmă adresa și întoarce utilizatorul la `/login` |
+| `/early-access` | Pagină dedicată pentru același cod; middleware trimite aici `/login`, `/register`, `/recuperare-parola` și `/early-access/cont` dacă lipsește cookie-ul valid. Portalul pacient (`/acces`) rămâne public. |
+| `/early-access/cont` | După codul Early Access: email personal → OTP / link pe email (Resend) → creează sau asociază contul Supabase cu parolă. Google rămâne opțional. |
+| `/login` | Autentificare clasică: email+parolă, apoi **cod OTP pe email** (Resend, `no-reply@kinetoflow.ro`) sau **Google (opțional)**; la signup e obligatoriu consimțământul la Termeni; accesul complet după confirmarea emailului |
+| `/auth/email-cod` | Linkul din emailul OTP confirmă adresa și întoarce utilizatorul la `/early-access/cont` |
 | `/termeni` | Termeni și Condiții (inclusiv disclaimer medical) |
 | `/confidentialitate` | Politica de Confidențialitate și prelucrare date (GDPR) |
 | `/onboarding` | Configurare clinică (obligatorie înainte de dashboard) |

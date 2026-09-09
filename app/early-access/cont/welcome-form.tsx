@@ -1,0 +1,424 @@
+"use client"
+
+import { useState, useTransition } from "react"
+import Link from "next/link"
+import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
+
+import {
+  finishEarlyAccessLogin,
+  finishEarlyAccessRegister,
+  requestEarlyAccessEmailOtp,
+  verifyEarlyAccessEmailOtp,
+} from "@/app/early-access/actions"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { evaluateRegisterPassword } from "@/lib/auth/password"
+import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
+import { cn } from "@/lib/utils"
+import { createClient } from "@/utils/supabase/client"
+
+type AccountMode = "login" | "register"
+
+export function EarlyAccessWelcomeForm({
+  initialEmail = "",
+  initialVerified = false,
+  initialError = null,
+  initialInfo = null,
+}: {
+  initialEmail?: string
+  initialVerified?: boolean
+  initialError?: string | null
+  initialInfo?: string | null
+}) {
+  const [email, setEmail] = useState(initialEmail)
+  const [otp, setOtp] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [otpSent, setOtpSent] = useState(initialVerified)
+  const [verified, setVerified] = useState(initialVerified)
+  const [mode, setMode] = useState<AccountMode>("register")
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [error, setError] = useState<string | null>(initialError)
+  const [info, setInfo] = useState<string | null>(initialInfo)
+  const [devCode, setDevCode] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const [googlePending, setGooglePending] = useState(false)
+  const passwordChecks = evaluateRegisterPassword(password)
+  const busy = isPending || googlePending
+  const canSubmitRegister = passwordChecks.isValid && acceptedTerms
+
+  function handleSubmit(formData: FormData) {
+    setError(null)
+    setInfo(null)
+    formData.set("email", email)
+
+    startTransition(async () => {
+      if (!verified) {
+        if (!otpSent) {
+          const requested = await requestEarlyAccessEmailOtp(formData)
+          if (requested?.error) {
+            setError(requested.error)
+            return
+          }
+          setOtpSent(true)
+          setInfo(requested?.info ?? "Ți-am trimis un cod de acces pe email.")
+          setDevCode(requested?.devCode ?? null)
+          return
+        }
+
+        formData.set("otp", otp.trim())
+        const checked = await verifyEarlyAccessEmailOtp(formData)
+        if (checked?.error) {
+          setError(checked.error)
+          return
+        }
+        setVerified(true)
+        setInfo(checked?.info ?? "Adresa a fost confirmată.")
+        return
+      }
+
+      if (mode === "register" && !canSubmitRegister) {
+        setError(
+          acceptedTerms
+            ? "Parola trebuie să aibă minim 8 caractere, o majusculă, o cifră și un caracter special."
+            : LEGAL_ACCEPT_ERROR,
+        )
+        return
+      }
+
+      const result =
+        mode === "register" ? await finishEarlyAccessRegister(formData) : await finishEarlyAccessLogin(formData)
+      if (result?.error) {
+        setError(result.error)
+      }
+      if (result?.info) {
+        setInfo(result.info)
+      }
+    })
+  }
+
+  async function handleGoogleLogin() {
+    if (mode === "register" && !acceptedTerms) {
+      setError(LEGAL_ACCEPT_ERROR)
+      return
+    }
+    setError(null)
+    setInfo(null)
+    setGooglePending(true)
+    try {
+      const supabase = createClient()
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (oauthError) {
+        setError("Nu am putut porni autentificarea cu Google. Încearcă din nou.")
+        setGooglePending(false)
+      }
+    } catch {
+      setError("Nu am putut porni autentificarea cu Google. Încearcă din nou.")
+      setGooglePending(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {error ? (
+        <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
+          <AlertCircle />
+          <AlertTitle>Nu am putut continua</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {info ? (
+        <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
+          <Mail />
+          <AlertTitle>{verified ? "Email confirmat" : otpSent ? "Verifică emailul" : "Continuă cu emailul"}</AlertTitle>
+          <AlertDescription>{info}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="early-access-email" className="text-slate-900">
+            Adresa de email personală
+          </Label>
+          <Input
+            id="early-access-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            required
+            autoFocus={!initialEmail}
+            disabled={busy || otpSent}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="emailul-tau@exemplu.com"
+            className="h-12 min-h-12 border-slate-300 px-3"
+          />
+          <p className="text-xs leading-relaxed text-slate-500">
+            Folosește adresa ta, nu un alias de clinică dacă nu îl controlezi. Îți trimitem un
+            cod de 6 cifre și un link de confirmare.
+          </p>
+        </div>
+
+        {otpSent && !verified ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="early-access-otp" className="text-slate-900">
+              Cod de acces din email
+            </Label>
+            <Input
+              id="early-access-otp"
+              name="otp"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="\d{6}"
+              maxLength={6}
+              required
+              autoFocus
+              disabled={busy}
+              value={otp}
+              onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="000000"
+              className="h-12 min-h-12 border-slate-300 px-3 font-mono tracking-[0.28em]"
+            />
+            {devCode ? (
+              <p className="text-xs text-amber-800">Mediu local, fără Resend: folosește codul {devCode}.</p>
+            ) : (
+              <p className="text-xs text-slate-500">
+                6 cifre, valabile 10 minute. Poți confirma și din linkul primit pe email.
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={busy}
+              className="self-start text-sm font-medium text-[#042f2e] underline-offset-4 hover:underline disabled:opacity-50"
+              onClick={() => {
+                setOtpSent(false)
+                setOtp("")
+                setInfo(null)
+                setDevCode(null)
+              }}
+            >
+              Schimbă emailul sau trimite un cod nou
+            </button>
+          </div>
+        ) : null}
+
+        {verified ? (
+          <>
+            <div
+              role="tablist"
+              aria-label="Tip de cont"
+              className="grid grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1"
+            >
+              <ModeButton active={mode === "register"} onClick={() => setMode("register")}>
+                Creează cont
+              </ModeButton>
+              <ModeButton active={mode === "login"} onClick={() => setMode("login")}>
+                Am deja cont
+              </ModeButton>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="early-access-password" className="text-slate-900">
+                  {mode === "register" ? "Alege o parolă" : "Parola contului"}
+                </Label>
+                {mode === "login" ? (
+                  <Link
+                    href="/recuperare-parola"
+                    className="text-sm font-medium text-[#042f2e] underline-offset-4 hover:underline"
+                  >
+                    Ai uitat parola?
+                  </Link>
+                ) : null}
+              </div>
+              <div className="relative">
+                <Input
+                  id="early-access-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete={mode === "register" ? "new-password" : "current-password"}
+                  required
+                  minLength={mode === "register" ? 8 : undefined}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  disabled={busy}
+                  placeholder={mode === "register" ? "Alege o parolă puternică" : "••••••••"}
+                  className="h-12 min-h-12 border-slate-300 px-3 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  disabled={busy}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500 transition-colors hover:text-slate-900 disabled:opacity-50"
+                  aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+              {mode === "register" ? (
+                <ul className="mt-1 grid gap-1.5">
+                  {passwordChecks.checks.map((check) => (
+                    <li
+                      key={check.id}
+                      className={cn(
+                        "flex items-center gap-2 text-xs",
+                        check.met ? "text-emerald-700" : "text-slate-400",
+                      )}
+                    >
+                      {check.met ? (
+                        <Check className="size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+                      ) : (
+                        <Circle className="size-3.5 shrink-0 text-slate-300" aria-hidden="true" />
+                      )}
+                      {check.label}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+
+            {mode === "register" ? (
+              <label
+                htmlFor={LEGAL_ACCEPT_FIELD}
+                className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed text-slate-700"
+              >
+                <input
+                  id={LEGAL_ACCEPT_FIELD}
+                  name={LEGAL_ACCEPT_FIELD}
+                  type="checkbox"
+                  required
+                  checked={acceptedTerms}
+                  onChange={(event) => setAcceptedTerms(event.target.checked)}
+                  disabled={busy}
+                  className="mt-1 size-4 shrink-0 rounded border-slate-300 accent-[#042f2e]"
+                />
+                <span>
+                  Sunt de acord cu{" "}
+                  <Link
+                    href="/termeni"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-[#042f2e] underline underline-offset-4"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Termenii și Condițiile
+                  </Link>{" "}
+                  și{" "}
+                  <Link
+                    href="/confidentialitate"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-[#042f2e] underline underline-offset-4"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Politica de Confidențialitate
+                  </Link>
+                  .
+                </span>
+              </label>
+            ) : null}
+          </>
+        ) : null}
+
+        <Button
+          type="submit"
+          disabled={busy || (verified && mode === "register" && !canSubmitRegister)}
+          className="h-12 min-h-[48px] w-full rounded-xl text-sm font-semibold"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Se procesează…
+            </>
+          ) : !otpSent ? (
+            "Trimite codul pe email"
+          ) : !verified ? (
+            "Verifică emailul"
+          ) : mode === "register" ? (
+            "Creează contul"
+          ) : (
+            "Intră în cont"
+          )}
+        </Button>
+      </form>
+
+      <div className="flex items-center gap-3" role="separator" aria-label="sau">
+        <span className="h-px flex-1 bg-slate-200" />
+        <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">sau</span>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        disabled={busy}
+        aria-label="Sign in with Google"
+        onClick={() => {
+          void handleGoogleLogin()
+        }}
+        className="h-12 min-h-[48px] w-full rounded-xl border-slate-300 bg-white text-sm font-semibold text-slate-800"
+      >
+        {googlePending ? <Loader2 className="size-4 animate-spin" /> : <GoogleMark className="size-5" />}
+        Continuă cu Google (opțional)
+      </Button>
+    </div>
+  )
+}
+
+function ModeButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: string
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "h-auto min-h-11 rounded-lg px-2 py-2 text-sm font-medium leading-tight whitespace-normal transition-colors",
+        active ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900",
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+function GoogleMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      />
+    </svg>
+  )
+}

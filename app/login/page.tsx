@@ -36,8 +36,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       title={signup ? "Înregistrează clinică nouă" : "Autentificare"}
       description={
         signup
-          ? "Creează contul de administrator al clinicii tale."
-          : "Intră în contul tău de terapeut sau administrator."
+          ? "Creează contul de administrator al clinicii tale cu email și parolă. Google rămâne opțional."
+          : "Intră în contul tău de terapeut sau administrator cu email și parolă. Google rămâne opțional."
       }
       footer={
         <p className="mt-8 text-center text-xs leading-relaxed text-slate-500">

@@ -21,7 +21,7 @@ export function LandingHero({ unlockOpen = false }: { unlockOpen?: boolean }) {
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-pretty text-slate-600 sm:text-lg">
           KinetoFlow aduce pacienții, programele de exerciții și echipa clinicii în același flux de
           lucru. Platforma este în Early Access: intrați cu un cod de 12 caractere primit de la
-          noi, apoi vă înregistrați clinica sau intrați în cont.
+          noi, apoi confirmați adresa de email ca să creați sau să asociați contul.
         </p>
         <div className="mt-8 flex w-full max-w-sm flex-col items-stretch gap-3 sm:max-w-none sm:flex-row sm:justify-center">
           <EarlyAccessButton initialOpen={unlockOpen} />

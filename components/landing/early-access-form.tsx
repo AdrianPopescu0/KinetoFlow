@@ -11,7 +11,7 @@ import { EARLY_ACCESS_CODE_LENGTH } from "@/lib/auth/early-access-constants"
 
 export function EarlyAccessForm({
   autoFocus = true,
-  submitLabel = "Continuă către autentificare",
+  submitLabel = "Continuă",
 }: {
   autoFocus?: boolean
   submitLabel?: string

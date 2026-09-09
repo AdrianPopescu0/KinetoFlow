@@ -174,30 +174,6 @@ export function LoginForm({
         </Alert>
       ) : null}
 
-      <Button
-        type="button"
-        variant="outline"
-        disabled={busy}
-        aria-label="Sign in with Google"
-        onClick={() => {
-          void handleGoogleLogin()
-        }}
-        className="h-12 min-h-[48px] w-full rounded-xl border-slate-300 bg-white text-sm font-semibold text-slate-800"
-      >
-        {googlePending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <GoogleMark className="size-5" />
-        )}
-        Sign in with Google
-      </Button>
-
-      <div className="flex items-center gap-3" role="separator" aria-label="sau">
-        <span className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">sau</span>
-        <span className="h-px flex-1 bg-slate-200" />
-      </div>
-
       <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
         <div className="flex flex-col gap-2">
           <Label htmlFor="email" className="text-slate-900">
@@ -395,6 +371,30 @@ export function LoginForm({
           )}
         </Button>
       </form>
+
+      <div className="flex items-center gap-3" role="separator" aria-label="sau">
+        <span className="h-px flex-1 bg-slate-200" />
+        <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">sau</span>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        disabled={busy}
+        aria-label="Sign in with Google"
+        onClick={() => {
+          void handleGoogleLogin()
+        }}
+        className="h-12 min-h-[48px] w-full rounded-xl border-slate-300 bg-white text-sm font-semibold text-slate-800"
+      >
+        {googlePending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <GoogleMark className="size-5" />
+        )}
+        Continuă cu Google (opțional)
+      </Button>
 
       <p className="text-center text-sm text-slate-600">
         <Link href="/acces" className="font-medium text-[#042f2e] underline-offset-4 hover:underline">
