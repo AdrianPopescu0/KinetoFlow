@@ -41,6 +41,9 @@ function allowsUnconfirmedEmail(pathname: string): boolean {
     pathname === "/auth/callback" ||
     pathname.startsWith("/auth/callback/") ||
     pathname === "/auth/activare" ||
+    pathname.startsWith("/auth/activare/") ||
+    pathname === "/auth/invitatie" ||
+    pathname.startsWith("/auth/invitatie/") ||
     pathname.startsWith("/auth/set-password")
   )
 }

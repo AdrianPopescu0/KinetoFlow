@@ -4,16 +4,17 @@ import { revalidatePath } from "next/cache"
 
 import { getCachedUser } from "@/lib/auth/session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
-import {
-  recoveryRedirectTo,
-  resolveInviteSiteUrl,
-  whatsAppInviteUrlFromGenerateLink,
-} from "@/lib/auth/invite-link"
+import { resolveInviteSiteUrl } from "@/lib/auth/invite-link"
 import { therapistInviteMessage } from "@/lib/clinics/invite-message"
-import { newTherapistTechnicalEmail, randomAccountPassword } from "@/lib/clinics/technical-email"
+import {
+  generateTherapistInviteToken,
+  isMissingTherapistInvitesTable,
+  MISSING_THERAPIST_INVITES_TABLE,
+  THERAPIST_INVITE_TTL_MS,
+  therapistInviteUrl,
+} from "@/lib/clinics/therapist-invite"
 import { canRemoveClinicMember, isClinicAdmin } from "@/lib/clinics/types"
 import { ForbiddenError } from "@/lib/http/forbidden"
-import { generateAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { patientWhatsAppHref, patientWhatsAppWebHref } from "@/lib/patients/whatsapp"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
@@ -25,7 +26,6 @@ export type InviteTherapistState = {
   ok?: boolean
   therapistName?: string
   inviteLink?: string
-  accessCode?: string
   phone?: string
   inviteMessage?: string
   whatsappHref?: string
@@ -123,10 +123,10 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
     return { error: "Profilul cabinetului este incomplet. Reîncarcă pagina." }
   }
   const clinicOwnerId = profile.user_id
-  const accessCode = generateAccessCode()
-  const technicalEmail = newTherapistTechnicalEmail(therapistName)
+  const token = generateTherapistInviteToken()
   const siteUrl = await resolveInviteSiteUrl()
-  const redirectTo = recoveryRedirectTo(siteUrl)
+  const inviteLink = therapistInviteUrl(siteUrl, token)
+  const expiresAt = new Date(Date.now() + THERAPIST_INVITE_TTL_MS).toISOString()
 
   try {
     const admin = createServiceRoleClient()
@@ -142,51 +142,36 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
       return { error: "Există deja un terapeut cu acest număr de telefon în cabinet." }
     }
 
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email: technicalEmail,
-      password: randomAccountPassword(),
-      email_confirm: true,
-      user_metadata: {
-        full_name: therapistName,
-        clinic_name: clinicName,
-        clinic_id: clinicOwnerId,
-        phone,
-        invited_by: user.id,
-        role: "therapist",
-        access_code: accessCode,
-      },
-      app_metadata: {
-        clinic_id: clinicOwnerId,
-        role: "therapist",
-      },
-    })
+    const nowIso = new Date().toISOString()
+    const pending = await admin
+      .from("therapist_invites")
+      .update({ expires_at: nowIso })
+      .ilike("clinic_name", clinicName)
+      .eq("phone", phone)
+      .is("accepted_at", null)
+      .gt("expires_at", nowIso)
 
-    if (createError || !created.user) {
-      return { error: createError ? formatSupabaseError(createError) : "Nu am putut crea contul terapeutului." }
+    if (pending.error) {
+      if (isMissingTherapistInvitesTable(pending.error)) {
+        return { error: MISSING_THERAPIST_INVITES_TABLE }
+      }
+      return { error: formatSupabaseError(pending.error) }
     }
 
-    const invitedUserId = created.user.id
-
-    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-      type: "recovery",
-      email: technicalEmail,
-      options: { redirectTo },
-    })
-
-    const inviteLink = whatsAppInviteUrlFromGenerateLink(linkData, siteUrl)
-    if (linkError || !inviteLink) {
-      return { error: linkError ? formatSupabaseError(linkError) : "Nu am putut genera linkul de acces." }
-    }
-
-    const { error: insertError } = await admin.from("clinic_profiles").insert({
-      user_id: invitedUserId,
+    const { error: insertError } = await admin.from("therapist_invites").insert({
+      token,
       clinic_name: clinicName,
+      clinic_owner_id: clinicOwnerId,
+      invited_by: user.id,
       therapist_name: therapistName,
       phone,
-      role: "therapist",
+      expires_at: expiresAt,
     })
 
     if (insertError) {
+      if (isMissingTherapistInvitesTable(insertError)) {
+        return { error: MISSING_THERAPIST_INVITES_TABLE }
+      }
       return { error: formatSupabaseError(insertError) }
     }
 
@@ -194,7 +179,6 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
       therapistName,
       clinicName,
       inviteLink,
-      accessCode,
     })
     const whatsappHref = patientWhatsAppHref(phone, message)
     const whatsappWebHref = patientWhatsAppWebHref(phone, message)
@@ -205,7 +189,6 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
       ok: true,
       therapistName,
       inviteLink,
-      accessCode,
       phone,
       inviteMessage: message,
       whatsappHref: whatsappHref ?? undefined,

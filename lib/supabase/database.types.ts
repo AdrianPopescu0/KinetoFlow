@@ -215,6 +215,36 @@ export type Database = {
         Update: Record<string, unknown>
         Relationships: []
       }
+      therapist_invites: {
+        Row: {
+          id: string
+          token: string
+          clinic_name: string
+          clinic_owner_id: string
+          invited_by: string
+          therapist_name: string
+          phone: string
+          expires_at: string
+          accepted_at: string | null
+          accepted_user_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          token: string
+          clinic_name: string
+          clinic_owner_id: string
+          invited_by: string
+          therapist_name: string
+          phone: string
+          expires_at: string
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          created_at?: string
+        }
+        Update: Record<string, unknown>
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           id: string

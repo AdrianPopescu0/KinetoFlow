@@ -32,12 +32,24 @@ export default async function ClinicTeamPage() {
     .ilike("clinic_name", profile.clinic_name.trim())
     .order("therapist_name", { ascending: true })
 
+  const { data: pendingRows } = await clinicClient
+    .from("therapist_invites")
+    .select("id, therapist_name, phone, expires_at, created_at")
+    .ilike("clinic_name", profile.clinic_name.trim())
+    .is("accepted_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+
   const normalizedClinicName = profile.clinic_name.trim().toLocaleLowerCase("ro-RO")
   const members = (memberRows ?? []).filter(
     (member) =>
       typeof member.user_id === "string" &&
       String(member.clinic_name ?? "").trim().toLocaleLowerCase("ro-RO") === normalizedClinicName &&
       (member.role === "admin" || member.role === "therapist"),
+  )
+
+  const pendingInvites = (pendingRows ?? []).filter(
+    (row) => typeof row.id === "string" && String(row.therapist_name ?? "").trim().length > 0,
   )
 
   return (
@@ -47,7 +59,8 @@ export default async function ClinicTeamPage() {
           <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase">Administrare echipă</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-800">Echipa clinicii</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Invită terapeuți în {profile.clinic_name}. După salvare trimiți codul și linkul pe WhatsApp sau prin SMS.
+            Invită terapeuți în {profile.clinic_name}. Primești un link unic de trimis pe WhatsApp
+            sau SMS; colegul își pune singur emailul și parola.
           </p>
         </div>
         <InviteTherapistDialog />
@@ -98,6 +111,35 @@ export default async function ClinicTeamPage() {
           </table>
         </div>
       </section>
+
+      {pendingInvites.length > 0 ? (
+        <section className={surfaceCardClassName("overflow-hidden")}>
+          <div className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-base font-semibold text-slate-800">Invitații în așteptare</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Colegul încă nu și-a creat contul. Linkul e valabil 14 zile.
+            </p>
+          </div>
+          <ul className="divide-y divide-slate-100">
+            {pendingInvites.map((invite) => (
+              <li key={String(invite.id)} className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-medium text-slate-800">{invite.therapist_name}</p>
+                  <p className="text-sm text-slate-600">{invite.phone || "—"}</p>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Expiră{" "}
+                  {new Date(String(invite.expires_at)).toLocaleDateString("ro-RO", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
   )
 }

@@ -16,7 +16,6 @@ import { cn } from "@/lib/utils"
 type InviteReady = {
   therapistName: string
   inviteLink: string
-  accessCode: string
   phone: string | null
   inviteMessage: string
   whatsappHref: string | null
@@ -34,7 +33,7 @@ export function InviteTherapistDialog({
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState<InviteReady | null>(null)
-  const [copiedCode, setCopiedCode] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function close() {
@@ -44,7 +43,7 @@ export function InviteTherapistDialog({
     setOpen(false)
     setError(null)
     setReady(null)
-    setCopiedCode(false)
+    setCopiedLink(false)
   }
 
   function handleSubmit(formData: FormData) {
@@ -56,14 +55,13 @@ export function InviteTherapistDialog({
           setError(result.error ?? "Nu ai permisiunea de a invita terapeuți.")
           return
         }
-        if (result.error || !result.ok || !result.inviteLink || !result.therapistName || !result.accessCode) {
+        if (result.error || !result.ok || !result.inviteLink || !result.therapistName) {
           setError(result.error ?? "Nu am putut crea invitația.")
           return
         }
         setReady({
           therapistName: result.therapistName,
           inviteLink: result.inviteLink,
-          accessCode: result.accessCode,
           phone: result.phone ?? null,
           inviteMessage: result.inviteMessage ?? "",
           whatsappHref: result.whatsappHref ?? null,
@@ -80,11 +78,11 @@ export function InviteTherapistDialog({
     })
   }
 
-  async function copyCode(code: string) {
-    await navigator.clipboard.writeText(code)
-    setCopiedCode(true)
-    toast("Codul de acces a fost copiat.")
-    window.setTimeout(() => setCopiedCode(false), 2000)
+  async function copyLink(link: string) {
+    await navigator.clipboard.writeText(link)
+    setCopiedLink(true)
+    toast("Linkul de invitație a fost copiat.")
+    window.setTimeout(() => setCopiedLink(false), 2000)
   }
 
   return (
@@ -107,30 +105,26 @@ export function InviteTherapistDialog({
               <div className="flex min-w-0 flex-col gap-4">
                 <div>
                   <h2 id="invite-therapist-title" className="text-lg font-semibold text-slate-800">
-                    Terapeut adăugat
+                    Link de invitație gata
                   </h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    {ready.therapistName} poate activa contul de terapeut cu telefonul și acest cod.
+                    Trimite-l lui {ready.therapistName} pe WhatsApp sau SMS. Își pune singur emailul
+                    și parola — nu îi creezi contul tu.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-center">
-                  <p className="text-xs font-semibold tracking-wide text-slate-400 uppercase">Cod unic de acces</p>
-                  <p className="mt-2 font-mono text-4xl font-semibold tracking-[0.2em] text-slate-900">
-                    {ready.accessCode}
-                  </p>
+                  <p className="text-xs font-semibold tracking-wide text-slate-400 uppercase">Link unic</p>
+                  <p className="mt-2 break-all text-sm font-medium text-slate-900">{ready.inviteLink}</p>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => copyCode(ready.accessCode)}
+                    onClick={() => copyLink(ready.inviteLink)}
                     className="mt-4 h-11 rounded-xl"
                   >
-                    {copiedCode ? <Check className="size-4" /> : <Copy className="size-4" />}
-                    Copiază codul
+                    {copiedLink ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    Copiază linkul
                   </Button>
                 </div>
-                {ready.inviteLink ? (
-                  <p className="break-all text-center text-xs text-slate-500">{ready.inviteLink}</p>
-                ) : null}
                 <ShareInviteActions
                   phone={ready.phone}
                   message={ready.inviteMessage || ready.inviteLink}
@@ -149,10 +143,11 @@ export function InviteTherapistDialog({
                   </span>
                   <div>
                     <h2 id="invite-therapist-title" className="text-lg font-semibold text-slate-900">
-                      Adaugă terapeut
+                      Invită terapeut
                     </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      Doar nume și telefon. După salvare trimiți invitația pe WhatsApp sau prin SMS.
+                      Nume și telefon. Generăm un link unic; terapeutul își creează contul cu
+                      emailul lui personal.
                     </p>
                   </div>
                 </div>
@@ -194,7 +189,7 @@ export function InviteTherapistDialog({
                           Se creează…
                         </>
                       ) : (
-                        "Creează invitația"
+                        "Generează linkul"
                       )}
                     </Button>
                   </div>
