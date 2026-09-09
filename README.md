@@ -22,6 +22,7 @@ cp .env.example .env.local
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
 - `NEXT_PUBLIC_SITE_URL` — originea publică a aplicației (invitații terapeuți `/auth/activare` și recuperare parolă). Nu folosi un URL de preview Vercel (`*-git-*.vercel.app`).
 - `CRON_SECRET` — secret pentru cron-uri (`Authorization: Bearer …` pe `/api/cron/reset-daily-progress`, `/api/cron/reminders` și `/api/cron/daily-update`); pe Vercel, dacă e setat, header-ul e trimis automat
+- `EARLY_ACCESS_CODE` — **exact 12 caractere**. Codul secret pentru butonul Early Access de pe landing. Dacă lipsește sau nu are 12 caractere, local se folosește `KINETO-EARLY`. Pe producție puneți propriul cod. Opțional: `EARLY_ACCESS_PEPPER` pentru semnarea cookie-ului.
 - Opțional, pentru **emailuri** (suport + OTP autentificare): `RESEND_API_KEY`. OTP-ul de login/înregistrare clinică pleacă de pe `no-reply@kinetoflow.ro` (`RESEND_AUTH_FROM`). Fără cheie, în dezvoltare codul e logat.
 - Pentru reminder-e și notificări de check-in (**doar Web Push / FCM**): cheile `NEXT_PUBLIC_FIREBASE_*` (inclusiv `NEXT_PUBLIC_FIREBASE_VAPID_KEY`) plus pe server **`FIREBASE_SERVICE_ACCOUNT`** (JSON-ul complet al contului de serviciu, `JSON.parse`). Fără token FCM salvat, reminder-ul se sare — nu există fallback SMS sau WhatsApp. Local, fără Firebase Admin, trimiterea push e simulată în loguri.
 
@@ -42,14 +43,15 @@ npm install
 npm run dev -- --port 43123 --hostname 127.0.0.1
 ```
 
-Deschide [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) sau programul pacient [http://127.0.0.1:43123/patient/demo](http://127.0.0.1:43123/patient/demo).
+Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) după cod, sau programul pacient [http://127.0.0.1:43123/patient/demo](http://127.0.0.1:43123/patient/demo).
 
 ## Autentificare
 
 | Rută | Rol |
 | --- | --- |
-| `/` | Landing de prezentare: beneficiile platformei și **Intră în cont** → `/login`. Fără cumpărare abonament. |
-| `/login` | Intră în cont (`?mode=signin`) sau înregistrează clinică (`?mode=signup`); email+parolă, apoi **cod OTP pe email** (Resend, `no-reply@kinetoflow.ro`) sau **Sign in with Google**; la signup e obligatoriu consimțământul la Termeni; accesul complet după confirmarea emailului |
+| `/` | Landing de prezentare: un singur buton **Early Access** deschide formularul de cod (12 caractere). Fără cumpărare abonament. |
+| `/early-access` | Pagină dedicată pentru același cod; middleware trimite aici `/login`, `/register` și `/recuperare-parola` dacă lipsește cookie-ul valid. Portalul pacient (`/acces`) rămâne public. |
+| `/login` | După Early Access: Intră în cont (`?mode=signin`) sau înregistrează clinică (`?mode=signup`); email+parolă, apoi **cod OTP pe email** (Resend, `no-reply@kinetoflow.ro`) sau **Sign in with Google**; la signup e obligatoriu consimțământul la Termeni; accesul complet după confirmarea emailului |
 | `/auth/email-cod` | Linkul din emailul OTP confirmă adresa și întoarce utilizatorul la `/login` |
 | `/termeni` | Termeni și Condiții (inclusiv disclaimer medical) |
 | `/confidentialitate` | Politica de Confidențialitate și prelucrare date (GDPR) |
@@ -84,7 +86,7 @@ Reguli de securitate aplicate:
 - La înregistrare, parola trebuie: 8+ caractere, o majusculă, o cifră, un caracter special
 - Contul email+parolă rămâne fără acces la `/dashboard` și `/onboarding` până la confirmarea adresei (`email_confirmed_at`)
 - Mesaj generic la eșec: „Email sau parolă incorectă” (fără enumerarea utilizatorilor)
-- Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori și trimite la `/onboarding` dacă lipsește `clinic_profiles`
+- Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori, cere cookie Early Access pentru `/login` / `/register` / `/recuperare-parola` și trimite la `/onboarding` dacă lipsește `clinic_profiles`
 - Verificare `getUser()` (nu `getSession()`) pentru autorizare
 - RLS pe `patients`: vizibil dacă `therapist_id` / `assigned_therapist_id` e al tău sau al unui coleg cu același `clinic_name` (`013_patients_no_clinic_id.sql`)
 - RLS pe `exercise_library`: citire pentru oricine; scriere (INSERT/UPDATE/DELETE) doar `kinetic01flow@gmail.com` și `admin@kinetoflow.ro` (email exact). Scripturile sunt în `sql/`, nu se aplică automat pe Vercel. Tabela `exercises` (programul pacientului) rămâne editabilă de terapeuții cabinetului.

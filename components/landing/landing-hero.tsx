@@ -1,15 +1,11 @@
 import Link from "next/link"
 
-import { buttonVariants } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { EarlyAccessButton } from "@/components/landing/early-access-dialog"
 
-export function LandingHero() {
+export function LandingHero({ unlockOpen = false }: { unlockOpen?: boolean }) {
   return (
     <section className="relative overflow-hidden px-4 pt-12 pb-16 sm:px-6 sm:pt-20 sm:pb-24">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[28rem]"
-      >
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[28rem]">
         <div className="absolute top-[-7rem] left-1/2 h-72 w-[min(90vw,42rem)] -translate-x-1/2 rounded-full bg-teal-100/80 blur-3xl" />
       </div>
       <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center text-center">
@@ -21,17 +17,11 @@ export function LandingHero() {
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-pretty text-slate-600 sm:text-lg">
           KinetoFlow aduce pacienții, programele de exerciții și echipa clinicii în același flux de
-          lucru. Accesul rămâne securizat: intrați în cont dacă aveți deja un profil de terapeut
-          sau administrator.
+          lucru. Platforma este în Early Access: intrați cu un cod de 12 caractere primit de la
+          noi, apoi vă înregistrați clinica sau intrați în cont.
         </p>
         <div className="mt-8 flex w-full max-w-sm flex-col items-stretch gap-3 sm:max-w-none sm:flex-row sm:justify-center">
-          <Link
-            href="/login"
-            prefetch
-            className={cn(buttonVariants(), "h-12 min-h-[48px] rounded-xl px-6 text-base")}
-          >
-            Intră în cont
-          </Link>
+          <EarlyAccessButton initialOpen={unlockOpen} />
         </div>
         <p className="mt-4 text-sm text-slate-500">
           Ești pacient?{" "}

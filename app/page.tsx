@@ -9,15 +9,21 @@ import { LandingHero } from "@/components/landing/landing-hero"
 export const metadata: Metadata = {
   title: "KinetoFlow — optimizează activitatea clinicii",
   description:
-    "Platformă pentru kinetoterapie: gestionează pacienții, programele de recuperare și echipa, cu acces securizat pentru cine are deja cont.",
+    "Platformă pentru kinetoterapie: gestionează pacienții, programele de recuperare și echipa. Acces timpuriu pe bază de cod.",
 }
 
-export default function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ unlock?: string }>
+}) {
+  const { unlock } = await searchParams
+
   return (
     <AppShell>
       <LandingHeader />
       <main className="flex flex-1 flex-col">
-        <LandingHero />
+        <LandingHero unlockOpen={unlock === "1"} />
         <LandingFeatures />
         <LandingCta />
       </main>

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+import { EARLY_ACCESS_COOKIE, hasValidEarlyAccessCookie } from "@/lib/auth/early-access"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import {
@@ -51,6 +52,17 @@ function storedPatientToken(request: NextRequest): string | null {
   return null
 }
 
+async function isEarlyAccessUnlocked(request: NextRequest): Promise<boolean> {
+  return hasValidEarlyAccessCookie(request.cookies.get(EARLY_ACCESS_COOKIE)?.value)
+}
+
+function redirectToEarlyAccess(request: NextRequest): NextResponse {
+  const redirectUrl = request.nextUrl.clone()
+  redirectUrl.pathname = "/early-access"
+  redirectUrl.search = ""
+  return NextResponse.redirect(redirectUrl)
+}
+
 function stampPatientCookies(response: NextResponse, token: string): void {
   response.cookies.set(PATIENT_SESSION_COOKIE, token, patientUrlAccessCookieOptions)
   response.cookies.set(PATIENT_RESUME_COOKIE, token, patientResumeCookieOptions)
@@ -84,6 +96,10 @@ export async function updateSession(request: NextRequest) {
   const { url, anonKey } = getSupabasePublicEnv()
 
   if (isUnconfiguredSupabaseUrl(url)) {
+    if (isTherapistAuthPage(pathname) && !(await isEarlyAccessUnlocked(request))) {
+      return redirectToEarlyAccess(request)
+    }
+
     if (isProtectedPath(pathname) || isOnboardingPath(pathname)) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/login"
@@ -123,6 +139,10 @@ export async function updateSession(request: NextRequest) {
 
   const authenticatedUser = userError ? null : user
   const emailConfirmed = isEmailConfirmedUser(authenticatedUser)
+
+  if (!authenticatedUser && isTherapistAuthPage(pathname) && !(await isEarlyAccessUnlocked(request))) {
+    return redirectToEarlyAccess(request)
+  }
 
   if (
     authenticatedUser &&
