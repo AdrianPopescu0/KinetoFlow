@@ -461,6 +461,49 @@ export async function deleteExercise(patientId: string, exerciseId: string): Pro
   revalidatePath(`/dashboard/patients/${patientId}`)
 }
 
+function isMissingColumnError(error: { code?: string; message: string }, column: string): boolean {
+  const message = error.message.toLowerCase()
+  return error.code === "PGRST204" || message.includes(column.toLowerCase())
+}
+
+async function insertCheckInRow(
+  admin: Awaited<ReturnType<typeof import("@/utils/supabase/admin").createServiceRoleClient>>,
+  row: Record<string, unknown>,
+): Promise<string | null> {
+  const variants: Array<Record<string, unknown>> = [row]
+  const withoutDuration = { ...row }
+  delete withoutDuration.exercise_duration_seconds
+  variants.push(withoutDuration)
+  const withoutEnergy = { ...row }
+  delete withoutEnergy.energy_level
+  variants.push(withoutEnergy)
+  const core = { ...row }
+  delete core.exercise_duration_seconds
+  delete core.energy_level
+  variants.push(core)
+
+  const seen = new Set<string>()
+  for (const attempt of variants) {
+    const key = Object.keys(attempt).sort().join(",")
+    if (seen.has(key)) {
+      continue
+    }
+    seen.add(key)
+    const { error } = await admin.from("check_ins").insert(attempt as never)
+    if (!error) {
+      return null
+    }
+    const missingOptional =
+      isMissingColumnError(error, "exercise_duration_seconds") ||
+      isMissingColumnError(error, "energy_level")
+    if (!missingOptional) {
+      return "Nu am putut salva check-in-ul. Încearcă din nou."
+    }
+  }
+
+  return "Nu am putut salva check-in-ul. Încearcă din nou."
+}
+
 export async function submitPatientCheckin(formData: FormData): Promise<{ error: string | null }> {
   const token = readOptional(formData, "token")
   const notes = readOptional(formData, "notes")
@@ -471,6 +514,7 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
   const completedExerciseIds = completedRaw
     ? completedRaw.split("|").map((id) => id.trim()).filter(Boolean)
     : []
+  const sessionStartedAt = readOptional(formData, "sessionStartedAt")
   const vasScore = Number.parseInt(String(formData.get("vas") ?? ""), 10)
 
   if (
@@ -487,12 +531,16 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
 
   const { createServiceRoleClient } = await import("@/utils/supabase/admin")
   const {
+    earliestExerciseCompletionAt,
     listActiveExerciseIdsForDay,
     listCompletedExerciseIdsForDay,
     syncExerciseCompletionsForDay,
   } = await import("@/lib/patients/exercise-completions")
   const { allExercisesCompleted, CHECKIN_REQUIRES_EXERCISES_MESSAGE } = await import(
     "@/lib/patients/checkin-exercises"
+  )
+  const { computeExerciseDurationSeconds, earliestInstant } = await import(
+    "@/lib/patients/session-duration"
   )
   const { bucharestDateKey } = await import("@/lib/time/bucharest")
   const admin = createServiceRoleClient()
@@ -536,6 +584,11 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     return { error: CHECKIN_REQUIRES_EXERCISES_MESSAGE }
   }
 
+  const firstCompletionAt = await earliestExerciseCompletionAt(admin, patient.id, todayKey)
+  const sessionStart = earliestInstant(sessionStartedAt, firstCompletionAt)
+  const exerciseDurationSeconds =
+    activeExerciseIds.length === 0 ? null : computeExerciseDurationSeconds(sessionStart)
+
   const base = {
     patient_id: patient.id,
     vas_score: vasScore,
@@ -543,23 +596,14 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     notes,
   }
 
-  const { error: insertError } = await admin.from("check_ins").insert({
+  const insertError = await insertCheckInRow(admin, {
     ...base,
     energy_level: energy,
+    exercise_duration_seconds: exerciseDurationSeconds,
   })
 
   if (insertError) {
-    // Fără migrarea 014, coloana energy_level lipsește: salvăm restul check-in-ului.
-    const missingColumn =
-      insertError.code === "PGRST204" || insertError.message.toLowerCase().includes("energy_level")
-    if (!energy || !missingColumn) {
-      return { error: "Nu am putut salva check-in-ul. Încearcă din nou." }
-    }
-
-    const retry = await admin.from("check_ins").insert(base)
-    if (retry.error) {
-      return { error: "Nu am putut salva check-in-ul. Încearcă din nou." }
-    }
+    return { error: insertError }
   }
 
   if (completedExerciseIds.length > 0) {

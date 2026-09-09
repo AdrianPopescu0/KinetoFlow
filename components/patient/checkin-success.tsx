@@ -3,6 +3,7 @@ import { Check } from "lucide-react"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { sleepLabel } from "@/lib/patients/display"
 import { energyLabel, painIntensityCopy } from "@/lib/patients/program"
+import { formatExerciseDuration } from "@/lib/patients/session-duration"
 import type { DailyCheckin } from "@/lib/patients/types"
 
 export function CheckinSuccess({
@@ -42,6 +43,12 @@ export function CheckinSuccess({
           <div className="flex justify-between px-4 py-3">
             <dt className="text-slate-500">Energie</dt>
             <dd className="font-semibold">{energyLabel(checkin.energy)}</dd>
+          </div>
+        ) : null}
+        {checkin.exerciseDurationSeconds != null ? (
+          <div className="flex justify-between px-4 py-3">
+            <dt className="text-slate-500">Durată exerciții</dt>
+            <dd className="font-semibold">{formatExerciseDuration(checkin.exerciseDurationSeconds)}</dd>
           </div>
         ) : null}
         {checkin.notes ? (

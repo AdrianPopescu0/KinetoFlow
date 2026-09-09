@@ -12,6 +12,10 @@ function exercisesKey(token: string, localDate: string): string {
   return `kinetoflow:exercises:${token}:${localDate}`
 }
 
+function sessionStartKey(token: string, localDate: string): string {
+  return `kinetoflow:session-start:${token}:${localDate}`
+}
+
 function emitChange() {
   checkinCache.clear()
   exerciseCache.clear()
@@ -132,6 +136,32 @@ export function loadCompletedExercisesSnapshot(token: string, localDate: string)
 
   exerciseCache.set(key, "")
   return ""
+}
+
+export function loadSessionStartedAt(token: string, localDate: string): string | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+  try {
+    const raw = window.localStorage.getItem(sessionStartKey(token, localDate))
+    return raw && raw.length > 0 ? raw : null
+  } catch {
+    return null
+  }
+}
+
+/** Notează începutul ședinței o singură dată (primul video / prima bifă). */
+export function markSessionStarted(token: string, localDate: string, at = new Date().toISOString()): string {
+  const existing = loadSessionStartedAt(token, localDate)
+  if (existing) {
+    return existing
+  }
+  try {
+    window.localStorage.setItem(sessionStartKey(token, localDate), at)
+  } catch {
+    // ignore quota / private mode
+  }
+  return at
 }
 
 export function saveCompletedExercises(token: string, localDate: string, ids: string[]): void {

@@ -10,6 +10,7 @@ import { PatientFileStampProvider } from "@/app/dashboard/patients/patient-file-
 import { VasChart } from "@/app/dashboard/patients/vas-chart"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { sleepLabel } from "@/lib/patients/display"
+import { formatExerciseDuration } from "@/lib/patients/session-duration"
 import { notifyChannelLabel } from "@/lib/patients/notify-channel"
 import { getTherapistPatient } from "@/lib/patients/queries"
 import {
@@ -99,19 +100,22 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
         <section className={surfaceCardClassName("overflow-hidden")}>
           <div className="border-b border-slate-200 px-5 py-4">
             <h2 className="text-base font-semibold text-slate-800">Monitorizare clinică</h2>
-            <p className="text-sm text-slate-600">Evoluția scorului VAS și istoricul check-in-urilor zilnice.</p>
+            <p className="text-sm text-slate-600">
+              Evoluția scorului VAS, istoricul check-in-urilor și durata ședinței de exerciții.
+            </p>
           </div>
           <VasChart checkIns={checkIns} />
           <div className="overflow-x-auto border-t border-slate-200">
             {checkIns.length === 0 ? (
               <p className="px-5 py-6 text-sm text-slate-600">Niciun check-in înregistrat.</p>
             ) : (
-              <table className="w-full min-w-[40rem] text-left text-sm">
+              <table className="w-full min-w-[48rem] text-left text-sm">
                 <thead className="bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   <tr>
                     <th className="px-5 py-3">Data</th>
                     <th className="px-5 py-3">Durere</th>
                     <th className="px-5 py-3">Somn</th>
+                    <th className="px-5 py-3">Durată exerciții</th>
                     <th className="px-5 py-3">Tip durere</th>
                     <th className="px-5 py-3">Comentarii</th>
                   </tr>
@@ -124,6 +128,9 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
                       </td>
                       <td className="px-5 py-3 font-semibold text-slate-800">{row.vas_score}/10</td>
                       <td className="px-5 py-3">{sleepLabel(row.sleep_quality)}</td>
+                      <td className="px-5 py-3 font-medium tabular-nums text-slate-800">
+                        {formatExerciseDuration(row.exercise_duration_seconds)}
+                      </td>
                       <td className="px-5 py-3">{row.pain_type || "—"}</td>
                       <td className="px-5 py-3 text-slate-600">{row.notes || "—"}</td>
                     </tr>

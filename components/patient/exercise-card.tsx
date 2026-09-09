@@ -14,6 +14,7 @@ type ExerciseCardProps = {
   completed: boolean
   pending?: boolean
   onToggle: (exerciseId: string, completed: boolean) => void
+  onSessionStart?: () => void
 }
 
 export const ExerciseCard = memo(function ExerciseCard({
@@ -21,8 +22,16 @@ export const ExerciseCard = memo(function ExerciseCard({
   completed,
   pending = false,
   onToggle,
+  onSessionStart,
 }: ExerciseCardProps) {
   const src = exercise.videoUrl ?? (exercise.youtubeId ? `https://www.youtube.com/watch?v=${exercise.youtubeId}` : null)
+
+  function markCompleted(next: boolean) {
+    if (next) {
+      onSessionStart?.()
+    }
+    onToggle(exercise.id, next)
+  }
 
   return (
     <article
@@ -32,7 +41,7 @@ export const ExerciseCard = memo(function ExerciseCard({
       )}
     >
       <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-slate-100">
-        <VideoPreview url={src} title={exercise.title} fill />
+        <VideoPreview url={src} title={exercise.title} fill onStart={onSessionStart} />
       </div>
 
       <div className="flex min-h-[12rem] flex-1 flex-col gap-3 p-4 sm:p-5">
@@ -69,7 +78,7 @@ export const ExerciseCard = memo(function ExerciseCard({
             <Checkbox
               checked={completed}
               disabled={pending}
-              onCheckedChange={(next) => onToggle(exercise.id, next === true)}
+              onCheckedChange={(next) => markCompleted(next === true)}
               className="size-5 border-slate-400 data-checked:border-[#042f2e] data-checked:bg-[#042f2e]"
               aria-label={`Efectuat: ${exercise.title}`}
             />
@@ -80,7 +89,7 @@ export const ExerciseCard = memo(function ExerciseCard({
           <Button
             type="button"
             disabled={pending}
-            onClick={() => onToggle(exercise.id, !completed)}
+            onClick={() => markCompleted(!completed)}
             className={cn(
               "h-11 min-h-[44px] w-full rounded-xl",
               completed && "bg-emerald-600 hover:bg-emerald-600",

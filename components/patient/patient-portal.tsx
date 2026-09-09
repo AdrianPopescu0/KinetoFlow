@@ -25,11 +25,14 @@ import {
 } from "@/lib/patients/checkin-exercises"
 import {
   loadCompletedExercisesSnapshot,
+  loadSessionStartedAt,
   loadTodaysCheckin,
+  markSessionStarted,
   saveCompletedExercises,
   saveTodaysCheckin,
   subscribePatientStorage,
 } from "@/lib/patients/storage"
+import { computeExerciseDurationSeconds } from "@/lib/patients/session-duration"
 import type { DailyCheckin, EnergyLevel, PatientProgram, SleepQuality } from "@/lib/patients/types"
 import { toast } from "@/components/ui/toaster"
 
@@ -85,7 +88,14 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
     }
   }, [localDate, program.completedExerciseIdsToday, program.token])
 
+  const beginSession = useCallback(() => {
+    markSessionStarted(program.token, localDate)
+  }, [localDate, program.token])
+
   const toggleExercise = useCallback(async (exerciseId: string, completed: boolean) => {
+    if (completed) {
+      markSessionStarted(program.token, localDate)
+    }
     const previous = completedIds
     const next = completed
       ? mergeIds(completedIds, [exerciseId])
@@ -168,6 +178,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         return
       }
 
+      const sessionStartedAt = loadSessionStartedAt(program.token, localDate)
       const payload: DailyCheckin = {
         submittedAt: new Date().toISOString(),
         localDate,
@@ -177,6 +188,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         energy,
         notes: notes.trim(),
         completedExerciseIds: completedIds,
+        exerciseDurationSeconds: computeExerciseDurationSeconds(sessionStartedAt),
       }
 
       const formData = new FormData()
@@ -188,6 +200,9 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       }
       formData.set("notes", notes.trim())
       formData.set("completedExerciseIds", completedIds.join("|"))
+      if (sessionStartedAt) {
+        formData.set("sessionStartedAt", sessionStartedAt)
+      }
       const result = await submitPatientCheckin(formData)
       if (result.error) {
         setError(result.error)
@@ -266,6 +281,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
                   completed={completedIds.includes(exercise.id)}
                   pending={pendingExerciseId === exercise.id}
                   onToggle={toggleExercise}
+                  onSessionStart={beginSession}
                 />
               ))}
             </div>

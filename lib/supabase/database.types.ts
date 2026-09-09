@@ -128,6 +128,7 @@ export type Database = {
           pain_type: string | null
           notes: string | null
           energy_level: string | null
+          exercise_duration_seconds: number | null
           created_at: string
         }
         Insert: {
@@ -138,6 +139,7 @@ export type Database = {
           pain_type?: string | null
           notes?: string | null
           energy_level?: string | null
+          exercise_duration_seconds?: number | null
           created_at?: string
         }
         Update: Record<string, unknown>

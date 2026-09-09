@@ -320,24 +320,53 @@ async function loadPatientRelations(
   supabase: Awaited<ReturnType<typeof currentTherapist>>["supabase"],
   patient: PatientRecord,
 ) {
-  const [{ data: exercises }, { data: checkIns }] = await Promise.all([
-    supabase
-      .from("exercises")
-      .select("id, patient_id, title, video_url, sets, reps, notes")
-      .eq("patient_id", patient.id)
-      .order("title", { ascending: true }),
-    supabase
-      .from("check_ins")
-      .select("id, patient_id, vas_score, sleep_quality, pain_type, notes, created_at")
-      .eq("patient_id", patient.id)
-      .order("created_at", { ascending: false }),
-  ])
+  const { data: exercises } = await supabase
+    .from("exercises")
+    .select("id, patient_id, title, video_url, sets, reps, notes")
+    .eq("patient_id", patient.id)
+    .order("title", { ascending: true })
+
+  const withDuration = await supabase
+    .from("check_ins")
+    .select("id, patient_id, vas_score, sleep_quality, pain_type, notes, created_at, exercise_duration_seconds")
+    .eq("patient_id", patient.id)
+    .order("created_at", { ascending: false })
+
+  let checkInRows: Record<string, unknown>[] | null = (withDuration.data ?? null) as Record<string, unknown>[] | null
+  if (withDuration.error) {
+    const missingDuration =
+      withDuration.error.code === "PGRST204" ||
+      withDuration.error.message.toLowerCase().includes("exercise_duration_seconds")
+    if (missingDuration) {
+      const fallback = await supabase
+        .from("check_ins")
+        .select("id, patient_id, vas_score, sleep_quality, pain_type, notes, created_at")
+        .eq("patient_id", patient.id)
+        .order("created_at", { ascending: false })
+      checkInRows = (fallback.data ?? null) as Record<string, unknown>[] | null
+    }
+  }
 
   return {
     patient,
     exercises: (exercises ?? []) as ExerciseRecord[],
-    checkIns: (checkIns ?? []) as CheckInRecord[],
+    checkIns: (checkInRows ?? []).map(mapCheckInRow),
     error: null,
+  }
+}
+
+function mapCheckInRow(row: Record<string, unknown>): CheckInRecord {
+  const duration = row.exercise_duration_seconds
+  return {
+    id: String(row.id),
+    patient_id: String(row.patient_id),
+    vas_score: Number(row.vas_score),
+    sleep_quality: typeof row.sleep_quality === "string" ? row.sleep_quality : null,
+    pain_type: typeof row.pain_type === "string" ? row.pain_type : null,
+    notes: typeof row.notes === "string" ? row.notes : null,
+    created_at: String(row.created_at),
+    exercise_duration_seconds:
+      typeof duration === "number" && Number.isFinite(duration) ? duration : null,
   }
 }
 

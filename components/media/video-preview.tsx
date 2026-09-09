@@ -15,11 +15,13 @@ export function VideoPreview({
   url,
   title,
   fill = false,
+  onStart,
 }: {
   url: string | null
   title: string
   /** Umple un container `relative aspect-video` părinte (carduri grid). */
   fill?: boolean
+  onStart?: () => void
 }) {
   const frameClass = fill
     ? "absolute inset-0 h-full w-full"
@@ -35,12 +37,12 @@ export function VideoPreview({
 
   const lower = url.toLowerCase()
   if (lower.includes(".mp4") || lower.startsWith("blob:") || lower.startsWith("data:video")) {
-    return <Html5VideoPlayer src={url} title={title} className={frameClass} />
+    return <Html5VideoPlayer src={url} title={title} className={frameClass} onStart={onStart} />
   }
 
   const youtubeId = youtubeIdFromUrl(url)
   if (youtubeId) {
-    return <YoutubePlayer youtubeId={youtubeId} title={title} className={frameClass} />
+    return <YoutubePlayer youtubeId={youtubeId} title={title} className={frameClass} onStart={onStart} />
   }
 
   return (
@@ -48,6 +50,7 @@ export function VideoPreview({
       href={url}
       target="_blank"
       rel="noreferrer"
+      onClick={() => onStart?.()}
       className={cn(
         placeholderClass,
         "min-h-[44px] font-medium text-[#042f2e] underline-offset-4 hover:underline",
@@ -62,10 +65,12 @@ function YoutubePlayer({
   youtubeId,
   title,
   className,
+  onStart,
 }: {
   youtubeId: string
   title: string
   className: string
+  onStart?: () => void
 }) {
   const [started, setStarted] = useState(false)
   const thumb = youtubeThumbnailUrl(youtubeId)
@@ -85,7 +90,10 @@ function YoutubePlayer({
   return (
     <button
       type="button"
-      onClick={() => setStarted(true)}
+      onClick={() => {
+        onStart?.()
+        setStarted(true)
+      }}
       className={cn(className, "overflow-hidden bg-slate-900")}
       aria-label={`Redă video: ${title}`}
     >
@@ -108,14 +116,25 @@ function Html5VideoPlayer({
   src,
   title,
   className,
+  onStart,
 }: {
   src: string
   title: string
   className: string
+  onStart?: () => void
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const startedRef = useRef(false)
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
+
+  function notifyStart() {
+    if (startedRef.current) {
+      return
+    }
+    startedRef.current = true
+    onStart?.()
+  }
 
   useEffect(() => {
     const player = videoRef.current
@@ -132,17 +151,22 @@ function Html5VideoPlayer({
       setProgress(node.duration ? node.currentTime / node.duration : 0)
     }
 
-    player.addEventListener("play", sync)
+    function onPlay() {
+      notifyStart()
+      sync()
+    }
+
+    player.addEventListener("play", onPlay)
     player.addEventListener("pause", sync)
     player.addEventListener("timeupdate", sync)
     player.addEventListener("ended", sync)
     return () => {
-      player.removeEventListener("play", sync)
+      player.removeEventListener("play", onPlay)
       player.removeEventListener("pause", sync)
       player.removeEventListener("timeupdate", sync)
       player.removeEventListener("ended", sync)
     }
-  }, [])
+  }, [onStart])
 
   function togglePlayback() {
     const video = videoRef.current

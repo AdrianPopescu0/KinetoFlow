@@ -52,6 +52,43 @@ export async function listCompletedExerciseIdsForDay(
     .filter((id): id is string => Boolean(id))
 }
 
+export async function earliestExerciseCompletionAt(
+  supabase: SupabaseClient,
+  patientId: string,
+  completedOn = bucharestDateKey(),
+): Promise<string | null> {
+  if (!isUuid(patientId) || !isDateKey(completedOn)) {
+    return null
+  }
+
+  const withCompletedOn = await supabase
+    .from("exercise_completions")
+    .select("created_at")
+    .eq("patient_id", patientId)
+    .eq("completed_on", completedOn)
+    .order("created_at", { ascending: true })
+    .limit(1)
+
+  if (!withCompletedOn.error) {
+    const stamp = (withCompletedOn.data ?? [])[0]?.created_at
+    return typeof stamp === "string" ? stamp : null
+  }
+
+  const withLocalDate = await supabase
+    .from("exercise_completions")
+    .select("created_at")
+    .eq("patient_id", patientId)
+    .eq("local_date", completedOn)
+    .order("created_at", { ascending: true })
+    .limit(1)
+
+  if (withLocalDate.error) {
+    return null
+  }
+  const stamp = (withLocalDate.data ?? [])[0]?.created_at
+  return typeof stamp === "string" ? stamp : null
+}
+
 export async function listActiveExerciseIdsForDay(
   supabase: SupabaseClient,
   patientId: string,

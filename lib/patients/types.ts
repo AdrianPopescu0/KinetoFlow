@@ -57,4 +57,5 @@ export type DailyCheckin = {
   energy?: EnergyLevel | null
   notes: string
   completedExerciseIds: string[]
+  exerciseDurationSeconds?: number | null
 }
