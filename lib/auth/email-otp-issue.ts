@@ -19,7 +19,7 @@ import {
   type AuthEmailOtpPurpose,
 } from "@/lib/auth/email-otp"
 import { authOtpFromAddress, buildAuthOtpEmail } from "@/lib/auth/email-otp-email"
-import { EARLY_ACCESS_CONTINUE_PATH } from "@/lib/auth/paths"
+import { loginHref } from "@/lib/auth/paths"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
@@ -154,7 +154,7 @@ export async function issueAuthEmailOtp(input: {
     const linkToken = generateEmailOtpLinkToken()
     const expiresAt = otpExpiresAt(now, EMAIL_OTP_TTL_MS)
     const origin = await appOrigin()
-    const loginUrl = `${origin}${EARLY_ACCESS_CONTINUE_PATH}`
+    const loginUrl = `${origin}${loginHref(purpose === "register" ? "signup" : "signin")}`
     const magicUrl = `${origin}/auth/email-cod?token=${encodeURIComponent(linkToken)}`
 
     const { data: inserted, error: insertError } = await admin

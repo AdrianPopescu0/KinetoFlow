@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const token = url.searchParams.get("token") ?? ""
   const result = await consumeAuthEmailOtp({ linkToken: token })
-  const redirectTo = new URL("/early-access/cont", url.origin)
+  const redirectTo = new URL("/login", url.origin)
 
   if (!result.ok) {
     redirectTo.searchParams.set("reason", "otp_invalid")

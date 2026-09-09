@@ -9,8 +9,6 @@ export function loginHref(mode: "signin" | "signup"): string {
   return mode === "signup" ? "/login?mode=signup" : "/login?mode=signin"
 }
 
-export const EARLY_ACCESS_CONTINUE_PATH = "/early-access/cont"
-
 export const SET_PASSWORD_PATH = "/auth/set-password"
 
 export function safeAuthNextPath(next: string | null | undefined): string | null {

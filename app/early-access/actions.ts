@@ -17,7 +17,6 @@ import {
 import { EMAIL_OTP_TTL_MS, readVerifiedEmailCookie, signVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
-import { EARLY_ACCESS_CONTINUE_PATH } from "@/lib/auth/paths"
 import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
 import {
   AUTH_ERROR_MESSAGE,
@@ -57,7 +56,7 @@ export async function unlockEarlyAccess(formData: FormData): Promise<EarlyAccess
     maxAge: Math.floor(EARLY_ACCESS_TTL_MS / 1000),
   })
 
-  redirect(EARLY_ACCESS_CONTINUE_PATH)
+  redirect("/login")
 }
 
 export async function requestEarlyAccessEmailOtp(formData: FormData): Promise<EarlyAccessEmailState> {

@@ -43,7 +43,7 @@ npm install
 npm run dev -- --port 43123 --hostname 127.0.0.1
 ```
 
-Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi după cod [http://127.0.0.1:43123/early-access/cont](http://127.0.0.1:43123/early-access/cont) pentru email + OTP, sau programul pacient [http://127.0.0.1:43123/patient/demo](http://127.0.0.1:43123/patient/demo).
+Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi după cod [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) pentru autentificarea clasică, sau programul pacient [http://127.0.0.1:43123/patient/demo](http://127.0.0.1:43123/patient/demo).
 
 ## Autentificare
 
@@ -51,9 +51,9 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi 
 | --- | --- |
 | `/` | Landing de prezentare: un singur buton **Early Access** deschide formularul de cod (12 caractere). Fără cumpărare abonament. |
 | `/early-access` | Pagină dedicată pentru același cod; middleware trimite aici `/login`, `/register`, `/recuperare-parola` și `/early-access/cont` dacă lipsește cookie-ul valid. Portalul pacient (`/acces`) rămâne public. |
-| `/early-access/cont` | După codul Early Access: email personal → OTP / link pe email (Resend) → creează sau asociază contul Supabase cu parolă. Google rămâne opțional. |
-| `/login` | Autentificare clasică: email+parolă, apoi **cod OTP pe email** (Resend, `no-reply@kinetoflow.ro`) sau **Google (opțional)**; la signup e obligatoriu consimțământul la Termeni; accesul complet după confirmarea emailului |
-| `/auth/email-cod` | Linkul din emailul OTP confirmă adresa și întoarce utilizatorul la `/early-access/cont` |
+| `/early-access/cont` | Redirect către `/login` (păstrat pentru bookmark-uri vechi). |
+| `/login` | Interfața clasică: **Google**, apoi email + parolă (și OTP pe email după submit). Tab-uri **Intră în cont** / **Înregistrează clinică nouă**. La signup e obligatoriu consimțământul la Termeni. |
+| `/auth/email-cod` | Linkul din emailul OTP confirmă adresa și întoarce utilizatorul la `/login` |
 | `/termeni` | Termeni și Condiții (inclusiv disclaimer medical) |
 | `/confidentialitate` | Politica de Confidențialitate și prelucrare date (GDPR) |
 | `/onboarding` | Configurare clinică (obligatorie înainte de dashboard) |

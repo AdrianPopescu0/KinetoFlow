@@ -18,7 +18,7 @@ export const metadata = {
 export default async function EarlyAccessPage() {
   const jar = await cookies()
   if (await hasValidEarlyAccessCookie(jar.get(EARLY_ACCESS_COOKIE)?.value)) {
-    redirect("/early-access/cont")
+    redirect("/login")
   }
 
   return (
