@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useMemo, useState, useTransition, type ChangeEvent } from "react"
 import dynamic from "next/dynamic"
-import { Plus, Search, X } from "lucide-react"
+import { Plus, Search } from "lucide-react"
 
 import { deleteLibraryExercise } from "@/app/dashboard/exercises/actions"
 import { LibraryCard } from "@/app/dashboard/exercises/library-card"
@@ -10,18 +10,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/toaster"
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
-import { EMPTY_FILTERS, filterLibrary, regionCounts } from "@/lib/exercises/filter"
+import { EMPTY_FILTERS, filterLibrary } from "@/lib/exercises/filter"
 import {
   DIFFICULTIES,
   EQUIPMENT,
   OBJECTIVES,
   POSITIONS,
   REGIONS,
-  difficultyLabel,
-  equipmentLabel,
-  positionLabel,
-  regionById,
-  subcategoryLabel,
 } from "@/lib/exercises/taxonomy"
 import { isExerciseLibraryEditor } from "@/lib/exercises/library-admin"
 import type {
@@ -34,7 +29,6 @@ import type {
   LibraryFilters,
   TherapeuticObjective,
 } from "@/lib/exercises/types"
-import { cn } from "@/lib/utils"
 
 const PreviewDialog = dynamic(
   () => import("@/app/dashboard/exercises/library-dialogs").then((mod) => ({ default: mod.PreviewDialog })),
@@ -81,16 +75,6 @@ export function ExerciseLibrary({
     return [...extras, ...LIBRARY_EXERCISES.filter((item) => !storedIds.has(item.id))]
   }, [extras])
   const visible = useMemo(() => filterLibrary(catalog, filters), [catalog, filters])
-  const counts = useMemo(
-    () =>
-      regionCounts(catalog, {
-        query: filters.query,
-        difficulty: filters.difficulty,
-        equipment: filters.equipment,
-        position: filters.position,
-      }),
-    [catalog, filters.difficulty, filters.equipment, filters.position, filters.query],
-  )
 
   const update = useCallback(<K extends keyof LibraryFilters>(key: K, value: LibraryFilters[K]) => {
     setFilters((current) => ({
@@ -173,46 +157,6 @@ export function ExerciseLibrary({
     [],
   )
 
-  const tags = useMemo(() => {
-    const next: Array<{ key: string; label: string; onClear: () => void }> = []
-    if (filters.region !== "all") {
-      next.push({
-        key: "region",
-        label: regionById(filters.region).label,
-        onClear: () => update("region", "all"),
-      })
-    }
-    if (filters.subcategory !== "all") {
-      next.push({
-        key: "subcategory",
-        label: subcategoryLabel(filters.subcategory),
-        onClear: () => update("subcategory", "all"),
-      })
-    }
-    if (filters.difficulty !== "all") {
-      next.push({
-        key: "difficulty",
-        label: difficultyLabel(filters.difficulty),
-        onClear: () => update("difficulty", "all"),
-      })
-    }
-    if (filters.equipment !== "all") {
-      next.push({
-        key: "equipment",
-        label: equipmentLabel(filters.equipment),
-        onClear: () => update("equipment", "all"),
-      })
-    }
-    if (filters.position !== "all") {
-      next.push({
-        key: "position",
-        label: positionLabel(filters.position),
-        onClear: () => update("position", "all"),
-      })
-    }
-    return next
-  }, [filters.difficulty, filters.equipment, filters.position, filters.region, filters.subcategory, update])
-
   return (
     <div className="flex w-full max-w-full flex-1 flex-col overflow-x-hidden">
       <div className="shrink-0">
@@ -275,55 +219,6 @@ export function ExerciseLibrary({
           />
         </div>
       </div>
-
-      <div
-        role="tablist"
-        aria-label="Regiune anatomică"
-        className="mt-4 w-full overflow-x-auto pb-1 [scrollbar-width:thin]"
-      >
-        <div className="flex w-max min-w-full gap-2">
-          <RegionPill
-            active={filters.region === "all"}
-            regionId="all"
-            onSelect={setRegion}
-            label="Toate"
-            count={counts.all}
-          />
-          {REGIONS.map((region) => (
-            <RegionPill
-              key={region.id}
-              active={filters.region === region.id}
-              regionId={region.id}
-              onSelect={setRegion}
-              label={region.label}
-              count={counts[region.id]}
-            />
-          ))}
-        </div>
-      </div>
-
-      {tags.length > 0 ? (
-        <div className="mt-3 flex w-full flex-wrap items-center gap-1.5">
-          {tags.map((tag) => (
-            <button
-              key={tag.key}
-              type="button"
-              onClick={tag.onClear}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-white"
-            >
-              {tag.label}
-              <X className="size-3 text-slate-400" />
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="px-1.5 text-xs font-medium text-teal-800 underline-offset-4 hover:underline"
-          >
-            Resetează
-          </button>
-        </div>
-      ) : null}
 
       {visible.length === 0 ? (
         <div className="mt-4 flex min-h-[min(28rem,55vh)] w-full flex-1 items-center justify-center">
@@ -388,37 +283,5 @@ const FilterSelect = memo(function FilterSelect({
         ))}
       </select>
     </label>
-  )
-})
-
-const RegionPill = memo(function RegionPill({
-  active,
-  regionId,
-  onSelect,
-  label,
-  count,
-}: {
-  active: boolean
-  regionId: string
-  onSelect: (value: string) => void
-  label: string
-  count: number
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={() => onSelect(regionId)}
-      className={cn(
-        "h-10 shrink-0 rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition",
-        active
-          ? "border-[#042f2e] bg-[#042f2e] text-white"
-          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
-      )}
-    >
-      {label}
-      <span className={cn("ml-1.5 tabular-nums text-xs", active ? "text-white/75" : "text-slate-400")}>{count}</span>
-    </button>
   )
 })
