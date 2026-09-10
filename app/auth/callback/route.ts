@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import type { EmailOtpType } from "@supabase/supabase-js"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
+import { requestAppOrigin } from "@/lib/auth/site-origin"
 import { SET_PASSWORD_PATH, safeAuthNextPath, therapistAppPath } from "@/lib/auth/paths"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
 import { readTherapistInviteToken, therapistInvitePagePath } from "@/lib/clinics/invite-attach"
@@ -30,11 +31,9 @@ function isEmailOtpType(value: string | null): value is EmailOtpType {
 }
 
 function callbackAbsoluteUrl(request: NextRequest, path: string) {
-  const forwardedHost = request.headers.get("x-forwarded-host")
-  if (process.env.NODE_ENV !== "development" && forwardedHost) {
-    return `https://${forwardedHost}${path}`
-  }
-  return `${request.nextUrl.origin}${path}`
+  const origin = requestAppOrigin(request)
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`
+  return `${origin}${normalizedPath}`
 }
 
 function redirectWithCookies(request: NextRequest, path: string, cookiesToSet: SessionCookie[]) {

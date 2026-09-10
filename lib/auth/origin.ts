@@ -1,26 +1,30 @@
 import { headers } from "next/headers"
 
+import { resolveAppOrigin } from "@/lib/auth/site-origin"
+
+export {
+  CANONICAL_PRODUCTION_ORIGIN,
+  LOCAL_DEV_ORIGIN,
+  isVercelAppOrigin,
+  normalizeOrigin,
+  oauthCallbackUrl,
+  requestAppOrigin,
+  resolveAppOrigin,
+  stripTrailingSlash,
+} from "@/lib/auth/site-origin"
+
 export async function appOrigin(): Promise<string> {
-  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
   try {
     const headerStore = await headers()
-    const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host")
-    const proto = headerStore.get("x-forwarded-proto") ?? "http"
-    if (host) {
-      return `${proto}://${host}`.replace(/\/$/, "")
-    }
+    return resolveAppOrigin({
+      forwardedHost: headerStore.get("x-forwarded-host"),
+      forwardedProto: headerStore.get("x-forwarded-proto"),
+      host: headerStore.get("host"),
+      envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+    })
   } catch {
-    // headers() is unavailable in some server contexts
+    return resolveAppOrigin({
+      envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+    })
   }
-
-  if (fromEnv) {
-    return fromEnv
-  }
-
-  return "http://127.0.0.1:43123"
-}
-
-export function oauthCallbackUrl(origin: string, next: string): string {
-  const safeNext = next.startsWith("/") ? next : "/onboarding"
-  return `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`
 }

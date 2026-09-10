@@ -34,6 +34,10 @@ test("după login, destinația implicită e dashboard-ul clinicii", () => {
 
 test("callback-ul Google duce în dashboard, nu pe pagina principală", () => {
   assert.equal(
+    oauthBrowserRedirectTo("https://kinetoflow.ro", { next: "/dashboard" }),
+    "https://kinetoflow.ro/auth/callback?next=%2Fdashboard",
+  )
+  assert.equal(
     oauthBrowserRedirectTo("https://app.example", { next: "/dashboard" }),
     "https://app.example/auth/callback?next=%2Fdashboard",
   )

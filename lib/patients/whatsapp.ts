@@ -1,11 +1,10 @@
+import { CANONICAL_PRODUCTION_ORIGIN, resolveAppOrigin } from "@/lib/auth/site-origin"
 import { toWhatsAppNumber } from "@/lib/patients/phone"
 
 export function publicSiteUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
-  if (fromEnv) {
-    return fromEnv
-  }
-  return "https://kinetoflow96.vercel.app"
+  return resolveAppOrigin({
+    envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+  })
 }
 
 /** Pagina de acces pacient (`/acces`) pe domeniul public configurat. */
@@ -14,7 +13,7 @@ export function patientAccessUrl(): string {
 }
 
 /** @deprecated Folosește patientAccessUrl() — păstrat pentru importuri existente. */
-export const PATIENT_ACCESS_PAGE_URL = "https://kinetoflow96.vercel.app/acces"
+export const PATIENT_ACCESS_PAGE_URL = `${CANONICAL_PRODUCTION_ORIGIN}/acces`
 
 export function patientPortalUrl(token: string): string {
   return `${publicSiteUrl()}/patient/${token}`

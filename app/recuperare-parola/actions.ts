@@ -1,5 +1,6 @@
 "use server"
 
+import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
 import { parseRecoveryEmail } from "@/lib/auth/validation"
 import { createClient } from "@/utils/supabase/server"
 
@@ -24,10 +25,10 @@ export async function requestPasswordReset(
   }
 
   const supabase = await createClient()
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:43123"
+  const origin = await appOrigin()
 
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?next=/dashboard`,
+    redirectTo: oauthCallbackUrl(origin, "/dashboard"),
   })
 
   return {

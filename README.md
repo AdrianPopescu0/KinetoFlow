@@ -20,7 +20,7 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_URL` — URL-ul proiectului (Settings → API)
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — cheia anonimă / publicabilă (`sb_publishable_…`)
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
-- `NEXT_PUBLIC_SITE_URL` — originea publică a aplicației (invitații terapeuți `/auth/invitatie/<token>` și recuperare parolă). Nu folosi un URL de preview Vercel (`*-git-*.vercel.app`).
+- `NEXT_PUBLIC_SITE_URL` — originea publică **opțională**. Loginul, OAuth și callback-ul folosesc originea request-ului (`x-forwarded-host` / `window.location.origin`). URL-urile `*.vercel.app` sunt ignorate; în producție fallback-ul e `https://kinetoflow.ro`. Nu pune aici un host Vercel.
 - `CRON_SECRET` — secret pentru cron-uri (`Authorization: Bearer …` pe `/api/cron/reset-daily-progress`, `/api/cron/reminders` și `/api/cron/daily-update`); pe Vercel, dacă e setat, header-ul e trimis automat
 - `EARLY_ACCESS_CODE` — **exact 12 caractere**. Codul secret pentru butonul Early Access de pe landing. Dacă lipsește sau nu are 12 caractere, local se folosește `KINETO-EARLY`. Pe producție puneți propriul cod. Opțional: `EARLY_ACCESS_PEPPER` pentru semnarea cookie-ului.
 - Opțional, pentru **emailuri** (suport + OTP autentificare): `RESEND_API_KEY`. OTP-ul de login/înregistrare clinică pleacă de pe `no-reply@kinetoflow.ro` (`RESEND_AUTH_FROM`). Fără cheie, în dezvoltare codul e logat.
@@ -32,10 +32,12 @@ Adaugă URL-urile de redirect pentru recuperarea parolei și invitațiile WhatsA
 
 - `http://localhost:43123/auth/callback`
 - `http://127.0.0.1:43123/auth/callback`
-- domeniul de producție + `/auth/callback`
-- domeniul de producție + `/auth/callback?next=/auth/set-password`
-- domeniul de producție + `/auth/callback?next=/dashboard` (inclusiv `?invite=` pentru invitațiile de terapeut)
-- domeniul de producție + `/auth/activare`
+- `https://kinetoflow.ro/auth/callback`
+- `https://kinetoflow.ro/auth/callback?next=/auth/set-password`
+- `https://kinetoflow.ro/auth/callback?next=/dashboard` (inclusiv `?invite=` pentru invitațiile de terapeut)
+- `https://kinetoflow.ro/auth/activare`
+
+În Supabase, **Authentication → URL Configuration**: Site URL trebuie să fie `https://kinetoflow.ro` (nu `*.vercel.app`). Aceleași URL-uri de mai sus stau și la Redirect URLs.
 
 3. Instalează dependențele și pornește serverul de dezvoltare:
 

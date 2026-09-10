@@ -1,3 +1,5 @@
+import { resolveAppOrigin } from "./site-origin.ts"
+
 export const SIGNED_OUT_GATE_COOKIE = "kf_signed_out"
 
 export function isSupabaseAuthCookieName(name: string): boolean {
@@ -20,7 +22,11 @@ export function oauthBrowserRedirectTo(
   origin: string,
   options?: { next?: string; invite?: string },
 ): string {
-  const url = new URL("/auth/callback", origin)
+  const resolved = resolveAppOrigin({
+    requestOrigin: origin,
+    envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+  })
+  const url = new URL("/auth/callback", resolved)
   url.searchParams.set("next", options?.next ?? "/dashboard")
   if (options?.invite) {
     url.searchParams.set("invite", options.invite)

@@ -1,9 +1,11 @@
+import { resolveAppOrigin } from "@/lib/auth/site-origin"
+
 export function patientAccessUrl(token: string): string {
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}/patient/${token}`
-  }
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
-  return `${siteUrl.replace(/\/$/, "")}/patient/${token}`
+  const origin = resolveAppOrigin({
+    requestOrigin: typeof window !== "undefined" ? window.location.origin : null,
+    envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+  })
+  return `${origin}/patient/${token}`
 }
 
 export function vasTone(score: number | null): "green" | "orange" | "red" | "muted" {

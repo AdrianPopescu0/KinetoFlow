@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 
 import { EMAIL_OTP_TTL_MS, signVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
+import { requestAppOrigin } from "@/lib/auth/site-origin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -10,7 +11,11 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const token = url.searchParams.get("token") ?? ""
   const result = await consumeAuthEmailOtp({ linkToken: token })
-  const redirectTo = new URL("/login", url.origin)
+  const origin = requestAppOrigin({
+    nextUrl: { origin: url.origin },
+    headers: request.headers,
+  })
+  const redirectTo = new URL("/login", origin)
 
   if (!result.ok) {
     redirectTo.searchParams.set("reason", "otp_invalid")

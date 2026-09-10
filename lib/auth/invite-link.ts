@@ -1,31 +1,22 @@
 import { appOrigin } from "@/lib/auth/origin"
 import { SET_PASSWORD_PATH } from "@/lib/auth/paths"
+import {
+  isVercelAppOrigin,
+  resolveAppOrigin,
+  stripTrailingSlash,
+} from "@/lib/auth/site-origin"
 
 export const ACTIVARE_PATH = "/auth/activare"
 
-function stripTrailingSlash(value: string): string {
-  return value.replace(/\/$/, "")
-}
-
-/** Preview-urile Vercel pe branch nu sunt domeniul aplicației. */
+/** Deployment-urile Vercel nu sunt domeniul public al aplicației. */
 export function isUnusableInviteOrigin(value: string): boolean {
-  try {
-    const host = new URL(value).hostname.toLowerCase()
-    return host.endsWith(".vercel.app") && host.includes("-git-")
-  } catch {
-    return value.includes("-git-") && value.includes("vercel.app")
-  }
+  return isVercelAppOrigin(value)
 }
 
 export function inviteSiteUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim()
-  if (fromEnv) {
-    const origin = stripTrailingSlash(fromEnv)
-    if (!isUnusableInviteOrigin(origin)) {
-      return origin
-    }
-  }
-  return "http://127.0.0.1:43123"
+  return resolveAppOrigin({
+    envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+  })
 }
 
 /** Originea reală a request-ului (domeniul pe care rulează aplicația), nu un fallback Vercel. */
