@@ -4,6 +4,7 @@ import { test } from "node:test"
 import {
   inviteTokenFromAuthUser,
   inviteTokenFromFormData,
+  inviteTokenFromHref,
   inviteTokenFromPathname,
   isInviteContinuePath,
   isInviteFinalizePath,
@@ -16,6 +17,15 @@ import {
 } from "./invite-session.ts"
 
 const token = "AbCdEfGhIjKlMnOpQrStUvWx"
+
+test("tokenul din URL-ul paginii de invitație se citește din cale, query sau Referer", () => {
+  assert.equal(inviteTokenFromHref(`/auth/invitatie/${token}`), token)
+  assert.equal(inviteTokenFromHref(`https://kinetoflow.ro/auth/invitatie/${token}`), token)
+  assert.equal(inviteTokenFromHref(`https://kinetoflow.ro/auth/invitatie/${token}?reason=oauth`), token)
+  assert.equal(inviteTokenFromHref(`/auth/invitatie/finalize?invite=${token}`), token)
+  assert.equal(inviteTokenFromHref("https://kinetoflow.ro/login"), null)
+  assert.equal(inviteTokenFromHref(""), null)
+})
 
 test("tokenul din calea invitației ignoră /finalize și /continue", () => {
   assert.equal(inviteTokenFromPathname(`/auth/invitatie/${token}`), token)

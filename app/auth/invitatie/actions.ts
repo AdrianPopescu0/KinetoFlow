@@ -1,14 +1,15 @@
 "use server"
 
-import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
+import { cookies, headers } from "next/headers"
 
+import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { AUTH_ERROR_MESSAGE, parseRegisterCredentials } from "@/lib/auth/validation"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
 import {
   THERAPIST_INVITE_CLIENT_COOKIE,
   THERAPIST_INVITE_COOKIE,
   inviteTokenFromFormData,
+  inviteTokenFromHref,
   readTherapistInviteToken,
   writeTherapistInviteCookies,
 } from "@/lib/clinics/invite-session"
@@ -24,6 +25,7 @@ import { createClient } from "@/utils/supabase/server"
 
 export type AcceptTherapistInviteState = {
   error?: string
+  next?: "/dashboard"
 } | null
 
 function emailAlreadyRegistered(error: { message?: string; code?: string } | null): boolean {
@@ -41,10 +43,17 @@ function emailAlreadyRegistered(error: { message?: string; code?: string } | nul
   )
 }
 
-async function resolveInviteTokenFromSubmit(formData: FormData): Promise<string | null> {
+async function resolveInviteTokenFromSubmit(tokenFromUrl: string, formData: FormData): Promise<string | null> {
   const jar = await cookies()
+  const headerList = await headers()
   return readTherapistInviteToken(
+    tokenFromUrl,
     inviteTokenFromFormData(formData),
+    inviteTokenFromHref(headerList.get("referer")),
+    inviteTokenFromHref(headerList.get("referrer")),
+    inviteTokenFromHref(headerList.get("next-url")),
+    inviteTokenFromHref(headerList.get("x-url")),
+    inviteTokenFromHref(headerList.get("x-next-url")),
     jar.get(THERAPIST_INVITE_COOKIE)?.value,
     jar.get(THERAPIST_INVITE_CLIENT_COOKIE)?.value,
   )
@@ -88,10 +97,10 @@ export async function prepareTherapistInviteOAuth(token: string): Promise<Accept
 }
 
 export async function acceptTherapistInvite(
-  _prevState: AcceptTherapistInviteState,
+  tokenFromUrl: string,
   formData: FormData,
 ): Promise<AcceptTherapistInviteState> {
-  const token = await resolveInviteTokenFromSubmit(formData)
+  const token = await resolveInviteTokenFromSubmit(tokenFromUrl, formData)
   if (!token) {
     return { error: "Linkul de invitație este invalid. Reîncarcă pagina din mesajul primit." }
   }
@@ -184,8 +193,8 @@ export async function acceptTherapistInvite(
       return { error: attached.error }
     }
 
+    const supabase = await createClient()
     if (createdNewUser) {
-      const supabase = await createClient()
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: parsed.email,
         password: parsed.password,
@@ -194,9 +203,12 @@ export async function acceptTherapistInvite(
         return { error: "Contul a fost creat, dar autentificarea a eșuat. Intră din pagina de login cu același email." }
       }
     }
+    await supabase.auth.refreshSession()
 
     const jar = await cookies()
+    jar.delete(SIGNED_OUT_GATE_COOKIE)
     writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
+    return { next: "/dashboard" }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Nu am putut activa invitația."
     if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
@@ -204,6 +216,4 @@ export async function acceptTherapistInvite(
     }
     return { error: message }
   }
-
-  redirect("/dashboard")
 }

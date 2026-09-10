@@ -64,6 +64,24 @@ export function inviteTokenFromPathname(pathname: string): string | null {
   return isTherapistInviteToken(raw) ? raw : null
 }
 
+/** Tokenul din `/auth/invitatie/[token]`, din query `invite=` sau din Referer/Next-Url. */
+export function inviteTokenFromHref(value: string | null | undefined): string | null {
+  if (typeof value !== "string") {
+    return null
+  }
+  const raw = value.trim()
+  if (!raw) {
+    return null
+  }
+  try {
+    const url = new URL(raw, "https://kinetoflow.ro")
+    return readTherapistInviteToken(inviteTokenFromPathname(url.pathname), url.searchParams.get("invite"))
+  } catch {
+    const [path] = raw.split("?")
+    return inviteTokenFromPathname(path ?? raw)
+  }
+}
+
 export function isInviteFinalizePath(pathname: string): boolean {
   return pathname === THERAPIST_INVITE_FINALIZE_PATH || pathname.startsWith(`${THERAPIST_INVITE_FINALIZE_PATH}/`)
 }

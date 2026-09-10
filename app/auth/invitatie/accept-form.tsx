@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useState, useTransition } from "react"
 import Link from "next/link"
 import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2 } from "lucide-react"
 
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
 import {
   INVITE_TOKEN_FIELD,
+  clearStoredTherapistInviteToken,
   persistTherapistInviteToken,
   THERAPIST_INVITE_PATH,
 } from "@/lib/clinics/invite-session"
@@ -32,13 +33,34 @@ export function AcceptTherapistInviteForm({
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
-  const [state, formAction, isPending] = useActionState(acceptTherapistInvite, null)
+  const [isPending, startTransition] = useTransition()
   const [googlePending, setGooglePending] = useState(false)
   const passwordChecks = evaluateRegisterPassword(password)
   const busy = isPending || googlePending
   const canSubmit = passwordChecks.isValid && acceptedTerms
   persistTherapistInviteToken(token)
-  const displayError = state?.error ?? error
+
+  function handleSubmit(formData: FormData) {
+    setError(null)
+    formData.set(INVITE_TOKEN_FIELD, token)
+    if (acceptedTerms) {
+      formData.set(LEGAL_ACCEPT_FIELD, "on")
+    }
+
+    startTransition(async () => {
+      const result = await acceptTherapistInvite(token, formData)
+      if (result?.error) {
+        setError(result.error)
+        return
+      }
+      if (result?.next !== "/dashboard") {
+        setError("Contul a fost creat, dar nu am putut deschide clinica. Reîncearcă din linkul de invitație.")
+        return
+      }
+      clearStoredTherapistInviteToken()
+      window.location.assign("/dashboard")
+    })
+  }
 
   async function handleGoogleLogin() {
     if (!acceptedTerms) {
@@ -91,11 +113,11 @@ export function AcceptTherapistInviteForm({
 
   return (
     <div className="flex flex-col gap-5">
-      {displayError ? (
+      {error ? (
         <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
           <AlertCircle />
           <AlertTitle>Nu am putut crea contul</AlertTitle>
-          <AlertDescription>{displayError}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -158,7 +180,7 @@ export function AcceptTherapistInviteForm({
         <span className="h-px flex-1 bg-slate-200" />
       </div>
 
-      <form action={formAction} className="flex flex-col gap-5" noValidate>
+      <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
         <input type="hidden" name={INVITE_TOKEN_FIELD} value={token} />
         <input type="hidden" name={LEGAL_ACCEPT_FIELD} value={acceptedTerms ? "on" : ""} />
         <div className="flex flex-col gap-2">
@@ -177,8 +199,8 @@ export function AcceptTherapistInviteForm({
             className="h-12 min-h-12 border-slate-300 px-3"
           />
           <p className="text-xs leading-relaxed text-slate-500">
-            Cu Google sau cu această adresă vei intra ulterior în clinică. Administratorul nu îți
-            creează contul — o faci tu aici.
+            Cu Google sau cu această adresă vei intra ulterior în clinică. După creare ești dus
+            direct în dashboard-ul clinicii, fără onboarding.
           </p>
         </div>
 

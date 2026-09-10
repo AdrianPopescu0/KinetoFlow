@@ -65,7 +65,7 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi 
 | `/dashboard/setari` | Setări cont: date personale, parolă și preferințe de profil |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
 | `/auth/callback` | Schimb `code` (PKCE) sau `token_hash` (recovery) → sesiune, apoi redirect |
-| `/auth/invitatie/[token]` | Link unic din WhatsApp/SMS: tokenul se scrie imediat în `localStorage` (script inline, înainte de click pe Google) și în cookie-ul `kf_therapist_invite`. După OAuth, `/auth/callback` (fără clinică) duce la `/auth/invitatie/continue`, care citește `localStorage`, asociază contul prin `/auth/invitatie/finalize` (`therapist_invites` + `clinic_profiles`) și deschide `/dashboard`. Ecranul de clinică nouă e blocat cât timp există invitație. |
+| `/auth/invitatie/[token]` | Link unic din WhatsApp/SMS. Tokenul din URL e citit de Server Action la submit (email + parolă). După `createUser`, se inserează `clinic_profiles` pentru clinica din invitație, invitația e marcată `accepted_at`, iar terapeutul e dus **direct în `/dashboard`**, niciodată la `/onboarding`. Google urmează `/auth/callback` → asociere → `/dashboard`. |
 | `/auth/activare` | Pagină intermediară pentru invitațiile vechi (recovery Supabase) |
 | `/auth/set-password` | Setare parolă după invitațiile vechi |
 | `/acces` | Login pacient: telefon + cod 8 cifre (opțional, dacă nu ai linkul cu token) |

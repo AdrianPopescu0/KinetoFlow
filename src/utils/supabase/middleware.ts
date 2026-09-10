@@ -248,31 +248,26 @@ export async function updateSession(request: NextRequest) {
       clearInviteCookie(supabaseResponse)
     }
 
-    const appPath = clinicReady
+    const appPath = clinicReady || invitedTherapist
       ? "/dashboard"
       : activeInviteToken
         ? THERAPIST_INVITE_FINALIZE_PATH
-        : invitedTherapist
-          ? "/dashboard"
-          : THERAPIST_INVITE_CONTINUE_PATH
+        : THERAPIST_INVITE_CONTINUE_PATH
 
     if (!stayOnLogin && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname))) {
       return redirectWithAuthCookies(request, supabaseResponse, appPath)
     }
 
     if (isOnboardingPath(pathname) && (clinicReady || invitedTherapist || activeInviteToken)) {
-      if (activeInviteToken && !clinicReady) {
-        return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
-      }
       return redirectWithAuthCookies(request, supabaseResponse, "/dashboard")
     }
 
     if (isProtectedPath(pathname) && !clinicReady) {
-      if (activeInviteToken && !isInviteFinalizePath(pathname)) {
-        return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
-      }
       if (invitedTherapist) {
         return supabaseResponse
+      }
+      if (activeInviteToken && !isInviteFinalizePath(pathname)) {
+        return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
       }
       return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_CONTINUE_PATH)
     }
