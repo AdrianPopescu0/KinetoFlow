@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
 
-import { login, register, requestAuthEmailOtpAction } from "@/app/login/actions"
+import { login, requestAuthEmailOtpAction } from "@/app/login/actions"
 import { prepareTherapistInviteOAuth } from "@/app/auth/invitatie/actions"
 import { GoogleMark } from "@/components/auth/google-mark"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -27,12 +27,10 @@ export function LoginForm({
   initialTab,
   initialError = null,
   initialInfo = null,
-  initialOtpVerified = false,
 }: {
   initialTab: AuthTab
   initialError?: string | null
   initialInfo?: string | null
-  initialOtpVerified?: boolean
 }) {
   const tab = initialTab
   const router = useRouter()
@@ -40,7 +38,6 @@ export function LoginForm({
   const [info, setInfo] = useState<string | null>(initialInfo)
   const [showPassword, setShowPassword] = useState(false)
   const [password, setPassword] = useState("")
-  const [otpSent, setOtpSent] = useState(initialOtpVerified)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [googlePending, setGooglePending] = useState(false)
@@ -119,10 +116,8 @@ export function LoginForm({
           setError(LEGAL_ACCEPT_ERROR)
           return
         }
-      }
 
-      if (!otpSent) {
-        formData.set("purpose", tab)
+        formData.set("purpose", "register")
         const requested = await requestAuthEmailOtpAction(formData)
         if (requested?.error) {
           setError(requested.error)
@@ -132,15 +127,15 @@ export function LoginForm({
         writePendingEmailOtp({
           email,
           password: String(formData.get("password") ?? ""),
-          purpose: tab,
-          legalAccept: tab === "register" && formData.get(LEGAL_ACCEPT_FIELD) === "on",
+          purpose: "register",
+          legalAccept: formData.get(LEGAL_ACCEPT_FIELD) === "on",
           devCode: requested?.devCode,
         })
-        router.push(requested?.continuePath ?? emailOtpPageHref(email, tab))
+        router.push(requested?.continuePath ?? emailOtpPageHref(email, "register"))
         return
       }
 
-      const result = tab === "register" ? await register(formData) : await login(formData)
+      const result = await login(formData)
       if (result?.error) {
         setError(result.error)
         return
@@ -179,7 +174,7 @@ export function LoginForm({
       {info ? (
         <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
           <Mail />
-          <AlertTitle>{otpSent ? "Adresa a fost verificată" : "Confirmă adresa de email"}</AlertTitle>
+          <AlertTitle>{tab === "register" ? "Confirmă adresa de email" : "Autentificare"}</AlertTitle>
           <AlertDescription>{info}</AlertDescription>
         </Alert>
       ) : null}
@@ -231,9 +226,15 @@ export function LoginForm({
           />
           {tab === "register" ? (
             <p className="text-xs leading-relaxed text-slate-500">
-              Cu această adresă vei administra clinica și vei invita colegii.
+              Cu această adresă vei administra clinica și vei invita colegii. Îți trimitem un
+              cod de 6 cifre doar acum, ca să confirmăm emailul.
             </p>
-          ) : null}
+          ) : (
+            <p className="text-xs leading-relaxed text-slate-500">
+              După ce ai confirmat adresa la înregistrare, intri doar cu email și parolă — fără un
+              nou cod.
+            </p>
+          )}
         </div>
 
         <input type="hidden" name="purpose" value={tab} />
@@ -350,14 +351,8 @@ export function LoginForm({
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              {otpSent
-                ? "Se verifică…"
-                : tab === "register"
-                  ? "Se trimite codul…"
-                  : "Se trimite codul…"}
+              {tab === "register" ? "Se trimite codul…" : "Se autentifică…"}
             </>
-          ) : otpSent ? (
-            "Verifică și continuă"
           ) : tab === "register" ? (
             "Creează cont"
           ) : (

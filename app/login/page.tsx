@@ -50,14 +50,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         key={signup ? "register" : "login"}
         initialTab={signup ? "register" : "login"}
         initialError={loginReasonMessage(params.reason)}
-        initialInfo={
-          params.reason === "confirm_email"
-            ? EMAIL_CONFIRM_REQUIRED
-            : params.reason === "otp_ok"
-              ? "Adresa a fost confirmată. Introdu parola și continuă."
-              : null
-        }
-        initialOtpVerified={params.reason === "otp_ok"}
+        initialInfo={params.reason === "confirm_email" ? EMAIL_CONFIRM_REQUIRED : null}
       />
     </AuthSplitLayout>
   )

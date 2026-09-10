@@ -7,7 +7,6 @@ import {
   EMAIL_OTP_MAX_ATTEMPTS,
   EMAIL_OTP_RESEND_MS,
   EMAIL_OTP_TTL_MS,
-  generateEmailOtpCode,
   generateEmailOtpLinkToken,
   hashEmailOtpCode,
   hashEmailOtpLinkToken,
@@ -163,9 +162,10 @@ async function supabaseEmailOtpCode(input: {
     if (otp && isEmailOtpCode(otp)) {
       return { code: otp }
     }
+    return { error: "Nu am putut genera codul de confirmare. Încearcă din nou." }
   }
 
-  return { code: generateEmailOtpCode() }
+  return { error: "Codul de 6 cifre se trimite doar la crearea contului. Intră cu email și parolă." }
 }
 
 export async function issueAuthEmailOtp(input: {
@@ -178,6 +178,13 @@ export async function issueAuthEmailOtp(input: {
     return { ok: false, error: "Introdu o adresă de email validă.", status: 400 }
   }
   const purpose = parseAuthEmailOtpPurpose(input.purpose)
+  if (purpose !== "register") {
+    return {
+      ok: false,
+      error: "Codul de 6 cifre se trimite doar la crearea contului. Intră cu email și parolă.",
+      status: 400,
+    }
+  }
 
   try {
     const admin = createServiceRoleClient()

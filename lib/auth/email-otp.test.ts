@@ -7,6 +7,7 @@ import {
   hashesMatch,
   isEmailOtpCode,
   normalizeAuthEmail,
+  parseAuthEmailOtpPurpose,
   readVerifiedEmailCookie,
   signVerifiedEmailCookie,
 } from "./email-otp.ts"
@@ -45,16 +46,22 @@ test("cookie-ul de email verificat suportă puncte în adresă", () => {
 test("emailul OTP conține codul și nu are buton de autologin", () => {
   const built = buildAuthOtpEmail({
     code: "654321",
-    purpose: "login",
-    loginUrl: "http://127.0.0.1:43123/login",
+    purpose: "register",
+    loginUrl: "http://127.0.0.1:43123/login?mode=signup",
   })
   assert.match(built.html, /654321/)
   assert.match(built.text, /Codul tău: 654321/)
-  assert.match(built.subject, /autentificare/)
+  assert.match(built.subject, /crearea contului/)
   assert.equal(AUTH_OTP_FROM_DEFAULT, "KinetoFlow <no-reply@kinetoflow.ro>")
   assert.equal(built.html.includes("/auth/email-cod?token="), false)
   assert.equal(built.text.includes("/auth/email-cod?token="), false)
   assert.equal(built.html.includes("inline-block;background:#042f2e"), false)
+})
+
+test("OTP-ul de 6 cifre e doar pentru înregistrare, nu pentru Sign In", () => {
+  assert.equal(parseAuthEmailOtpPurpose("register"), "register")
+  assert.equal(parseAuthEmailOtpPurpose("login"), "login")
+  assert.equal(parseAuthEmailOtpPurpose(undefined), "login")
 })
 
 test("ecranul de confirmare e o rută din aplicație, nu un link din email", () => {
@@ -62,6 +69,7 @@ test("ecranul de confirmare e o rută din aplicație, nu un link din email", () 
     emailOtpPageHref("Admin@Clinica.RO", "register"),
     "/auth/email-cod?email=Admin%40Clinica.RO&purpose=register",
   )
-  assert.equal(emailOtpPageHref("ana@clinica.ro", "login").startsWith("/auth/email-cod?"), true)
-  assert.equal(emailOtpPageHref("ana@clinica.ro", "login").includes("token="), false)
+  assert.equal(emailOtpPageHref("ana@clinica.ro").startsWith("/auth/email-cod?"), true)
+  assert.equal(emailOtpPageHref("ana@clinica.ro").includes("purpose=register"), true)
+  assert.equal(emailOtpPageHref("ana@clinica.ro").includes("token="), false)
 })

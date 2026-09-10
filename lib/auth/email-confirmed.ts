@@ -2,7 +2,7 @@ export const REGISTER_CONFIRM_INFO =
   "Ți-am trimis un email cu un cod de 6 cifre. Introdu-l în aplicație pe dispozitivul de pe care ai început înregistrarea."
 
 export const EMAIL_CONFIRM_REQUIRED =
-  "Adresa de email nu este confirmată. Introdu codul de 6 cifre primit pe email, pe același dispozitiv de pe care ai început."
+  "Adresa de email nu este confirmată. Revino la „Înregistrează clinică nouă” și introdu codul de 6 cifre primit pe email."
 
 export function isEmailConfirmedUser(user: {
   email_confirmed_at?: string | null

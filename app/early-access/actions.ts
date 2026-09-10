@@ -3,7 +3,12 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-import { isEmailAlreadyRegisteredError } from "@/lib/auth/email-confirmed"
+import {
+  EMAIL_CONFIRM_REQUIRED,
+  isEmailAlreadyRegisteredError,
+  isEmailConfirmedUser,
+  isEmailNotConfirmedAuthError,
+} from "@/lib/auth/email-confirmed"
 import {
   EARLY_ACCESS_COOKIE,
   EARLY_ACCESS_TTL_MS,
@@ -60,18 +65,22 @@ export async function unlockEarlyAccess(formData: FormData): Promise<EarlyAccess
 }
 
 export async function requestEarlyAccessEmailOtp(formData: FormData): Promise<EarlyAccessEmailState> {
-  const email = parseRecoveryEmail(formData)
-  if (!email) {
-    return { error: "Introdu o adresă de email validă." }
+  const parsed = parseRegisterCredentials(formData)
+  if ("error" in parsed) {
+    return { error: parsed.error }
   }
 
-  const issued = await issueAuthEmailOtp({ email, purpose: "login" })
+  const issued = await issueAuthEmailOtp({
+    email: parsed.email,
+    purpose: "register",
+    password: parsed.password,
+  })
   if (!issued.ok) {
     return { error: issued.error }
   }
 
   return {
-    email,
+    email: parsed.email,
     otpSent: true,
     info: "Ți-am trimis un cod de 6 cifre pe acest email. Este valabil 10 minute. Introdu-l în aplicație — emailul nu te autentifică automat.",
     devCode: issued.devCode,
@@ -132,18 +141,23 @@ export async function finishEarlyAccessLogin(formData: FormData): Promise<EarlyA
     return { error: AUTH_ERROR_MESSAGE }
   }
 
-  const otpError = await assertVerifiedEmail(credentials.email, formData)
-  if (otpError) {
-    return { error: otpError }
-  }
-
-  const signedIn = await signInAfterEmailVerified({
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: credentials.email,
     password: credentials.password,
-    emailJustVerified: true,
   })
-  if (!signedIn.ok) {
-    return verifiedSignInFailureMessage(signedIn, AUTH_ERROR_MESSAGE)
+
+  if (error) {
+    if (isEmailNotConfirmedAuthError(error)) {
+      return { info: EMAIL_CONFIRM_REQUIRED }
+    }
+    return { error: AUTH_ERROR_MESSAGE }
+  }
+
+  const user = data.user ?? data.session?.user ?? null
+  if (!isEmailConfirmedUser(user)) {
+    await supabase.auth.signOut()
+    return { info: EMAIL_CONFIRM_REQUIRED }
   }
 
   await clearVerifiedEmailCookie()

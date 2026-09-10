@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { AlertCircle, Loader2, Mail } from "lucide-react"
 
-import { login, register, requestAuthEmailOtpAction } from "@/app/login/actions"
+import { register, requestAuthEmailOtpAction } from "@/app/login/actions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,10 +22,9 @@ import { cn } from "@/lib/utils"
 
 export function EmailOtpForm({
   email,
-  purpose,
 }: {
   email: string
-  purpose: "login" | "register"
+  purpose?: "register"
 }) {
   const [pending, setPending] = useState<PendingEmailOtp | null>(null)
   const [ready, setReady] = useState(false)
@@ -36,11 +35,11 @@ export function EmailOtpForm({
   )
   const [devCode, setDevCode] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const backHref = loginHref(purpose === "register" ? "signup" : "signin")
+  const backHref = loginHref("signup")
 
   useEffect(() => {
     const stored = readPendingEmailOtp(email)
-    setPending(stored)
+    setPending(stored?.purpose === "register" ? stored : null)
     setDevCode(stored?.devCode ?? null)
     setReady(true)
   }, [email])
@@ -56,14 +55,14 @@ export function EmailOtpForm({
 
     formData.set("email", pending.email)
     formData.set("password", pending.password)
-    formData.set("purpose", pending.purpose)
+    formData.set("purpose", "register")
     formData.set("otp", otp.trim())
-    if (pending.purpose === "register" && pending.legalAccept) {
+    if (pending.legalAccept) {
       formData.set(LEGAL_ACCEPT_FIELD, "on")
     }
 
     startTransition(async () => {
-      const result = pending.purpose === "register" ? await register(formData) : await login(formData)
+      const result = await register(formData)
       if (result?.error) {
         setError(result.error)
         return
@@ -82,12 +81,16 @@ export function EmailOtpForm({
       setError("Sesiunea de confirmare lipsește pe acest dispozitiv. Revino la înregistrare și cere un cod nou.")
       return
     }
+    if (pending.purpose !== "register") {
+      setError("Autentificarea nu mai cere cod. Intră cu email și parolă.")
+      return
+    }
     setError(null)
     const formData = new FormData()
     formData.set("email", pending.email)
     formData.set("password", pending.password)
-    formData.set("purpose", pending.purpose)
-    if (pending.purpose === "register" && pending.legalAccept) {
+    formData.set("purpose", "register")
+    if (pending.legalAccept) {
       formData.set(LEGAL_ACCEPT_FIELD, "on")
     }
     startTransition(async () => {
@@ -128,7 +131,7 @@ export function EmailOtpForm({
           </AlertDescription>
         </Alert>
         <Link href={backHref} className={cn(buttonVariants(), "h-12 min-h-[48px] w-full rounded-xl")}>
-          Revino la {purpose === "register" ? "înregistrare" : "autentificare"}
+          Revino la înregistrare
         </Link>
       </div>
     )
@@ -214,7 +217,7 @@ export function EmailOtpForm({
           Trimite un cod nou
         </button>
         <Link href={backHref} className="text-slate-600 underline-offset-4 hover:underline">
-          Înapoi la {purpose === "register" ? "înregistrare" : "autentificare"}
+          Înapoi la înregistrare
         </Link>
       </div>
     </form>

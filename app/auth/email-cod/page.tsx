@@ -1,8 +1,11 @@
 import type { Metadata } from "next"
 
+import { redirect } from "next/navigation"
+
 import { EmailOtpForm } from "@/app/auth/email-cod/email-otp-form"
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout"
 import { normalizeAuthEmail, parseAuthEmailOtpPurpose } from "@/lib/auth/email-otp"
+import { loginHref } from "@/lib/auth/paths"
 
 export const metadata: Metadata = {
   title: "Confirmă adresa | KinetoFlow",
@@ -15,8 +18,12 @@ type EmailOtpPageProps = {
 
 export default async function EmailOtpPage({ searchParams }: EmailOtpPageProps) {
   const params = await searchParams
-  const email = normalizeAuthEmail(params.email ?? "") ?? ""
   const purpose = parseAuthEmailOtpPurpose(params.purpose)
+  if (purpose !== "register") {
+    redirect(loginHref("signin"))
+  }
+
+  const email = normalizeAuthEmail(params.email ?? "") ?? ""
   const hadLegacyLink = Boolean(params.token?.trim())
 
   return (
@@ -39,7 +46,7 @@ export default async function EmailOtpPage({ searchParams }: EmailOtpPageProps) 
         <EmailOtpForm email={email} purpose={purpose} />
       ) : (
         <p className="text-sm text-slate-600">
-          Lipsește adresa de email. Revino la înregistrare sau autentificare și cere un cod nou.
+          Lipsește adresa de email. Revino la înregistrare și cere un cod nou.
         </p>
       )}
     </AuthSplitLayout>

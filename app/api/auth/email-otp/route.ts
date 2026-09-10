@@ -6,8 +6,9 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * Trimite un OTP de autentificare pe email (admin sau terapeut).
- * Body: { email: string, purpose?: "login" | "register" }
+ * Trimite un OTP de 6 cifre doar la crearea contului (validare email).
+ * Body: { email: string, purpose: "register", password?: string }
+ * purpose "login" este respins: conturile confirmate intră doar cu email și parolă.
  */
 export async function POST(request: Request) {
   let body: { email?: unknown; purpose?: unknown }

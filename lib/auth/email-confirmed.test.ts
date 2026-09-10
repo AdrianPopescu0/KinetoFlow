@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  EMAIL_CONFIRM_REQUIRED,
   isEmailAlreadyRegisteredError,
   isEmailConfirmedUser,
   isEmailNotConfirmedAuthError,
@@ -23,6 +24,11 @@ test("identitatea Google e considerată confirmată chiar fără email_confirmed
     }),
     true,
   )
+})
+
+test("login-ul fără confirmare trimite utilizatorul înapoi la înregistrare, nu la un nou OTP de Sign In", () => {
+  assert.match(EMAIL_CONFIRM_REQUIRED, /Înregistrează clinică nouă/)
+  assert.equal(EMAIL_CONFIRM_REQUIRED.includes("Intră în cont"), false)
 })
 
 test("recunoaște eroarea Supabase de email neconfirmat", () => {

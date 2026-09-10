@@ -3,8 +3,12 @@
 import { cookies } from "next/headers"
 
 import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
-import { isEmailAlreadyRegisteredError } from "@/lib/auth/email-confirmed"
-import { readVerifiedEmailCookie } from "@/lib/auth/email-otp"
+import {
+  EMAIL_CONFIRM_REQUIRED,
+  isEmailAlreadyRegisteredError,
+  isEmailConfirmedUser,
+  isEmailNotConfirmedAuthError,
+} from "@/lib/auth/email-confirmed"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { emailOtpPageHref } from "@/lib/auth/paths"
@@ -37,14 +41,7 @@ const EXISTING_ACCOUNT_MESSAGE =
 const OTP_SENT_INFO =
   "Ți-am trimis un cod de 6 cifre pe email. Introdu-l în aplicație pe același dispozitiv de pe care ai început. Este valabil 10 minute."
 
-async function requireEmailOtp(email: string, formData: FormData): Promise<string | null> {
-  const jar = await cookies()
-  const fromCookie = readVerifiedEmailCookie(jar.get(VERIFIED_OTP_COOKIE)?.value)
-  if (fromCookie && fromCookie === email) {
-    jar.delete(VERIFIED_OTP_COOKIE)
-    return null
-  }
-
+async function requireRegistrationOtp(email: string, formData: FormData): Promise<string | null> {
   const code = String(formData.get("otp") ?? "")
   const verified = await consumeAuthEmailOtp({ email, code })
   if (!verified.ok) {
@@ -54,35 +51,19 @@ async function requireEmailOtp(email: string, formData: FormData): Promise<strin
 }
 
 export async function requestAuthEmailOtpAction(formData: FormData): Promise<LoginActionState> {
-  const purpose = formData.get("purpose") === "register" ? "register" : "login"
-
-  if (purpose === "register") {
-    const parsed = parseRegisterCredentials(formData)
-    if ("error" in parsed) {
-      return { error: parsed.error }
-    }
-    const issued = await issueAuthEmailOtp({
-      email: parsed.email,
-      purpose: "register",
-      password: parsed.password,
-    })
-    if (!issued.ok) {
-      return { error: issued.error }
-    }
-    return {
-      otpSent: true,
-      info: OTP_SENT_INFO,
-      devCode: issued.devCode,
-      continuePath: emailOtpPageHref(parsed.email, "register"),
-    }
+  if (formData.get("purpose") !== "register") {
+    return { error: "Codul de 6 cifre se trimite doar la crearea contului. Intră cu email și parolă." }
   }
 
-  const credentials = parseLoginCredentials(formData)
-  if (!credentials) {
-    return { error: AUTH_ERROR_MESSAGE }
+  const parsed = parseRegisterCredentials(formData)
+  if ("error" in parsed) {
+    return { error: parsed.error }
   }
-
-  const issued = await issueAuthEmailOtp({ email: credentials.email, purpose: "login" })
+  const issued = await issueAuthEmailOtp({
+    email: parsed.email,
+    purpose: "register",
+    password: parsed.password,
+  })
   if (!issued.ok) {
     return { error: issued.error }
   }
@@ -90,7 +71,7 @@ export async function requestAuthEmailOtpAction(formData: FormData): Promise<Log
     otpSent: true,
     info: OTP_SENT_INFO,
     devCode: issued.devCode,
-    continuePath: emailOtpPageHref(credentials.email, "login"),
+    continuePath: emailOtpPageHref(parsed.email, "register"),
   }
 }
 
@@ -101,20 +82,28 @@ export async function login(formData: FormData): Promise<LoginActionState> {
     return { error: AUTH_ERROR_MESSAGE }
   }
 
-  const otpError = await requireEmailOtp(credentials.email, formData)
-  if (otpError) {
-    return { error: otpError }
-  }
-
-  const signedIn = await signInAfterEmailVerified({
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: credentials.email,
     password: credentials.password,
-    emailJustVerified: true,
   })
-  if (!signedIn.ok) {
-    return verifiedSignInFailureMessage(signedIn, AUTH_ERROR_MESSAGE)
+
+  if (error) {
+    if (isEmailNotConfirmedAuthError(error)) {
+      return { info: EMAIL_CONFIRM_REQUIRED }
+    }
+    return { error: AUTH_ERROR_MESSAGE }
   }
 
+  const user = data.user ?? data.session?.user ?? null
+  if (!isEmailConfirmedUser(user)) {
+    await supabase.auth.signOut()
+    return { info: EMAIL_CONFIRM_REQUIRED }
+  }
+
+  const jar = await cookies()
+  jar.delete(SIGNED_OUT_GATE_COOKIE)
+  jar.delete(VERIFIED_OTP_COOKIE)
   return { next: await resolveTherapistAppPath() }
 }
 
@@ -124,7 +113,7 @@ export async function register(formData: FormData): Promise<LoginActionState> {
     return { error: parsed.error }
   }
 
-  const otpError = await requireEmailOtp(parsed.email, formData)
+  const otpError = await requireRegistrationOtp(parsed.email, formData)
   if (otpError) {
     return { error: otpError }
   }

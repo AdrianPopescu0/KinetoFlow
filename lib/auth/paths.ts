@@ -11,7 +11,7 @@ export function loginHref(mode: "signin" | "signup"): string {
   return mode === "signup" ? "/login?mode=signup" : "/login?mode=signin"
 }
 
-export function emailOtpPageHref(email: string, purpose: "login" | "register"): string {
+export function emailOtpPageHref(email: string, purpose: "register" = "register"): string {
   const params = new URLSearchParams({
     email,
     purpose,

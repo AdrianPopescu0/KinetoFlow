@@ -8,7 +8,6 @@ import {
   finishEarlyAccessLogin,
   finishEarlyAccessRegister,
   requestEarlyAccessEmailOtp,
-  verifyEarlyAccessEmailOtp,
 } from "@/app/early-access/actions"
 import { prepareTherapistInviteOAuth } from "@/app/auth/invitatie/actions"
 import { GoogleMark } from "@/components/auth/google-mark"
@@ -41,7 +40,6 @@ export function EarlyAccessWelcomeForm({
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [otpSent, setOtpSent] = useState(initialVerified)
-  const [verified, setVerified] = useState(initialVerified)
   const [mode, setMode] = useState<AccountMode>("register")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [error, setError] = useState<string | null>(initialError)
@@ -59,31 +57,21 @@ export function EarlyAccessWelcomeForm({
     formData.set("email", email)
 
     startTransition(async () => {
-      if (!verified) {
-        if (!otpSent) {
-          const requested = await requestEarlyAccessEmailOtp(formData)
-          if (requested?.error) {
-            setError(requested.error)
-            return
-          }
-          setOtpSent(true)
-          setInfo(requested?.info ?? "Ți-am trimis un cod de acces pe email.")
-          setDevCode(requested?.devCode ?? null)
+      if (mode === "login") {
+        const result = await finishEarlyAccessLogin(formData)
+        if (result?.error) {
+          setError(result.error)
           return
         }
-
-        formData.set("otp", otp.trim())
-        const checked = await verifyEarlyAccessEmailOtp(formData)
-        if (checked?.error) {
-          setError(checked.error)
+        if (result?.info) {
+          setInfo(result.info)
           return
         }
-        setVerified(true)
-        setInfo(checked?.info ?? "Adresa a fost confirmată.")
+        enterTherapistApp(result?.next)
         return
       }
 
-      if (mode === "register" && !canSubmitRegister) {
+      if (!canSubmitRegister) {
         setError(
           acceptedTerms
             ? "Parola trebuie să aibă minim 8 caractere, o majusculă, o cifră și un caracter special."
@@ -92,8 +80,22 @@ export function EarlyAccessWelcomeForm({
         return
       }
 
-      const result =
-        mode === "register" ? await finishEarlyAccessRegister(formData) : await finishEarlyAccessLogin(formData)
+      if (!otpSent) {
+        formData.set("purpose", "register")
+        const requested = await requestEarlyAccessEmailOtp(formData)
+        if (requested?.error) {
+          setError(requested.error)
+          return
+        }
+        setOtpSent(true)
+        setInfo(requested?.info ?? "Ți-am trimis un cod de acces pe email.")
+        setDevCode(requested?.devCode ?? null)
+        return
+      }
+
+      formData.set("otp", otp.trim())
+      formData.set("purpose", "register")
+      const result = await finishEarlyAccessRegister(formData)
       if (result?.error) {
         setError(result.error)
         return
@@ -160,12 +162,44 @@ export function EarlyAccessWelcomeForm({
       {info ? (
         <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
           <Mail />
-          <AlertTitle>{verified ? "Email confirmat" : otpSent ? "Verifică emailul" : "Continuă cu emailul"}</AlertTitle>
+          <AlertTitle>
+            {mode === "register" && otpSent ? "Verifică emailul" : "Continuă cu emailul"}
+          </AlertTitle>
           <AlertDescription>{info}</AlertDescription>
         </Alert>
       ) : null}
 
       <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
+        <div
+          role="tablist"
+          aria-label="Tip de cont"
+          className="grid grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1"
+        >
+          <ModeButton
+            active={mode === "register"}
+            onClick={() => {
+              setMode("register")
+              setError(null)
+              setInfo(null)
+            }}
+          >
+            Creează cont
+          </ModeButton>
+          <ModeButton
+            active={mode === "login"}
+            onClick={() => {
+              setMode("login")
+              setOtpSent(false)
+              setOtp("")
+              setDevCode(null)
+              setError(null)
+              setInfo(null)
+            }}
+          >
+            Am deja cont
+          </ModeButton>
+        </div>
+
         <div className="flex flex-col gap-2">
           <Label htmlFor="early-access-email" className="text-slate-900">
             Adresa de email personală
@@ -178,22 +212,125 @@ export function EarlyAccessWelcomeForm({
             inputMode="email"
             required
             autoFocus={!initialEmail}
-            disabled={busy || otpSent}
+            disabled={busy || (mode === "register" && otpSent)}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="emailul-tau@exemplu.com"
             className="h-12 min-h-12 border-slate-300 px-3"
           />
           <p className="text-xs leading-relaxed text-slate-500">
-            Folosește adresa ta, nu un alias de clinică dacă nu îl controlezi. Îți trimitem un
-            cod de 6 cifre de introdus în aplicație.
+            {mode === "register"
+              ? "Îți trimitem un cod de 6 cifre doar la crearea contului, ca să confirmăm adresa."
+              : "Contul confirmat se deschide doar cu email și parolă, fără un nou cod."}
           </p>
         </div>
 
-        {otpSent && !verified ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="early-access-password" className="text-slate-900">
+              {mode === "register" ? "Alege o parolă" : "Parola contului"}
+            </Label>
+            {mode === "login" ? (
+              <Link
+                href="/recuperare-parola"
+                className="text-sm font-medium text-[#042f2e] underline-offset-4 hover:underline"
+              >
+                Ai uitat parola?
+              </Link>
+            ) : null}
+          </div>
+          <div className="relative">
+            <Input
+              id="early-access-password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete={mode === "register" ? "new-password" : "current-password"}
+              required
+              minLength={mode === "register" ? 8 : undefined}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              disabled={busy || (mode === "register" && otpSent)}
+              placeholder={mode === "register" ? "Alege o parolă puternică" : "••••••••"}
+              className="h-12 min-h-12 border-slate-300 px-3 pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((visible) => !visible)}
+              disabled={busy}
+              className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500 transition-colors hover:text-slate-900 disabled:opacity-50"
+              aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
+          {mode === "register" ? (
+            <ul className="mt-1 grid gap-1.5">
+              {passwordChecks.checks.map((check) => (
+                <li
+                  key={check.id}
+                  className={cn(
+                    "flex items-center gap-2 text-xs",
+                    check.met ? "text-emerald-700" : "text-slate-400",
+                  )}
+                >
+                  {check.met ? (
+                    <Check className="size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+                  ) : (
+                    <Circle className="size-3.5 shrink-0 text-slate-300" aria-hidden="true" />
+                  )}
+                  {check.label}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+
+        {mode === "register" ? (
+          <label
+            htmlFor={LEGAL_ACCEPT_FIELD}
+            className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed text-slate-700"
+          >
+            <input
+              id={LEGAL_ACCEPT_FIELD}
+              name={LEGAL_ACCEPT_FIELD}
+              type="checkbox"
+              required
+              checked={acceptedTerms}
+              onChange={(event) => setAcceptedTerms(event.target.checked)}
+              disabled={busy || otpSent}
+              className="mt-1 size-4 shrink-0 rounded border-slate-300 accent-[#042f2e]"
+            />
+            <span>
+              Sunt de acord cu{" "}
+              <Link
+                href="/termeni"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[#042f2e] underline underline-offset-4"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Termenii și Condițiile
+              </Link>{" "}
+              și{" "}
+              <Link
+                href="/confidentialitate"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[#042f2e] underline underline-offset-4"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Politica de Confidențialitate
+              </Link>
+              .
+            </span>
+          </label>
+        ) : null}
+
+        {mode === "register" && otpSent ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="early-access-otp" className="text-slate-900">
-              Cod de acces din email
+              Cod de confirmare din email
             </Label>
             <Input
               id="early-access-otp"
@@ -233,128 +370,9 @@ export function EarlyAccessWelcomeForm({
           </div>
         ) : null}
 
-        {verified ? (
-          <>
-            <div
-              role="tablist"
-              aria-label="Tip de cont"
-              className="grid grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1"
-            >
-              <ModeButton active={mode === "register"} onClick={() => setMode("register")}>
-                Creează cont
-              </ModeButton>
-              <ModeButton active={mode === "login"} onClick={() => setMode("login")}>
-                Am deja cont
-              </ModeButton>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="early-access-password" className="text-slate-900">
-                  {mode === "register" ? "Alege o parolă" : "Parola contului"}
-                </Label>
-                {mode === "login" ? (
-                  <Link
-                    href="/recuperare-parola"
-                    className="text-sm font-medium text-[#042f2e] underline-offset-4 hover:underline"
-                  >
-                    Ai uitat parola?
-                  </Link>
-                ) : null}
-              </div>
-              <div className="relative">
-                <Input
-                  id="early-access-password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete={mode === "register" ? "new-password" : "current-password"}
-                  required
-                  minLength={mode === "register" ? 8 : undefined}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  disabled={busy}
-                  placeholder={mode === "register" ? "Alege o parolă puternică" : "••••••••"}
-                  className="h-12 min-h-12 border-slate-300 px-3 pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((visible) => !visible)}
-                  disabled={busy}
-                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500 transition-colors hover:text-slate-900 disabled:opacity-50"
-                  aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
-                  aria-pressed={showPassword}
-                >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              </div>
-              {mode === "register" ? (
-                <ul className="mt-1 grid gap-1.5">
-                  {passwordChecks.checks.map((check) => (
-                    <li
-                      key={check.id}
-                      className={cn(
-                        "flex items-center gap-2 text-xs",
-                        check.met ? "text-emerald-700" : "text-slate-400",
-                      )}
-                    >
-                      {check.met ? (
-                        <Check className="size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
-                      ) : (
-                        <Circle className="size-3.5 shrink-0 text-slate-300" aria-hidden="true" />
-                      )}
-                      {check.label}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-
-            {mode === "register" ? (
-              <label
-                htmlFor={LEGAL_ACCEPT_FIELD}
-                className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed text-slate-700"
-              >
-                <input
-                  id={LEGAL_ACCEPT_FIELD}
-                  name={LEGAL_ACCEPT_FIELD}
-                  type="checkbox"
-                  required
-                  checked={acceptedTerms}
-                  onChange={(event) => setAcceptedTerms(event.target.checked)}
-                  disabled={busy}
-                  className="mt-1 size-4 shrink-0 rounded border-slate-300 accent-[#042f2e]"
-                />
-                <span>
-                  Sunt de acord cu{" "}
-                  <Link
-                    href="/termeni"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-[#042f2e] underline underline-offset-4"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    Termenii și Condițiile
-                  </Link>{" "}
-                  și{" "}
-                  <Link
-                    href="/confidentialitate"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-[#042f2e] underline underline-offset-4"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    Politica de Confidențialitate
-                  </Link>
-                  .
-                </span>
-              </label>
-            ) : null}
-          </>
-        ) : null}
-
         <Button
           type="submit"
-          disabled={busy || (verified && mode === "register" && !canSubmitRegister)}
+          disabled={busy || (mode === "register" && !canSubmitRegister)}
           className="h-12 min-h-[48px] w-full rounded-xl text-sm font-semibold"
         >
           {isPending ? (
@@ -362,14 +380,12 @@ export function EarlyAccessWelcomeForm({
               <Loader2 className="size-4 animate-spin" />
               Se procesează…
             </>
-          ) : !otpSent ? (
-            "Trimite codul pe email"
-          ) : !verified ? (
-            "Verifică emailul"
-          ) : mode === "register" ? (
-            "Creează contul"
-          ) : (
+          ) : mode === "login" ? (
             "Intră în cont"
+          ) : otpSent ? (
+            "Confirmă adresa"
+          ) : (
+            "Creează contul"
           )}
         </Button>
       </form>
