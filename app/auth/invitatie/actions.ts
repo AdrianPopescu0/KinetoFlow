@@ -3,11 +3,18 @@
 import { cookies, headers } from "next/headers"
 
 import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
-import { AUTH_ERROR_MESSAGE, parseRegisterCredentials } from "@/lib/auth/validation"
+import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
+import { parseRegisterCredentials } from "@/lib/auth/validation"
+import { verifySignupEmailOtp } from "@/lib/auth/verify-signup-otp"
+import {
+  signInAfterEmailVerified,
+  verifiedSignInFailureMessage,
+} from "@/lib/auth/verified-password-session"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
 import {
   THERAPIST_INVITE_CLIENT_COOKIE,
   THERAPIST_INVITE_COOKIE,
+  THERAPIST_INVITE_PATH,
   inviteTokenFromFormData,
   inviteTokenFromHref,
   readTherapistInviteToken,
@@ -25,22 +32,46 @@ import { createClient } from "@/utils/supabase/server"
 
 export type AcceptTherapistInviteState = {
   error?: string
+  info?: string
+  otpSent?: boolean
+  devCode?: string
   next?: "/dashboard"
 } | null
 
-function emailAlreadyRegistered(error: { message?: string; code?: string } | null): boolean {
-  if (!error) {
-    return false
+const OTP_SENT_INFO =
+  "Ți-am trimis un cod de 6 cifre pe email. Introdu-l aici, pe același dispozitiv. Este valabil 10 minute."
+
+const EXISTING_ACCOUNT_MESSAGE =
+  "Există deja un cont cu acest email. Intră cu aceeași parolă sau continuă cu Google."
+
+async function assertOpenInvite(token: string): Promise<string | null> {
+  try {
+    const admin = createServiceRoleClient()
+    const { data, error } = await admin
+      .from("therapist_invites")
+      .select("id, expires_at, accepted_at")
+      .eq("token", token)
+      .maybeSingle()
+
+    if (error) {
+      if (isMissingTherapistInvitesTable(error)) {
+        return MISSING_THERAPIST_INVITES_TABLE
+      }
+      return formatSupabaseError(error)
+    }
+
+    if (!data || !isTherapistInviteOpen(data)) {
+      return "Invitația a expirat sau a fost deja folosită. Cere administratorului un link nou."
+    }
+
+    return null
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Nu am putut verifica invitația."
+    if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+      return "Lipsește cheia de serviciu. Adaugă SUPABASE_SERVICE_ROLE_KEY în .env.local."
+    }
+    return message
   }
-  const message = (error.message ?? "").toLowerCase()
-  const code = (error.code ?? "").toLowerCase()
-  return (
-    code.includes("email_exists") ||
-    code.includes("user_already_exists") ||
-    message.includes("already been registered") ||
-    message.includes("already registered") ||
-    message.includes("user already exists")
-  )
 }
 
 async function resolveInviteTokenFromSubmit(tokenFromUrl: string, formData: FormData): Promise<string | null> {
@@ -59,44 +90,46 @@ async function resolveInviteTokenFromSubmit(tokenFromUrl: string, formData: Form
   )
 }
 
+async function attachInviteAndEnterDashboard(input: {
+  token: string
+  userId: string
+  email: string
+}): Promise<AcceptTherapistInviteState> {
+  const attached = await attachTherapistInviteToUser({
+    token: input.token,
+    user: { id: input.userId, email: input.email },
+  })
+  if (!attached.ok) {
+    const supabase = await createClient()
+    await supabase.auth.signOut()
+    return { error: attached.error }
+  }
+
+  const supabase = await createClient()
+  await supabase.auth.refreshSession()
+  const jar = await cookies()
+  jar.delete(SIGNED_OUT_GATE_COOKIE)
+  jar.delete(VERIFIED_OTP_COOKIE)
+  writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), input.token)
+  return { next: "/dashboard" }
+}
+
 export async function prepareTherapistInviteOAuth(token: string): Promise<AcceptTherapistInviteState> {
   if (!isTherapistInviteToken(token)) {
     return { error: "Linkul de invitație este invalid." }
   }
 
-  try {
-    const admin = createServiceRoleClient()
-    const { data, error } = await admin
-      .from("therapist_invites")
-      .select("expires_at, accepted_at")
-      .eq("token", token)
-      .maybeSingle()
-
-    if (error) {
-      if (isMissingTherapistInvitesTable(error)) {
-        return { error: MISSING_THERAPIST_INVITES_TABLE }
-      }
-      return { error: formatSupabaseError(error) }
-    }
-
-    if (!data || !isTherapistInviteOpen(data)) {
-      return { error: "Invitația a expirat sau a fost deja folosită. Cere administratorului un link nou." }
-    }
-
-    const jar = await cookies()
-    writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
-
-    return null
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Nu am putut verifica invitația."
-    if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
-      return { error: "Lipsește cheia de serviciu. Adaugă SUPABASE_SERVICE_ROLE_KEY în .env.local." }
-    }
-    return { error: message }
+  const inviteError = await assertOpenInvite(token)
+  if (inviteError) {
+    return { error: inviteError }
   }
+
+  const jar = await cookies()
+  writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
+  return null
 }
 
-export async function acceptTherapistInvite(
+export async function requestInviteRegisterOtp(
   tokenFromUrl: string,
   formData: FormData,
 ): Promise<AcceptTherapistInviteState> {
@@ -110,110 +143,101 @@ export async function acceptTherapistInvite(
     return { error: parsed.error }
   }
 
-  try {
-    const admin = createServiceRoleClient()
-    const { data, error } = await admin
-      .from("therapist_invites")
-      .select("id, expires_at, accepted_at, therapist_name, clinic_name, clinic_owner_id, invited_by, phone")
-      .eq("token", token)
-      .maybeSingle()
+  const inviteError = await assertOpenInvite(token)
+  if (inviteError) {
+    return { error: inviteError }
+  }
 
-    if (error) {
-      if (isMissingTherapistInvitesTable(error)) {
-        return { error: MISSING_THERAPIST_INVITES_TABLE }
-      }
-      return { error: formatSupabaseError(error) }
+  const supabase = await createClient()
+  await supabase.auth.signOut()
+
+  const issued = await issueAuthEmailOtp({
+    email: parsed.email,
+    purpose: "register",
+    password: parsed.password,
+    returnPath: `${THERAPIST_INVITE_PATH}/${token}`,
+  })
+
+  if (issued.ok) {
+    const jar = await cookies()
+    writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
+    return {
+      otpSent: true,
+      info: OTP_SENT_INFO,
+      devCode: issued.devCode,
     }
+  }
 
-    if (!data || !isTherapistInviteOpen(data)) {
-      return { error: "Invitația a expirat sau a fost deja folosită. Cere administratorului un link nou." }
-    }
-
-    const supabaseForSignOut = await createClient()
-    await supabaseForSignOut.auth.signOut()
-
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
+  if (issued.status === 409) {
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: parsed.email,
       password: parsed.password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: data.therapist_name,
-        clinic_name: data.clinic_name,
-        clinic_id: data.clinic_owner_id,
-        phone: data.phone,
-        invited_by: data.invited_by,
-        invite_token: token,
-        invited: true,
-        role: "therapist",
-      },
-      app_metadata: {
-        clinic_id: data.clinic_owner_id,
-        role: "therapist",
-        invite_token: token,
-      },
     })
-
-    let userId = created?.user?.id ?? null
-    const createdNewUser = Boolean(created?.user?.id) && !emailAlreadyRegistered(createError)
-
-    if (createError && emailAlreadyRegistered(createError)) {
-      const supabase = await createClient()
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: parsed.email,
-        password: parsed.password,
-      })
-      if (signInError) {
-        return { error: AUTH_ERROR_MESSAGE }
-      }
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      userId = user?.id ?? null
-    } else if (createError || !userId) {
-      return { error: createError ? formatSupabaseError(createError) : "Nu am putut crea contul." }
+    if (signInError) {
+      return { error: EXISTING_ACCOUNT_MESSAGE }
     }
-
-    if (!userId) {
-      return { error: AUTH_ERROR_MESSAGE }
+    const user = data.user ?? data.session?.user
+    if (!user?.id) {
+      return { error: EXISTING_ACCOUNT_MESSAGE }
     }
-
-    // Obligatoriu imediat după crearea contului: clinica din therapist_invites,
-    // rândul din clinic_profiles, invitația marcată ca acceptată.
-    const attached = await attachTherapistInviteToUser({
+    return attachInviteAndEnterDashboard({
       token,
-      user: { id: userId, email: parsed.email },
+      userId: user.id,
+      email: parsed.email,
     })
-    if (!attached.ok) {
-      if (createdNewUser) {
-        await admin.auth.admin.deleteUser(userId)
-      } else {
-        const supabase = await createClient()
-        await supabase.auth.signOut()
-      }
-      return { error: attached.error }
-    }
-
-    const supabase = await createClient()
-    if (createdNewUser) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: parsed.email,
-        password: parsed.password,
-      })
-      if (signInError) {
-        return { error: "Contul a fost creat, dar autentificarea a eșuat. Intră din pagina de login cu același email." }
-      }
-    }
-    await supabase.auth.refreshSession()
-
-    const jar = await cookies()
-    jar.delete(SIGNED_OUT_GATE_COOKIE)
-    writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
-    return { next: "/dashboard" }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Nu am putut activa invitația."
-    if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
-      return { error: "Lipsește cheia de serviciu. Adaugă SUPABASE_SERVICE_ROLE_KEY în .env.local." }
-    }
-    return { error: message }
   }
+
+  return { error: issued.error }
+}
+
+export async function confirmInviteRegisterOtp(
+  tokenFromUrl: string,
+  formData: FormData,
+): Promise<AcceptTherapistInviteState> {
+  const token = await resolveInviteTokenFromSubmit(tokenFromUrl, formData)
+  if (!token) {
+    return { error: "Linkul de invitație este invalid. Reîncarcă pagina din mesajul primit." }
+  }
+
+  const parsed = parseRegisterCredentials(formData)
+  if ("error" in parsed) {
+    return { error: parsed.error }
+  }
+
+  const inviteError = await assertOpenInvite(token)
+  if (inviteError) {
+    return { error: inviteError }
+  }
+
+  const code = String(formData.get("otp") ?? "")
+  const consumed = await consumeAuthEmailOtp({ email: parsed.email, code })
+  if (!consumed.ok) {
+    return { error: consumed.error }
+  }
+
+  const verified = await verifySignupEmailOtp(parsed.email, code)
+  if (!verified.ok) {
+    const signedIn = await signInAfterEmailVerified({
+      email: parsed.email,
+      password: parsed.password,
+      emailJustVerified: true,
+    })
+    if (!signedIn.ok) {
+      return verifiedSignInFailureMessage(signedIn, verified.error)
+    }
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user?.id) {
+    return { error: "Nu am putut confirma adresa. Cere un cod nou și încearcă din nou." }
+  }
+
+  return attachInviteAndEnterDashboard({
+    token,
+    userId: user.id,
+    email: parsed.email,
+  })
 }

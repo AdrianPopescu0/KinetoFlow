@@ -75,8 +75,8 @@ export default async function TherapistInvitePage({ params, searchParams }: Invi
               </h1>
               <p className="mt-2 mb-6 text-sm leading-relaxed text-slate-600">
                 {clinicName} te-a invitat{therapistName ? ` ca ${therapistName}` : ""}. Continuă cu
-                Google sau introdu emailul personal și o parolă. Contul se creează acum, fără ca
-                administratorul să-ți fi făcut unul dinainte.
+                Google sau introdu emailul personal și o parolă. Îți confirmăm adresa cu un cod de
+                6 cifre, apoi intri direct în clinică — fără onboarding.
               </p>
               <AcceptTherapistInviteForm token={token} initialError={therapistInviteReasonMessage(reason)} />
             </>

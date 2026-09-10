@@ -1,16 +1,25 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
-import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2 } from "lucide-react"
+import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
 
-import { acceptTherapistInvite, prepareTherapistInviteOAuth } from "@/app/auth/invitatie/actions"
+import {
+  confirmInviteRegisterOtp,
+  prepareTherapistInviteOAuth,
+  requestInviteRegisterOtp,
+} from "@/app/auth/invitatie/actions"
 import { GoogleMark } from "@/components/auth/google-mark"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
+import {
+  clearPendingEmailOtp,
+  readPendingEmailOtp,
+  writePendingEmailOtp,
+} from "@/lib/auth/pending-email-otp"
 import {
   INVITE_TOKEN_FIELD,
   clearStoredTherapistInviteToken,
@@ -30,36 +39,112 @@ export function AcceptTherapistInviteForm({
   initialError?: string | null
 }) {
   const [error, setError] = useState<string | null>(initialError)
+  const [info, setInfo] = useState<string | null>(null)
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [otp, setOtp] = useState("")
+  const [otpSent, setOtpSent] = useState(false)
+  const [devCode, setDevCode] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [googlePending, setGooglePending] = useState(false)
   const passwordChecks = evaluateRegisterPassword(password)
   const busy = isPending || googlePending
-  const canSubmit = passwordChecks.isValid && acceptedTerms
+  const canSubmitRegister = passwordChecks.isValid && acceptedTerms
+  const canSubmitOtp = useMemo(() => otp.length === 6, [otp])
   persistTherapistInviteToken(token)
 
-  function handleSubmit(formData: FormData) {
+  useEffect(() => {
+    const stored = readPendingEmailOtp()
+    if (stored?.purpose !== "register" || stored.inviteToken !== token) {
+      return
+    }
+    setEmail(stored.email)
+    setPassword(stored.password)
+    setAcceptedTerms(stored.legalAccept === true)
+    setDevCode(stored.devCode ?? null)
+    setOtpSent(true)
+    setInfo("Ți-am trimis un cod de 6 cifre pe email. Introdu-l aici, pe același dispozitiv.")
+  }, [token])
+
+  function enterDashboard() {
+    clearPendingEmailOtp()
+    clearStoredTherapistInviteToken()
+    window.location.assign("/dashboard")
+  }
+
+  function handleRegisterSubmit(formData: FormData) {
     setError(null)
+    setInfo(null)
     formData.set(INVITE_TOKEN_FIELD, token)
+    formData.set("email", email)
+    formData.set("password", password)
     if (acceptedTerms) {
       formData.set(LEGAL_ACCEPT_FIELD, "on")
     }
 
     startTransition(async () => {
-      const result = await acceptTherapistInvite(token, formData)
+      const result = await requestInviteRegisterOtp(token, formData)
       if (result?.error) {
         setError(result.error)
         return
       }
-      if (result?.next !== "/dashboard") {
-        setError("Contul a fost creat, dar nu am putut deschide clinica. Reîncearcă din linkul de invitație.")
+      if (result?.next === "/dashboard") {
+        enterDashboard()
         return
       }
-      clearStoredTherapistInviteToken()
-      window.location.assign("/dashboard")
+      if (!result?.otpSent) {
+        setError("Nu am putut trimite codul de confirmare. Încearcă din nou.")
+        return
+      }
+      writePendingEmailOtp({
+        email: email.trim().toLowerCase(),
+        password,
+        purpose: "register",
+        legalAccept: acceptedTerms,
+        inviteToken: token,
+        devCode: result.devCode,
+      })
+      setDevCode(result.devCode ?? null)
+      setOtp("")
+      setOtpSent(true)
+      setInfo(result.info ?? "Ți-am trimis un cod de 6 cifre pe email.")
     })
+  }
+
+  function handleOtpSubmit(formData: FormData) {
+    setError(null)
+    formData.set(INVITE_TOKEN_FIELD, token)
+    formData.set("email", email)
+    formData.set("password", password)
+    formData.set("otp", otp.trim())
+    formData.set("purpose", "register")
+    if (acceptedTerms) {
+      formData.set(LEGAL_ACCEPT_FIELD, "on")
+    }
+
+    startTransition(async () => {
+      const result = await confirmInviteRegisterOtp(token, formData)
+      if (result?.error) {
+        setError(result.error)
+        return
+      }
+      if (result?.info) {
+        setInfo(result.info)
+        return
+      }
+      if (result?.next !== "/dashboard") {
+        setError("Adresa a fost confirmată, dar nu am putut deschide clinica. Reîncearcă din linkul de invitație.")
+        return
+      }
+      enterDashboard()
+    })
+  }
+
+  function resendOtp() {
+    const formData = new FormData()
+    handleRegisterSubmit(formData)
   }
 
   async function handleGoogleLogin() {
@@ -116,151 +201,246 @@ export function AcceptTherapistInviteForm({
       {error ? (
         <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
           <AlertCircle />
-          <AlertTitle>Nu am putut crea contul</AlertTitle>
+          <AlertTitle>{otpSent ? "Nu am putut confirma adresa" : "Nu am putut crea contul"}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 
-      <label
-        htmlFor={LEGAL_ACCEPT_FIELD}
-        className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed text-slate-700"
-      >
-        <input
-          id={LEGAL_ACCEPT_FIELD}
-          name={LEGAL_ACCEPT_FIELD}
-          type="checkbox"
-          required
-          checked={acceptedTerms}
-          onChange={(event) => setAcceptedTerms(event.target.checked)}
-          disabled={busy}
-          className="mt-1 size-4 shrink-0 rounded border-slate-300 accent-[#042f2e]"
-        />
-        <span>
-          Sunt de acord cu{" "}
-          <Link
-            href="/termeni"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-[#042f2e] underline underline-offset-4"
-            onClick={(event) => event.stopPropagation()}
-          >
-            Termenii și Condițiile
-          </Link>{" "}
-          și{" "}
-          <Link
-            href="/confidentialitate"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-[#042f2e] underline underline-offset-4"
-            onClick={(event) => event.stopPropagation()}
-          >
-            Politica de Confidențialitate
-          </Link>
-          .
-        </span>
-      </label>
+      {info ? (
+        <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
+          <Mail />
+          <AlertTitle>{otpSent ? "Introdu codul din email" : "Continuă cu emailul"}</AlertTitle>
+          <AlertDescription>{info}</AlertDescription>
+        </Alert>
+      ) : null}
 
-      <Button
-        type="button"
-        variant="outline"
-        disabled={busy}
-        aria-label="Sign in with Google"
-        onClick={() => {
-          void handleGoogleLogin()
-        }}
-        className="h-12 min-h-[48px] w-full rounded-xl border-slate-300 bg-white text-sm font-semibold text-slate-800"
-      >
-        {googlePending ? <Loader2 className="size-4 animate-spin" /> : <GoogleMark className="size-5" />}
-        Sign In with Google
-      </Button>
-
-      <div className="flex items-center gap-3" role="separator" aria-label="sau">
-        <span className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">sau</span>
-        <span className="h-px flex-1 bg-slate-200" />
-      </div>
-
-      <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
-        <input type="hidden" name={INVITE_TOKEN_FIELD} value={token} />
-        <input type="hidden" name={LEGAL_ACCEPT_FIELD} value={acceptedTerms ? "on" : ""} />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="invite-email" className="text-slate-900">
-            Emailul tău personal
-          </Label>
-          <Input
-            id="invite-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            inputMode="email"
-            required
-            disabled={busy}
-            placeholder="emailul-tau@exemplu.com"
-            className="h-12 min-h-12 border-slate-300 px-3"
-          />
-          <p className="text-xs leading-relaxed text-slate-500">
-            Cu Google sau cu această adresă vei intra ulterior în clinică. După creare ești dus
-            direct în dashboard-ul clinicii, fără onboarding.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="invite-password" className="text-slate-900">
-            Alege o parolă
-          </Label>
-          <div className="relative">
+      {otpSent ? (
+        <form action={handleOtpSubmit} className="flex flex-col gap-5" noValidate>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="invite-otp-email">Email</Label>
             <Input
-              id="invite-password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              disabled={busy}
-              placeholder="Alege o parolă puternică"
-              className="h-12 min-h-12 border-slate-300 px-3 pr-12"
+              id="invite-otp-email"
+              value={email}
+              readOnly
+              disabled
+              className="h-12 border-slate-300 bg-slate-50"
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="invite-otp">Cod de 6 cifre</Label>
+            <Input
+              id="invite-otp"
+              name="otp"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="\d{6}"
+              maxLength={6}
+              required
+              autoFocus
+              disabled={busy}
+              value={otp}
+              onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="000000"
+              className="h-14 min-h-14 border-slate-300 px-3 text-center font-mono text-2xl tracking-[0.35em]"
+            />
+            {devCode ? (
+              <p className="text-xs text-amber-800">Mediu local, fără Resend: folosește codul {devCode}.</p>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Poți citi emailul pe alt telefon. Codul se introduce aici, pe acest dispozitiv.
+              </p>
+            )}
+          </div>
+          <Button
+            type="submit"
+            disabled={busy || !canSubmitOtp}
+            className="h-12 min-h-[48px] w-full rounded-xl font-semibold"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Se verifică…
+              </>
+            ) : (
+              "Confirmă adresa și intră în clinică"
+            )}
+          </Button>
+          <div className="flex flex-col items-center gap-2 text-sm">
             <button
               type="button"
-              onClick={() => setShowPassword((visible) => !visible)}
               disabled={busy}
-              className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500 hover:text-slate-900 disabled:opacity-50"
-              aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
-              aria-pressed={showPassword}
+              className="font-medium text-[#042f2e] underline-offset-4 hover:underline disabled:opacity-50"
+              onClick={resendOtp}
             >
-              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              Trimite un cod nou
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="text-slate-600 underline-offset-4 hover:underline disabled:opacity-50"
+              onClick={() => {
+                setOtpSent(false)
+                setOtp("")
+                setInfo(null)
+                setError(null)
+                setDevCode(null)
+                clearPendingEmailOtp()
+              }}
+            >
+              Schimbă emailul sau parola
             </button>
           </div>
-          <ul className="mt-1 grid gap-1.5">
-            {passwordChecks.checks.map((check) => (
-              <li
-                key={check.id}
-                className={cn("flex items-center gap-2 text-xs", check.met ? "text-emerald-700" : "text-slate-400")}
+        </form>
+      ) : (
+        <>
+          <label
+            htmlFor={LEGAL_ACCEPT_FIELD}
+            className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed text-slate-700"
+          >
+            <input
+              id={LEGAL_ACCEPT_FIELD}
+              name={LEGAL_ACCEPT_FIELD}
+              type="checkbox"
+              required
+              checked={acceptedTerms}
+              onChange={(event) => setAcceptedTerms(event.target.checked)}
+              disabled={busy}
+              className="mt-1 size-4 shrink-0 rounded border-slate-300 accent-[#042f2e]"
+            />
+            <span>
+              Sunt de acord cu{" "}
+              <Link
+                href="/termeni"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[#042f2e] underline underline-offset-4"
+                onClick={(event) => event.stopPropagation()}
               >
-                {check.met ? (
-                  <Check className="size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
-                ) : (
-                  <Circle className="size-3.5 shrink-0 text-slate-300" aria-hidden="true" />
-                )}
-                {check.label}
-              </li>
-            ))}
-          </ul>
-        </div>
+                Termenii și Condițiile
+              </Link>{" "}
+              și{" "}
+              <Link
+                href="/confidentialitate"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[#042f2e] underline underline-offset-4"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Politica de Confidențialitate
+              </Link>
+              .
+            </span>
+          </label>
 
-        <Button type="submit" disabled={busy || !canSubmit} className="h-12 min-h-[48px] w-full rounded-xl font-semibold">
-          {isPending ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Se creează contul…
-            </>
-          ) : (
-            "Creează contul și intră în clinică"
-          )}
-        </Button>
-      </form>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            aria-label="Sign in with Google"
+            onClick={() => {
+              void handleGoogleLogin()
+            }}
+            className="h-12 min-h-[48px] w-full rounded-xl border-slate-300 bg-white text-sm font-semibold text-slate-800"
+          >
+            {googlePending ? <Loader2 className="size-4 animate-spin" /> : <GoogleMark className="size-5" />}
+            Sign In with Google
+          </Button>
+
+          <div className="flex items-center gap-3" role="separator" aria-label="sau">
+            <span className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">sau</span>
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <form action={handleRegisterSubmit} className="flex flex-col gap-5" noValidate>
+            <input type="hidden" name={INVITE_TOKEN_FIELD} value={token} />
+            <input type="hidden" name={LEGAL_ACCEPT_FIELD} value={acceptedTerms ? "on" : ""} />
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="invite-email" className="text-slate-900">
+                Emailul tău personal
+              </Label>
+              <Input
+                id="invite-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                required
+                disabled={busy}
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="emailul-tau@exemplu.com"
+                className="h-12 min-h-12 border-slate-300 px-3"
+              />
+              <p className="text-xs leading-relaxed text-slate-500">
+                Îți trimitem un cod de 6 cifre doar acum, ca să confirmăm adresa. La logările
+                următoare intri doar cu email și parolă.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="invite-password" className="text-slate-900">
+                Alege o parolă
+              </Label>
+              <div className="relative">
+                <Input
+                  id="invite-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  disabled={busy}
+                  placeholder="Alege o parolă puternică"
+                  className="h-12 min-h-12 border-slate-300 px-3 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  disabled={busy}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500 hover:text-slate-900 disabled:opacity-50"
+                  aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+              <ul className="mt-1 grid gap-1.5">
+                {passwordChecks.checks.map((check) => (
+                  <li
+                    key={check.id}
+                    className={cn("flex items-center gap-2 text-xs", check.met ? "text-emerald-700" : "text-slate-400")}
+                  >
+                    {check.met ? (
+                      <Check className="size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+                    ) : (
+                      <Circle className="size-3.5 shrink-0 text-slate-300" aria-hidden="true" />
+                    )}
+                    {check.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={busy || !canSubmitRegister}
+              className="h-12 min-h-[48px] w-full rounded-xl font-semibold"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Se trimite codul…
+                </>
+              ) : (
+                "Trimite codul de confirmare"
+              )}
+            </Button>
+          </form>
+        </>
+      )}
     </div>
   )
 }

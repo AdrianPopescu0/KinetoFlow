@@ -172,6 +172,7 @@ export async function issueAuthEmailOtp(input: {
   email: string
   purpose?: unknown
   password?: string
+  returnPath?: string
 }): Promise<IssueAuthEmailOtpResult> {
   const email = normalizeAuthEmail(input.email)
   if (!email) {
@@ -226,7 +227,12 @@ export async function issueAuthEmailOtp(input: {
     const linkToken = generateEmailOtpLinkToken()
     const expiresAt = otpExpiresAt(now, EMAIL_OTP_TTL_MS)
     const origin = await appOrigin()
-    const loginUrl = `${origin}${loginHref(purpose === "register" ? "signup" : "signin")}`
+    const loginUrl =
+      typeof input.returnPath === "string" &&
+      input.returnPath.startsWith("/") &&
+      !input.returnPath.startsWith("//")
+        ? `${origin}${input.returnPath}`
+        : `${origin}${loginHref("signup")}`
 
     const { data: inserted, error: insertError } = await admin
       .from("auth_email_otps")
