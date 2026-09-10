@@ -26,6 +26,10 @@ import {
   persistTherapistInviteToken,
   THERAPIST_INVITE_PATH,
 } from "@/lib/clinics/invite-session"
+import {
+  inviteOtpConfirmAllowsClinic,
+  inviteOtpSendOutcome,
+} from "@/lib/auth/invite-register-otp"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
@@ -44,6 +48,8 @@ export function AcceptTherapistInviteForm({
   const [password, setPassword] = useState("")
   const [otp, setOtp] = useState("")
   const [otpSent, setOtpSent] = useState(false)
+  const [sendFailed, setSendFailed] = useState(false)
+  const [otpBusyMode, setOtpBusyMode] = useState<"send" | "verify" | null>(null)
   const [devCode, setDevCode] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
@@ -74,42 +80,58 @@ export function AcceptTherapistInviteForm({
     window.location.assign("/dashboard")
   }
 
-  function handleRegisterSubmit(formData: FormData) {
+  function persistPending(devCodeValue?: string) {
+    writePendingEmailOtp({
+      email: email.trim().toLowerCase(),
+      password,
+      purpose: "register",
+      legalAccept: acceptedTerms,
+      inviteToken: token,
+      devCode: devCodeValue,
+    })
+  }
+
+  function handleRegisterSubmit(formData: FormData, resend = false) {
     setError(null)
-    setInfo(null)
+    if (!resend) {
+      setInfo(null)
+    }
     formData.set(INVITE_TOKEN_FIELD, token)
     formData.set("email", email)
     formData.set("password", password)
+    if (resend) {
+      formData.set("resend", "1")
+    }
     if (acceptedTerms) {
       formData.set(LEGAL_ACCEPT_FIELD, "on")
     }
+    setOtpBusyMode("send")
 
     startTransition(async () => {
       const result = await requestInviteRegisterOtp(token, formData)
-      if (result?.error) {
-        setError(result.error)
+      const outcome = inviteOtpSendOutcome(result)
+      if (outcome.showCodeStep) {
+        persistPending(result?.devCode)
+        setDevCode(result?.devCode ?? null)
+        setOtpSent(true)
+        if (outcome.sent) {
+          setOtp("")
+          setSendFailed(false)
+          setError(null)
+          setInfo(
+            resend
+              ? (result?.info ?? "Ți-am trimis un cod nou. Este valabil 10 minute.")
+              : (result?.info ?? "Ți-am trimis un cod de 6 cifre pe email."),
+          )
+          return
+        }
+        setSendFailed(true)
+        setInfo(null)
+        setError(outcome.message)
         return
       }
-      if (result?.next === "/dashboard") {
-        enterDashboard()
-        return
-      }
-      if (!result?.otpSent) {
-        setError("Nu am putut trimite codul de confirmare. Încearcă din nou.")
-        return
-      }
-      writePendingEmailOtp({
-        email: email.trim().toLowerCase(),
-        password,
-        purpose: "register",
-        legalAccept: acceptedTerms,
-        inviteToken: token,
-        devCode: result.devCode,
-      })
-      setDevCode(result.devCode ?? null)
-      setOtp("")
-      setOtpSent(true)
-      setInfo(result.info ?? "Ți-am trimis un cod de 6 cifre pe email.")
+      setSendFailed(false)
+      setError(outcome.message)
     })
   }
 
@@ -123,6 +145,8 @@ export function AcceptTherapistInviteForm({
     if (acceptedTerms) {
       formData.set(LEGAL_ACCEPT_FIELD, "on")
     }
+    setSendFailed(false)
+    setOtpBusyMode("verify")
 
     startTransition(async () => {
       const result = await confirmInviteRegisterOtp(token, formData)
@@ -134,7 +158,7 @@ export function AcceptTherapistInviteForm({
         setInfo(result.info)
         return
       }
-      if (result?.next !== "/dashboard") {
+      if (!inviteOtpConfirmAllowsClinic(result)) {
         setError("Adresa a fost confirmată, dar nu am putut deschide clinica. Reîncearcă din linkul de invitație.")
         return
       }
@@ -143,8 +167,7 @@ export function AcceptTherapistInviteForm({
   }
 
   function resendOtp() {
-    const formData = new FormData()
-    handleRegisterSubmit(formData)
+    handleRegisterSubmit(new FormData(), true)
   }
 
   async function handleGoogleLogin() {
@@ -201,7 +224,9 @@ export function AcceptTherapistInviteForm({
       {error ? (
         <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
           <AlertCircle />
-          <AlertTitle>{otpSent ? "Nu am putut confirma adresa" : "Nu am putut crea contul"}</AlertTitle>
+          <AlertTitle>
+            {sendFailed ? "Nu am putut trimite codul" : otpSent ? "Nu am putut confirma adresa" : "Nu am putut crea contul"}
+          </AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
@@ -251,12 +276,30 @@ export function AcceptTherapistInviteForm({
               </p>
             )}
           </div>
+          {sendFailed ? (
+            <Button
+              type="button"
+              disabled={busy}
+              className="h-12 min-h-[48px] w-full rounded-xl font-semibold"
+              onClick={resendOtp}
+            >
+              {isPending && otpBusyMode === "send" ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Se retrimite…
+                </>
+              ) : (
+                "Retrimite codul"
+              )}
+            </Button>
+          ) : null}
           <Button
             type="submit"
+            variant={sendFailed ? "outline" : "default"}
             disabled={busy || !canSubmitOtp}
             className="h-12 min-h-[48px] w-full rounded-xl font-semibold"
           >
-            {isPending ? (
+            {isPending && otpBusyMode === "verify" ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
                 Se verifică…
@@ -265,21 +308,32 @@ export function AcceptTherapistInviteForm({
               "Confirmă adresa și intră în clinică"
             )}
           </Button>
-          <div className="flex flex-col items-center gap-2 text-sm">
-            <button
+          {sendFailed ? null : (
+            <Button
               type="button"
+              variant="outline"
               disabled={busy}
-              className="font-medium text-[#042f2e] underline-offset-4 hover:underline disabled:opacity-50"
+              className="h-12 min-h-[48px] w-full rounded-xl font-semibold"
               onClick={resendOtp}
             >
-              Trimite un cod nou
-            </button>
+              {isPending && otpBusyMode === "send" ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Se retrimite…
+                </>
+              ) : (
+                "Retrimite codul"
+              )}
+            </Button>
+          )}
+          <div className="flex flex-col items-center gap-2 text-sm">
             <button
               type="button"
               disabled={busy}
               className="text-slate-600 underline-offset-4 hover:underline disabled:opacity-50"
               onClick={() => {
                 setOtpSent(false)
+                setSendFailed(false)
                 setOtp("")
                 setInfo(null)
                 setError(null)

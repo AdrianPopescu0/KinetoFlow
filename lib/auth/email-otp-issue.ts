@@ -136,7 +136,10 @@ async function supabaseEmailOtpCode(input: {
         })
         const otp = data.properties?.email_otp
         if (error || !otp || !isEmailOtpCode(otp)) {
-          return { error: EXISTING_ACCOUNT_MESSAGE, status: 409 }
+          return {
+            error: "Nu am putut genera un cod nou. Apasă „Retrimite codul”.",
+            status: 503,
+          }
         }
         return { code: otp }
       }
@@ -154,7 +157,18 @@ async function supabaseEmailOtpCode(input: {
     })
     if (error) {
       if (isEmailAlreadyRegisteredError(error)) {
-        return { error: EXISTING_ACCOUNT_MESSAGE, status: 409 }
+        const { data: retry, error: retryError } = await admin.auth.admin.generateLink({
+          type: "magiclink",
+          email: input.email,
+        })
+        const retryOtp = retry.properties?.email_otp
+        if (retryError || !retryOtp || !isEmailOtpCode(retryOtp)) {
+          return {
+            error: "Nu am putut genera un cod nou. Apasă „Retrimite codul”.",
+            status: 503,
+          }
+        }
+        return { code: retryOtp }
       }
       return { error: formatSupabaseError(error) }
     }
@@ -173,6 +187,8 @@ export async function issueAuthEmailOtp(input: {
   purpose?: unknown
   password?: string
   returnPath?: string
+  /** Skip the short resend cooldown and mint a fresh Supabase Auth OTP. */
+  force?: boolean
 }): Promise<IssueAuthEmailOtpResult> {
   const email = normalizeAuthEmail(input.email)
   if (!email) {
@@ -208,6 +224,7 @@ export async function issueAuthEmailOtp(input: {
     }
 
     if (
+      !input.force &&
       latest &&
       !latest.consumed_at &&
       new Date(latest.created_at).getTime() > now.getTime() - EMAIL_OTP_RESEND_MS

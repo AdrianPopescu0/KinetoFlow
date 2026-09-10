@@ -2,14 +2,12 @@
 
 import { cookies, headers } from "next/headers"
 
+import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
+import { isEmailOtpCode } from "@/lib/auth/email-otp"
 import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import { parseRegisterCredentials } from "@/lib/auth/validation"
 import { verifySignupEmailOtp } from "@/lib/auth/verify-signup-otp"
-import {
-  signInAfterEmailVerified,
-  verifiedSignInFailureMessage,
-} from "@/lib/auth/verified-password-session"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
 import {
   THERAPIST_INVITE_CLIENT_COOKIE,
@@ -34,6 +32,7 @@ export type AcceptTherapistInviteState = {
   error?: string
   info?: string
   otpSent?: boolean
+  canResend?: boolean
   devCode?: string
   next?: "/dashboard"
 } | null
@@ -151,13 +150,16 @@ export async function requestInviteRegisterOtp(
   const supabase = await createClient()
   await supabase.auth.signOut()
 
+  const force = String(formData.get("resend") ?? "") === "1"
   const issued = await issueAuthEmailOtp({
     email: parsed.email,
     purpose: "register",
     password: parsed.password,
     returnPath: `${THERAPIST_INVITE_PATH}/${token}`,
+    force,
   })
 
+  // A failed send must never create a session or attach the clinic.
   if (issued.ok) {
     const jar = await cookies()
     writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
@@ -168,26 +170,11 @@ export async function requestInviteRegisterOtp(
     }
   }
 
-  if (issued.status === 409) {
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email: parsed.email,
-      password: parsed.password,
-    })
-    if (signInError) {
-      return { error: EXISTING_ACCOUNT_MESSAGE }
-    }
-    const user = data.user ?? data.session?.user
-    if (!user?.id) {
-      return { error: EXISTING_ACCOUNT_MESSAGE }
-    }
-    return attachInviteAndEnterDashboard({
-      token,
-      userId: user.id,
-      email: parsed.email,
-    })
+  await supabase.auth.signOut()
+  return {
+    error: issued.status === 409 ? EXISTING_ACCOUNT_MESSAGE : issued.error,
+    canResend: issued.status !== 409 && issued.status !== 400,
   }
-
-  return { error: issued.error }
 }
 
 export async function confirmInviteRegisterOtp(
@@ -210,29 +197,34 @@ export async function confirmInviteRegisterOtp(
   }
 
   const code = String(formData.get("otp") ?? "")
-  const consumed = await consumeAuthEmailOtp({ email: parsed.email, code })
-  if (!consumed.ok) {
-    return { error: consumed.error }
-  }
-
-  const verified = await verifySignupEmailOtp(parsed.email, code)
-  if (!verified.ok) {
-    const signedIn = await signInAfterEmailVerified({
-      email: parsed.email,
-      password: parsed.password,
-      emailJustVerified: true,
-    })
-    if (!signedIn.ok) {
-      return verifiedSignInFailureMessage(signedIn, verified.error)
-    }
+  if (!isEmailOtpCode(code)) {
+    return { error: "Introdu codul de 6 cifre primit pe email." }
   }
 
   const supabase = await createClient()
+  await supabase.auth.signOut()
+
+  const verified = await verifySignupEmailOtp(parsed.email, code)
+  if (!verified.ok) {
+    await supabase.auth.signOut()
+    return { error: verified.error, canResend: true }
+  }
+
+  const consumed = await consumeAuthEmailOtp({ email: parsed.email, code })
+  if (!consumed.ok) {
+    await supabase.auth.signOut()
+    return { error: consumed.error, canResend: true }
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user?.id) {
-    return { error: "Nu am putut confirma adresa. Cere un cod nou și încearcă din nou." }
+  if (!user?.id || !isEmailConfirmedUser(user)) {
+    await supabase.auth.signOut()
+    return {
+      error: "Adresa nu a fost confirmată. Introdu un cod de 6 cifre valid sau retrimite codul.",
+      canResend: true,
+    }
   }
 
   return attachInviteAndEnterDashboard({
