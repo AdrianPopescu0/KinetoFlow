@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import { isPublicMarketingPath, shouldStayOnTherapistLogin, therapistAppPath } from "./paths.ts"
-import { isSupabaseAuthCookieName, oauthBrowserRedirectTo } from "./oauth-redirect.ts"
+import { isSupabaseAuthCookieName, oauthBrowserRedirectTo, therapistEnterPath } from "./oauth-redirect.ts"
 
 test("landing-ul public e pagina de marketing, nu dashboard-ul", () => {
   assert.equal(isPublicMarketingPath("/"), true)
@@ -23,6 +23,13 @@ test("după deconectarea de pe invitație, /login?signedout=1 nu e aruncat în c
   assert.equal(shouldStayOnTherapistLogin(new URLSearchParams("signedout=1")), true)
   assert.equal(shouldStayOnTherapistLogin("reason=oauth"), false)
   assert.equal(shouldStayOnTherapistLogin(null), false)
+})
+
+test("după login, destinația implicită e dashboard-ul clinicii", () => {
+  assert.equal(therapistEnterPath("/dashboard"), "/dashboard")
+  assert.equal(therapistEnterPath("/onboarding"), "/onboarding")
+  assert.equal(therapistEnterPath(null), "/dashboard")
+  assert.equal(therapistEnterPath("/"), "/dashboard")
 })
 
 test("callback-ul Google duce în dashboard, nu pe pagina principală", () => {

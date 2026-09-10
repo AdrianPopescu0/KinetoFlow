@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
+import { enterTherapistApp, oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
 import { loginHref } from "@/lib/auth/paths"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
@@ -148,7 +148,7 @@ export function LoginForm({
         }
         return
       }
-      router.replace("/dashboard")
+      enterTherapistApp(result?.next)
     })
   }
 

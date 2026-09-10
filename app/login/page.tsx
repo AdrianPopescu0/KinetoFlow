@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 
 import { LoginForm } from "@/app/login/login-form"
-import { RecoverSessionRedirect } from "@/components/auth/recover-session-redirect"
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout"
 import { EMAIL_CONFIRM_REQUIRED } from "@/lib/auth/email-confirmed"
 import { isSignupAuthMode } from "@/lib/auth/paths"
@@ -47,7 +46,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </p>
       }
     >
-      <RecoverSessionRedirect stayOnPage={params.signedout === "1"} />
       <LoginForm
         initialTab={signup ? "register" : "login"}
         initialError={loginReasonMessage(params.reason)}

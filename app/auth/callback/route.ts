@@ -38,7 +38,7 @@ function callbackAbsoluteUrl(request: NextRequest, path: string) {
 }
 
 function redirectWithCookies(request: NextRequest, path: string, cookiesToSet: SessionCookie[]) {
-  const response = NextResponse.redirect(callbackAbsoluteUrl(request, path))
+  const response = NextResponse.redirect(callbackAbsoluteUrl(request, path), 303)
   for (const { name, value, options } of cookiesToSet) {
     response.cookies.set(name, value, { ...options, path: "/" })
   }

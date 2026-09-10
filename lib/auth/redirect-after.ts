@@ -10,7 +10,14 @@ import { therapistAppPath } from "@/lib/auth/paths"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import { createClient } from "@/utils/supabase/server"
 
-export async function redirectAfterTherapistAuth() {
+export type TherapistAppPath = "/dashboard" | "/onboarding"
+
+/**
+ * Calculează destinația după login. Nu apelează `redirect()` — cookie-urile
+ * de sesiune trebuie să plece pe răspunsul acțiunii, apoi clientul face
+ * un document request către această cale.
+ */
+export async function resolveTherapistAppPath(): Promise<TherapistAppPath> {
   const jar = await cookies()
   jar.delete(SIGNED_OUT_GATE_COOKIE)
 
@@ -20,21 +27,21 @@ export async function redirectAfterTherapistAuth() {
   } = await supabase.auth.getUser()
 
   let user = initialUser
-  if (!user) {
-    redirect("/login")
-  }
-
-  if (!isEmailConfirmedUser(user)) {
+  if (user && !isEmailConfirmedUser(user)) {
     await confirmAuthUserEmailById(user.id)
     await supabase.auth.refreshSession()
-    const refreshed = await supabase.auth.getUser()
-    user = refreshed.data.user
-    if (!user || !isEmailConfirmedUser(user)) {
-      await supabase.auth.signOut()
-      redirect("/login?reason=confirm_email")
-    }
+    user = (await supabase.auth.getUser()).data.user
+  }
+
+  if (!user || !isEmailConfirmedUser(user)) {
+    // Sesiunea e scrisă; middleware duce pe onboarding/dashboard sau înapoi la login.
+    return "/dashboard"
   }
 
   const ready = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
-  redirect(therapistAppPath(ready))
+  return therapistAppPath(ready)
+}
+
+export async function redirectAfterTherapistAuth() {
+  redirect(await resolveTherapistAppPath())
 }

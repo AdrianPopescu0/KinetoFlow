@@ -6,7 +6,7 @@ import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
 import { isEmailAlreadyRegisteredError } from "@/lib/auth/email-confirmed"
 import { readVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
-import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
+import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
 import {
   AUTH_ERROR_MESSAGE,
   parseLoginCredentials,
@@ -24,6 +24,7 @@ export type LoginActionState = {
   info?: string
   otpSent?: boolean
   devCode?: string
+  next?: "/dashboard" | "/onboarding"
 } | null
 
 const EXISTING_ACCOUNT_MESSAGE =
@@ -101,8 +102,7 @@ export async function login(formData: FormData): Promise<LoginActionState> {
     return verifiedSignInFailureMessage(signedIn, AUTH_ERROR_MESSAGE)
   }
 
-  await redirectAfterTherapistAuth()
-  return null
+  return { next: await resolveTherapistAppPath() }
 }
 
 export async function register(formData: FormData): Promise<LoginActionState> {
@@ -138,8 +138,7 @@ export async function register(formData: FormData): Promise<LoginActionState> {
       emailJustVerified: true,
     })
     if (signedIn.ok) {
-      await redirectAfterTherapistAuth()
-      return null
+      return { next: await resolveTherapistAppPath() }
     }
     return { error: EXISTING_ACCOUNT_MESSAGE }
   }
@@ -156,6 +155,5 @@ export async function register(formData: FormData): Promise<LoginActionState> {
     return verifiedSignInFailureMessage(signedIn, REGISTER_ERROR_MESSAGE)
   }
 
-  await redirectAfterTherapistAuth()
-  return null
+  return { next: await resolveTherapistAppPath() }
 }

@@ -13,7 +13,7 @@ import {
 import { EMAIL_OTP_TTL_MS, readVerifiedEmailCookie, signVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
-import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
+import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
 import {
   AUTH_ERROR_MESSAGE,
   parseLoginCredentials,
@@ -38,6 +38,7 @@ export type EarlyAccessEmailState = {
   otpSent?: boolean
   verified?: boolean
   devCode?: string
+  next?: "/dashboard" | "/onboarding"
 } | null
 
 export async function unlockEarlyAccess(formData: FormData): Promise<EarlyAccessState> {
@@ -146,8 +147,7 @@ export async function finishEarlyAccessLogin(formData: FormData): Promise<EarlyA
   }
 
   await clearVerifiedEmailCookie()
-  await redirectAfterTherapistAuth()
-  return null
+  return { next: await resolveTherapistAppPath() }
 }
 
 export async function finishEarlyAccessRegister(formData: FormData): Promise<EarlyAccessEmailState> {
@@ -184,8 +184,7 @@ export async function finishEarlyAccessRegister(formData: FormData): Promise<Ear
     })
     if (signedIn.ok) {
       await clearVerifiedEmailCookie()
-      await redirectAfterTherapistAuth()
-      return null
+      return { next: await resolveTherapistAppPath() }
     }
     return { error: "Există deja un cont cu acest email. Alege „Am deja cont” și introdu parola." }
   }
@@ -201,6 +200,5 @@ export async function finishEarlyAccessRegister(formData: FormData): Promise<Ear
   }
 
   await clearVerifiedEmailCookie()
-  await redirectAfterTherapistAuth()
-  return null
+  return { next: await resolveTherapistAppPath() }
 }

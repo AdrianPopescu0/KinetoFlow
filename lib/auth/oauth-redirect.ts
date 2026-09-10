@@ -4,6 +4,18 @@ export function isSupabaseAuthCookieName(name: string): boolean {
   return name.startsWith("sb-") && (name.includes("-auth-token") || name.includes("code-verifier"))
 }
 
+export function therapistEnterPath(next?: string | null): "/dashboard" | "/onboarding" {
+  return next === "/onboarding" ? "/onboarding" : "/dashboard"
+}
+
+/** Navigare de document după ce acțiunea a scris cookie-urile de sesiune. */
+export function enterTherapistApp(next?: string | null) {
+  if (typeof window === "undefined") {
+    return
+  }
+  window.location.assign(therapistEnterPath(next))
+}
+
 export function oauthBrowserRedirectTo(
   origin: string,
   options?: { next?: string; invite?: string },

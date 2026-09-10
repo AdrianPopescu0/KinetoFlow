@@ -1,7 +1,7 @@
 "use server"
 
 import { AUTH_ERROR_MESSAGE, parseRegisterCredentials } from "@/lib/auth/validation"
-import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
+import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
 import {
   isMissingTherapistInvitesTable,
@@ -15,6 +15,7 @@ import { createClient } from "@/utils/supabase/server"
 
 export type AcceptTherapistInviteState = {
   error?: string
+  next?: "/dashboard" | "/onboarding"
 } | null
 
 function emailAlreadyRegistered(error: { message?: string; code?: string } | null): boolean {
@@ -158,8 +159,7 @@ export async function acceptTherapistInvite(
     }
 
     if (!createdNewUser) {
-      await redirectAfterTherapistAuth()
-      return null
+      return { next: await resolveTherapistAppPath() }
     }
 
     const supabase = await createClient()
@@ -171,8 +171,7 @@ export async function acceptTherapistInvite(
       return { error: "Contul a fost creat, dar autentificarea a eșuat. Intră din pagina de login cu același email." }
     }
 
-    await redirectAfterTherapistAuth()
-    return null
+    return { next: await resolveTherapistAppPath() }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Nu am putut activa invitația."
     if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {

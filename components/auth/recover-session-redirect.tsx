@@ -1,41 +1,30 @@
 "use client"
 
 import { useEffect } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 
-import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
+import { enterTherapistApp } from "@/lib/auth/oauth-redirect"
 import { createClient } from "@/utils/supabase/client"
 
-function hasSignedOutGate(): boolean {
-  if (typeof document === "undefined") {
-    return false
-  }
-  return document.cookie.split(";").some((part) => part.trim().startsWith(`${SIGNED_OUT_GATE_COOKIE}=1`))
-}
-
 /**
- * Dacă Google/OAuth lasă sesiunea pe `/` (Site URL) sau pe `/login`,
- * ducem terapeutul în dashboard, nu pe landing.
+ * Dacă Google lasă sesiunea pe landing (Site URL = `/`), ducem terapeutul
+ * în dashboard printr-un document request — fără buclă pe `/login`.
  */
-export function RecoverSessionRedirect({ stayOnPage = false }: { stayOnPage?: boolean }) {
+export function RecoverSessionRedirect() {
   const pathname = usePathname()
-  const router = useRouter()
 
   useEffect(() => {
-    if (stayOnPage || hasSignedOutGate()) {
-      return
-    }
-    if (pathname !== "/" && pathname !== "/login" && pathname !== "/early-access") {
+    if (pathname !== "/" && pathname !== "/early-access") {
       return
     }
 
     const supabase = createClient()
     void supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        router.replace("/dashboard")
+        enterTherapistApp("/dashboard")
       }
     })
-  }, [pathname, router, stayOnPage])
+  }, [pathname])
 
   return null
 }

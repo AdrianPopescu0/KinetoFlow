@@ -4,7 +4,6 @@ import { NextResponse, type NextRequest } from "next/server"
 import { EARLY_ACCESS_COOKIE, hasValidEarlyAccessCookie } from "@/lib/auth/early-access"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { isPublicMarketingPath, shouldStayOnTherapistLogin, therapistAppPath } from "@/lib/auth/paths"
-import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import {
@@ -124,19 +123,33 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
+  const sessionCookies: Array<{ name: string; value: string; options?: Parameters<NextResponse["cookies"]["set"]>[2] }> =
+    []
+
   const supabase = createServerClient<Database>(url, anonKey, {
     cookies: {
       getAll() {
-        return request.cookies.getAll()
+        const merged = new Map(request.cookies.getAll().map((cookie) => [cookie.name, cookie]))
+        for (const cookie of sessionCookies) {
+          merged.set(cookie.name, { name: cookie.name, value: cookie.value })
+        }
+        return Array.from(merged.values())
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => {
+        cookiesToSet.forEach(({ name, value, options }) => {
           request.cookies.set(name, value)
+          const index = sessionCookies.findIndex((cookie) => cookie.name === name)
+          const next = { name, value, options }
+          if (index >= 0) {
+            sessionCookies[index] = next
+          } else {
+            sessionCookies.push(next)
+          }
         })
         supabaseResponse = NextResponse.next({
           request,
         })
-        cookiesToSet.forEach(({ name, value, options }) => {
+        sessionCookies.forEach(({ name, value, options }) => {
           supabaseResponse.cookies.set(name, value, { ...options, path: "/" })
         })
         if (urlToken) {
@@ -154,7 +167,6 @@ export async function updateSession(request: NextRequest) {
   const authenticatedUser = userError ? null : user
   const emailConfirmed = isEmailConfirmedUser(authenticatedUser)
   const stayOnLogin = isTherapistAuthPage(pathname) && shouldStayOnTherapistLogin(request.nextUrl.searchParams)
-  const signedOutGate = request.cookies.get(SIGNED_OUT_GATE_COOKIE)?.value === "1"
 
   if (!authenticatedUser && isTherapistAuthPage(pathname) && !(await isEarlyAccessUnlocked(request))) {
     return redirectToEarlyAccess(request, supabaseResponse)
@@ -185,7 +197,7 @@ export async function updateSession(request: NextRequest) {
       : await therapistHasClinicProfile(supabase, authenticatedUser.id)
     const appPath = therapistAppPath(clinicReady)
 
-    if (!stayOnLogin && !signedOutGate && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname))) {
+    if (!stayOnLogin && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname))) {
       return redirectWithAuthCookies(request, supabaseResponse, appPath)
     }
 

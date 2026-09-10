@@ -15,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
+import { enterTherapistApp, oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
@@ -94,10 +94,13 @@ export function EarlyAccessWelcomeForm({
         mode === "register" ? await finishEarlyAccessRegister(formData) : await finishEarlyAccessLogin(formData)
       if (result?.error) {
         setError(result.error)
+        return
       }
       if (result?.info) {
         setInfo(result.info)
+        return
       }
+      enterTherapistApp(result?.next)
     })
   }
 
