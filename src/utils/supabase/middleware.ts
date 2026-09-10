@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { EARLY_ACCESS_COOKIE, hasValidEarlyAccessCookie } from "@/lib/auth/early-access"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
-import { isPublicMarketingPath, therapistAppPath } from "@/lib/auth/paths"
+import { isPublicMarketingPath, shouldStayOnTherapistLogin, therapistAppPath } from "@/lib/auth/paths"
+import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import {
@@ -152,6 +153,8 @@ export async function updateSession(request: NextRequest) {
 
   const authenticatedUser = userError ? null : user
   const emailConfirmed = isEmailConfirmedUser(authenticatedUser)
+  const stayOnLogin = isTherapistAuthPage(pathname) && shouldStayOnTherapistLogin(request.nextUrl.searchParams)
+  const signedOutGate = request.cookies.get(SIGNED_OUT_GATE_COOKIE)?.value === "1"
 
   if (!authenticatedUser && isTherapistAuthPage(pathname) && !(await isEarlyAccessUnlocked(request))) {
     return redirectToEarlyAccess(request, supabaseResponse)
@@ -182,7 +185,7 @@ export async function updateSession(request: NextRequest) {
       : await therapistHasClinicProfile(supabase, authenticatedUser.id)
     const appPath = therapistAppPath(clinicReady)
 
-    if (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname)) {
+    if (!stayOnLogin && !signedOutGate && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname))) {
       return redirectWithAuthCookies(request, supabaseResponse, appPath)
     }
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 
+import { LeaveUnavailableInviteButton } from "@/app/auth/invitatie/leave-unavailable-button"
 import { SET_PASSWORD_PATH } from "@/lib/auth/paths"
 import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Button } from "@/components/ui/button"
@@ -49,12 +49,7 @@ export default async function ActivarePage({ searchParams }: ActivarePageProps) 
                 Linkul de invitație lipsește sau este incomplet. Cere administratorului un link nou
                 pe WhatsApp.
               </p>
-              <Link
-                href="/login"
-                className="inline-flex h-12 min-h-[48px] w-full items-center justify-center rounded-xl border border-slate-300 bg-white text-sm font-medium text-slate-800"
-              >
-                Mergi la autentificare
-              </Link>
+              <LeaveUnavailableInviteButton />
             </>
           )}
         </div>

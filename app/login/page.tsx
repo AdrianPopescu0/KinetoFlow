@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { LoginForm } from "@/app/login/login-form"
+import { RecoverSessionRedirect } from "@/components/auth/recover-session-redirect"
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout"
 import { EMAIL_CONFIRM_REQUIRED } from "@/lib/auth/email-confirmed"
 import { isSignupAuthMode } from "@/lib/auth/paths"
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 }
 
 type LoginPageProps = {
-  searchParams: Promise<{ mode?: string; tab?: string; reason?: string }>
+  searchParams: Promise<{ mode?: string; tab?: string; reason?: string; signedout?: string }>
 }
 
 function loginReasonMessage(reason: string | undefined): string | null {
@@ -46,6 +47,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </p>
       }
     >
+      <RecoverSessionRedirect stayOnPage={params.signedout === "1"} />
       <LoginForm
         initialTab={signup ? "register" : "login"}
         initialError={loginReasonMessage(params.reason)}

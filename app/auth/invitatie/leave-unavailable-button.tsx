@@ -3,22 +3,26 @@
 import { useTransition } from "react"
 import { Loader2 } from "lucide-react"
 
-import { signOutFromUnavailableInvite } from "@/app/auth/invitatie/actions"
+import { signOutToLogin } from "@/lib/auth/sign-out-to-login"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/utils/supabase/client"
 
-export function LeaveUnavailableInviteButton() {
+export function LeaveUnavailableInviteButton({
+  label = "Mergi la autentificare",
+}: {
+  label?: string
+}) {
   const [isPending, startTransition] = useTransition()
 
   function handleLeave() {
     startTransition(async () => {
       const supabase = createClient()
       try {
-        await supabase.auth.signOut({ scope: "local" })
+        await supabase.auth.signOut()
       } catch {
-        // Cookie-urile httpOnly se curăță oricum în acțiunea de pe server.
+        // Cookie-urile httpOnly se curăță în acțiunea de pe server.
       }
-      await signOutFromUnavailableInvite()
+      await signOutToLogin()
     })
   }
 
@@ -36,7 +40,7 @@ export function LeaveUnavailableInviteButton() {
           Se deconectează…
         </>
       ) : (
-        "Mergi la autentificare"
+        label
       )}
     </Button>
   )

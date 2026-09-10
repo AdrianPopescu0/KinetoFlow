@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { isPublicMarketingPath, therapistAppPath } from "./paths.ts"
+import { isPublicMarketingPath, shouldStayOnTherapistLogin, therapistAppPath } from "./paths.ts"
+import { isSupabaseAuthCookieName, oauthBrowserRedirectTo } from "./oauth-redirect.ts"
 
 test("landing-ul public e pagina de marketing, nu dashboard-ul", () => {
   assert.equal(isPublicMarketingPath("/"), true)
@@ -14,4 +15,29 @@ test("landing-ul public e pagina de marketing, nu dashboard-ul", () => {
 test("terapeutul cu clinică merge în dashboard, altfel la onboarding", () => {
   assert.equal(therapistAppPath(true), "/dashboard")
   assert.equal(therapistAppPath(false), "/onboarding")
+})
+
+test("după deconectarea de pe invitație, /login?signedout=1 nu e aruncat în clinică", () => {
+  assert.equal(shouldStayOnTherapistLogin("signedout=1"), true)
+  assert.equal(shouldStayOnTherapistLogin("?signedout=1"), true)
+  assert.equal(shouldStayOnTherapistLogin(new URLSearchParams("signedout=1")), true)
+  assert.equal(shouldStayOnTherapistLogin("reason=oauth"), false)
+  assert.equal(shouldStayOnTherapistLogin(null), false)
+})
+
+test("callback-ul Google duce în dashboard, nu pe pagina principală", () => {
+  assert.equal(
+    oauthBrowserRedirectTo("https://app.example", { next: "/dashboard" }),
+    "https://app.example/auth/callback?next=%2Fdashboard",
+  )
+  assert.match(
+    oauthBrowserRedirectTo("https://app.example", { next: "/dashboard", invite: "tok" }),
+    /invite=tok/,
+  )
+})
+
+test("recunoaște cookie-urile de sesiune Supabase", () => {
+  assert.equal(isSupabaseAuthCookieName("sb-xxxx-auth-token"), true)
+  assert.equal(isSupabaseAuthCookieName("sb-xxxx-auth-token.0"), true)
+  assert.equal(isSupabaseAuthCookieName("kf_early_access"), false)
 })

@@ -1,7 +1,5 @@
 "use server"
 
-import { redirect } from "next/navigation"
-
 import { AUTH_ERROR_MESSAGE, parseRegisterCredentials } from "@/lib/auth/validation"
 import { redirectAfterTherapistAuth } from "@/lib/auth/redirect-after"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
@@ -18,12 +16,6 @@ import { createClient } from "@/utils/supabase/server"
 export type AcceptTherapistInviteState = {
   error?: string
 } | null
-
-export async function signOutFromUnavailableInvite() {
-  const supabase = await createClient()
-  await supabase.auth.signOut({ scope: "local" })
-  redirect("/login")
-}
 
 function emailAlreadyRegistered(error: { message?: string; code?: string } | null): boolean {
   if (!error) {
@@ -105,6 +97,9 @@ export async function acceptTherapistInvite(
     if (!data || !isTherapistInviteOpen(data)) {
       return { error: "Invitația a expirat sau a fost deja folosită. Cere administratorului un link nou." }
     }
+
+    const supabaseForSignOut = await createClient()
+    await supabaseForSignOut.auth.signOut()
 
     const { data: created, error: createError } = await admin.auth.admin.createUser({
       email: parsed.email,

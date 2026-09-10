@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { KeyRound } from "lucide-react"
 
 import { AppShell } from "@/components/brand/app-atmosphere"
+import { RecoverSessionRedirect } from "@/components/auth/recover-session-redirect"
 import { EarlyAccessForm } from "@/components/landing/early-access-form"
 import { LandingHeader } from "@/components/landing/landing-header"
 import {
@@ -23,6 +24,7 @@ export default async function EarlyAccessPage() {
 
   return (
     <AppShell>
+      <RecoverSessionRedirect />
       <LandingHeader />
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-16 sm:px-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">

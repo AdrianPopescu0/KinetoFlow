@@ -190,10 +190,6 @@ export async function finishEarlyAccessRegister(formData: FormData): Promise<Ear
     return { error: "Există deja un cont cu acest email. Alege „Am deja cont” și introdu parola." }
   }
 
-  if (data.session) {
-    await supabase.auth.signOut()
-  }
-
   const signedIn = await signInAfterEmailVerified({
     email: parsed.email,
     password: parsed.password,

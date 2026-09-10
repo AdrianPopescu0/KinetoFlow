@@ -1,15 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 export function copyCookies(from: NextResponse, to: NextResponse): NextResponse {
+  const copied = new Set<string>()
   const setCookies = from.headers.getSetCookie()
-  if (setCookies.length > 0) {
-    for (const cookie of setCookies) {
-      to.headers.append("Set-Cookie", cookie)
+  for (const cookie of setCookies) {
+    to.headers.append("Set-Cookie", cookie)
+    const name = cookie.split("=")[0]?.trim()
+    if (name) {
+      copied.add(name)
     }
-    return to
   }
 
   from.cookies.getAll().forEach((cookie) => {
+    if (copied.has(cookie.name)) {
+      return
+    }
     to.cookies.set(cookie.name, cookie.value, { path: "/" })
   })
   return to

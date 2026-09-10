@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { AppShell } from "@/components/brand/app-atmosphere"
+import { RecoverSessionRedirect } from "@/components/auth/recover-session-redirect"
 import { LandingCta } from "@/components/landing/landing-cta"
 import { LandingFeatures } from "@/components/landing/landing-features"
 import { LandingHeader } from "@/components/landing/landing-header"
@@ -21,6 +22,7 @@ export default async function HomePage({
 
   return (
     <AppShell>
+      <RecoverSessionRedirect />
       <LandingHeader />
       <main className="flex flex-1 flex-col">
         <LandingHero unlockOpen={unlock === "1"} />

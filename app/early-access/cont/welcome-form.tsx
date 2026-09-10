@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
@@ -110,10 +111,15 @@ export function EarlyAccessWelcomeForm({
     setGooglePending(true)
     try {
       const supabase = createClient()
+      try {
+        await supabase.auth.signOut()
+      } catch {
+        // Continuăm cu Google; callback-ul creează sesiunea nouă.
+      }
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: oauthBrowserRedirectTo(window.location.origin, { next: "/dashboard" }),
         },
       })
       if (oauthError) {

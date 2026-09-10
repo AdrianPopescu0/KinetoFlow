@@ -144,11 +144,8 @@ export async function register(formData: FormData): Promise<LoginActionState> {
     return { error: EXISTING_ACCOUNT_MESSAGE }
   }
 
-  // Semnătura din signUp e adesea fără email_confirmed_at. O înlocuim după confirmare.
-  if (data.session) {
-    await supabase.auth.signOut()
-  }
-
+  // Semnătura din signUp e adesea fără email_confirmed_at. Confirmăm și
+  // autentificăm imediat — fără a goli sesiunea înainte de sign-in.
   const signedIn = await signInAfterEmailVerified({
     email: parsed.email,
     password: parsed.password,
