@@ -72,6 +72,8 @@ export function isInviteContinuePath(pathname: string): boolean {
   return pathname === THERAPIST_INVITE_CONTINUE_PATH || pathname.startsWith(`${THERAPIST_INVITE_CONTINUE_PATH}/`)
 }
 
+export const INVITE_TOKEN_FIELD = "invite_token"
+
 export function readTherapistInviteToken(
   ...values: Array<string | null | undefined>
 ): string | null {
@@ -82,6 +84,19 @@ export function readTherapistInviteToken(
     }
   }
   return null
+}
+
+export function inviteTokenFromFormData(formData: FormData): string | null {
+  return readTherapistInviteToken(
+    formDataEntry(formData, INVITE_TOKEN_FIELD),
+    formDataEntry(formData, "token"),
+    formDataEntry(formData, "invite"),
+  )
+}
+
+function formDataEntry(formData: FormData, key: string): string | null {
+  const value = formData.get(key)
+  return typeof value === "string" ? value : null
 }
 
 export function inviteTokenFromAuthUser(user: {

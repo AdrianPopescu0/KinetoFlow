@@ -1,10 +1,17 @@
 "use server"
 
 import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
 import { AUTH_ERROR_MESSAGE, parseRegisterCredentials } from "@/lib/auth/validation"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
-import { writeTherapistInviteCookies } from "@/lib/clinics/invite-session"
+import {
+  THERAPIST_INVITE_CLIENT_COOKIE,
+  THERAPIST_INVITE_COOKIE,
+  inviteTokenFromFormData,
+  readTherapistInviteToken,
+  writeTherapistInviteCookies,
+} from "@/lib/clinics/invite-session"
 import {
   isMissingTherapistInvitesTable,
   isTherapistInviteOpen,
@@ -17,7 +24,6 @@ import { createClient } from "@/utils/supabase/server"
 
 export type AcceptTherapistInviteState = {
   error?: string
-  next?: "/dashboard"
 } | null
 
 function emailAlreadyRegistered(error: { message?: string; code?: string } | null): boolean {
@@ -32,6 +38,15 @@ function emailAlreadyRegistered(error: { message?: string; code?: string } | nul
     message.includes("already been registered") ||
     message.includes("already registered") ||
     message.includes("user already exists")
+  )
+}
+
+async function resolveInviteTokenFromSubmit(formData: FormData): Promise<string | null> {
+  const jar = await cookies()
+  return readTherapistInviteToken(
+    inviteTokenFromFormData(formData),
+    jar.get(THERAPIST_INVITE_COOKIE)?.value,
+    jar.get(THERAPIST_INVITE_CLIENT_COOKIE)?.value,
   )
 }
 
@@ -73,11 +88,12 @@ export async function prepareTherapistInviteOAuth(token: string): Promise<Accept
 }
 
 export async function acceptTherapistInvite(
-  token: string,
+  _prevState: AcceptTherapistInviteState,
   formData: FormData,
 ): Promise<AcceptTherapistInviteState> {
-  if (!isTherapistInviteToken(token)) {
-    return { error: "Linkul de invitație este invalid." }
+  const token = await resolveInviteTokenFromSubmit(formData)
+  if (!token) {
+    return { error: "Linkul de invitație este invalid. Reîncarcă pagina din mesajul primit." }
   }
 
   const parsed = parseRegisterCredentials(formData)
@@ -128,8 +144,8 @@ export async function acceptTherapistInvite(
       },
     })
 
-    let userId = created.user?.id ?? null
-    const createdNewUser = Boolean(created.user?.id) && !emailAlreadyRegistered(createError)
+    let userId = created?.user?.id ?? null
+    const createdNewUser = Boolean(created?.user?.id) && !emailAlreadyRegistered(createError)
 
     if (createError && emailAlreadyRegistered(createError)) {
       const supabase = await createClient()
@@ -152,6 +168,8 @@ export async function acceptTherapistInvite(
       return { error: AUTH_ERROR_MESSAGE }
     }
 
+    // Obligatoriu imediat după crearea contului: clinica din therapist_invites,
+    // rândul din clinic_profiles, invitația marcată ca acceptată.
     const attached = await attachTherapistInviteToUser({
       token,
       user: { id: userId, email: parsed.email },
@@ -166,24 +184,19 @@ export async function acceptTherapistInvite(
       return { error: attached.error }
     }
 
+    if (createdNewUser) {
+      const supabase = await createClient()
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: parsed.email,
+        password: parsed.password,
+      })
+      if (signInError) {
+        return { error: "Contul a fost creat, dar autentificarea a eșuat. Intră din pagina de login cu același email." }
+      }
+    }
+
     const jar = await cookies()
     writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
-
-    if (!createdNewUser) {
-      return { next: "/dashboard" }
-    }
-
-    const supabase = await createClient()
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: parsed.email,
-      password: parsed.password,
-    })
-    if (signInError) {
-      return { error: "Contul a fost creat, dar autentificarea a eșuat. Intră din pagina de login cu același email." }
-    }
-
-    writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
-    return { next: "/dashboard" }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Nu am putut activa invitația."
     if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
@@ -191,4 +204,6 @@ export async function acceptTherapistInvite(
     }
     return { error: message }
   }
+
+  redirect("/dashboard")
 }

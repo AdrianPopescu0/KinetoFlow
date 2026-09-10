@@ -83,7 +83,7 @@ export async function attachTherapistInviteToUser(input: {
         phone: data.phone,
         role: "therapist",
       })
-      if (insertProfileError) {
+      if (insertProfileError && !isUniqueMembershipError(insertProfileError)) {
         return { ok: false, error: formatSupabaseError(insertProfileError), reason: "failed" }
       }
     }
@@ -135,4 +135,13 @@ export async function attachTherapistInviteToUser(input: {
     }
     return { ok: false, error: message, reason: "failed" }
   }
+}
+
+function isUniqueMembershipError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) {
+    return false
+  }
+  const code = (error.code ?? "").toLowerCase()
+  const message = (error.message ?? "").toLowerCase()
+  return code === "23505" || message.includes("duplicate") || message.includes("unique")
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useActionState, useState } from "react"
 import Link from "next/link"
 import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2 } from "lucide-react"
 
@@ -11,7 +11,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
-import { persistTherapistInviteToken, THERAPIST_INVITE_PATH } from "@/lib/clinics/invite-session"
+import {
+  INVITE_TOKEN_FIELD,
+  persistTherapistInviteToken,
+  THERAPIST_INVITE_PATH,
+} from "@/lib/clinics/invite-session"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
@@ -28,12 +32,13 @@ export function AcceptTherapistInviteForm({
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
-  const [isPending, startTransition] = useTransition()
+  const [state, formAction, isPending] = useActionState(acceptTherapistInvite, null)
   const [googlePending, setGooglePending] = useState(false)
   const passwordChecks = evaluateRegisterPassword(password)
   const busy = isPending || googlePending
   const canSubmit = passwordChecks.isValid && acceptedTerms
   persistTherapistInviteToken(token)
+  const displayError = state?.error ?? error
 
   async function handleGoogleLogin() {
     if (!acceptedTerms) {
@@ -84,35 +89,13 @@ export function AcceptTherapistInviteForm({
     }
   }
 
-  function handleSubmit(formData: FormData) {
-    setError(null)
-    startTransition(async () => {
-      persistTherapistInviteToken(token)
-      if (!evaluateRegisterPassword(String(formData.get("password") ?? "")).isValid) {
-        setError("Parola trebuie să aibă minim 8 caractere, o majusculă, o cifră și un caracter special.")
-        return
-      }
-      if (formData.get(LEGAL_ACCEPT_FIELD) !== "on") {
-        setError(LEGAL_ACCEPT_ERROR)
-        return
-      }
-      const result = await acceptTherapistInvite(token, formData)
-      if (result?.error) {
-        setError(result.error)
-        return
-      }
-      persistTherapistInviteToken(token)
-      window.location.replace("/dashboard")
-    })
-  }
-
   return (
     <div className="flex flex-col gap-5">
-      {error ? (
+      {displayError ? (
         <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
           <AlertCircle />
           <AlertTitle>Nu am putut crea contul</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{displayError}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -175,7 +158,8 @@ export function AcceptTherapistInviteForm({
         <span className="h-px flex-1 bg-slate-200" />
       </div>
 
-      <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
+      <form action={formAction} className="flex flex-col gap-5" noValidate>
+        <input type="hidden" name={INVITE_TOKEN_FIELD} value={token} />
         <input type="hidden" name={LEGAL_ACCEPT_FIELD} value={acceptedTerms ? "on" : ""} />
         <div className="flex flex-col gap-2">
           <Label htmlFor="invite-email" className="text-slate-900">

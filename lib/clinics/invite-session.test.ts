@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   inviteTokenFromAuthUser,
+  inviteTokenFromFormData,
   inviteTokenFromPathname,
   isInviteContinuePath,
   isInviteFinalizePath,
@@ -62,5 +63,16 @@ test("tokenul se citește din query, cookie httpOnly, cookie client sau metadate
     token,
   )
   assert.equal(inviteTokenFromAuthUser({ user_metadata: {}, app_metadata: {} }), null)
+})
+
+test("tokenul din formularul de înregistrare e citit din câmpul hidden", () => {
+  const formData = new FormData()
+  formData.set("invite_token", token)
+  formData.set("email", "ana@clinica.ro")
+  assert.equal(inviteTokenFromFormData(formData), token)
+
+  const empty = new FormData()
+  empty.set("email", "ana@clinica.ro")
+  assert.equal(inviteTokenFromFormData(empty), null)
 })
 
