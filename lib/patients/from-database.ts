@@ -2,6 +2,7 @@ import type { Exercise, PatientProgram } from "@/lib/patients/types"
 import type { ExerciseRecord, PatientRecord } from "@/lib/patients/types-db"
 import { isExerciseActiveOnDate } from "@/lib/exercises/schedule"
 import { listCompletedExerciseIdsForDay } from "@/lib/patients/exercise-completions"
+import { dailyCheckinFromRow, fetchTodaysCheckInRow } from "@/lib/patients/daily-checkin"
 import { isPatientUuidToken } from "@/lib/patients/session"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
 import { bucharestDateKey } from "@/lib/time/bucharest"
@@ -66,6 +67,10 @@ export async function loadPatientProgramFromDatabase(
       record.id,
       today,
     )
+    const todaysRow = await fetchTodaysCheckInRow(supabase, record.id, today)
+    const todaysCheckin = todaysRow
+      ? dailyCheckinFromRow(todaysRow, today, completedExerciseIdsToday)
+      : null
 
     const doneCount = completedExerciseIdsToday.filter((id) =>
       exercises.some((exercise) => exercise.id === id),
@@ -82,6 +87,7 @@ export async function loadPatientProgramFromDatabase(
       progressPercent: Math.max(progressPercent, exercises.length > 0 ? 5 : 0),
       exercises,
       completedExerciseIdsToday,
+      todaysCheckin,
       therapistName: therapist.name,
       therapistPhone: therapist.phone,
     }

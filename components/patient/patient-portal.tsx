@@ -86,7 +86,17 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
     if (merged.length > 0) {
       saveCompletedExercises(program.token, localDate, merged)
     }
-  }, [localDate, program.completedExerciseIdsToday, program.token])
+    if (program.todaysCheckin) {
+      saveTodaysCheckin(program.token, {
+        ...program.todaysCheckin,
+        completedExerciseIds: mergeIds(
+          program.todaysCheckin.completedExerciseIds,
+          program.completedExerciseIdsToday,
+          merged,
+        ),
+      })
+    }
+  }, [localDate, program.completedExerciseIdsToday, program.todaysCheckin, program.token])
 
   const beginSession = useCallback(() => {
     markSessionStarted(program.token, localDate)
@@ -209,8 +219,9 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         return
       }
 
-      saveTodaysCheckin(program.token, payload)
-      setJustSubmitted(true)
+      const stored = result.checkin ?? payload
+      saveTodaysCheckin(program.token, stored)
+      setJustSubmitted(!result.alreadySubmitted)
     })
   }
 

@@ -130,6 +130,7 @@ export type Database = {
           energy_level: string | null
           exercise_duration_seconds: number | null
           created_at: string
+          local_date: string
         }
         Insert: {
           id?: string
@@ -141,6 +142,7 @@ export type Database = {
           energy_level?: string | null
           exercise_duration_seconds?: number | null
           created_at?: string
+          local_date?: string
         }
         Update: Record<string, unknown>
         Relationships: []

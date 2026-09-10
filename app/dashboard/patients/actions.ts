@@ -11,9 +11,13 @@ import {
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
-import { isEnergyLevel, isSleepQuality } from "@/lib/patients/types"
+import { isEnergyLevel, isSleepQuality, type DailyCheckin } from "@/lib/patients/types"
 import { composeIntervalExerciseNotes, isDateKey } from "@/lib/exercises/schedule"
-import { startOfTodayIso, startOfTomorrowIso } from "@/lib/time/bucharest"
+import {
+  dailyCheckinFromRow,
+  fetchTodaysCheckInRow,
+  isUniqueCheckinConstraintError,
+} from "@/lib/patients/daily-checkin"
 import {
   patientAccessUrl,
   patientWhatsAppHref,
@@ -466,10 +470,15 @@ function isMissingColumnError(error: { code?: string; message: string }, column:
   return error.code === "PGRST204" || message.includes(column.toLowerCase())
 }
 
+type InsertCheckInResult =
+  | { ok: true }
+  | { ok: false; uniqueViolation: true }
+  | { ok: false; uniqueViolation: false; error: string }
+
 async function insertCheckInRow(
   admin: Awaited<ReturnType<typeof import("@/utils/supabase/admin").createServiceRoleClient>>,
   row: Record<string, unknown>,
-): Promise<string | null> {
+): Promise<InsertCheckInResult> {
   const variants: Array<Record<string, unknown>> = [row]
   const withoutDuration = { ...row }
   delete withoutDuration.exercise_duration_seconds
@@ -477,6 +486,9 @@ async function insertCheckInRow(
   const withoutEnergy = { ...row }
   delete withoutEnergy.energy_level
   variants.push(withoutEnergy)
+  const withoutLocalDate = { ...row }
+  delete withoutLocalDate.local_date
+  variants.push(withoutLocalDate)
   const core = { ...row }
   delete core.exercise_duration_seconds
   delete core.energy_level
@@ -491,20 +503,30 @@ async function insertCheckInRow(
     seen.add(key)
     const { error } = await admin.from("check_ins").insert(attempt as never)
     if (!error) {
-      return null
+      return { ok: true }
+    }
+    if (isUniqueCheckinConstraintError(error)) {
+      return { ok: false, uniqueViolation: true }
     }
     const missingOptional =
       isMissingColumnError(error, "exercise_duration_seconds") ||
-      isMissingColumnError(error, "energy_level")
+      isMissingColumnError(error, "energy_level") ||
+      isMissingColumnError(error, "local_date")
     if (!missingOptional) {
-      return "Nu am putut salva check-in-ul. Încearcă din nou."
+      return { ok: false, uniqueViolation: false, error: "Nu am putut salva check-in-ul. Încearcă din nou." }
     }
   }
 
-  return "Nu am putut salva check-in-ul. Încearcă din nou."
+  return { ok: false, uniqueViolation: false, error: "Nu am putut salva check-in-ul. Încearcă din nou." }
 }
 
-export async function submitPatientCheckin(formData: FormData): Promise<{ error: string | null }> {
+export type SubmitPatientCheckinResult = {
+  error: string | null
+  alreadySubmitted?: boolean
+  checkin?: DailyCheckin | null
+}
+
+export async function submitPatientCheckin(formData: FormData): Promise<SubmitPatientCheckinResult> {
   const token = readOptional(formData, "token")
   const notes = readOptional(formData, "notes")
   const sleepRaw = readOptional(formData, "sleep")
@@ -554,27 +576,25 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     return { error: "Nu am găsit programul pacientului. Reîncarcă pagina din linkul de acces." }
   }
 
-  const { data: existing } = await admin
-    .from("check_ins")
-    .select("id, created_at")
-    .eq("patient_id", patient.id)
-    .gte("created_at", startOfTodayIso())
-    .lt("created_at", startOfTomorrowIso())
-    .limit(1)
-
-  if (existing && existing.length > 0) {
+  const todayKey = bucharestDateKey()
+  const existingRow = await fetchTodaysCheckInRow(admin, patient.id, todayKey)
+  if (existingRow) {
     if (completedExerciseIds.length > 0) {
       await syncExerciseCompletionsForDay({
         supabase: admin,
         patientId: patient.id,
         exerciseIds: completedExerciseIds,
-        completedOn: bucharestDateKey(),
+        completedOn: todayKey,
       })
     }
-    return { error: null }
+    const completedToday = await listCompletedExerciseIdsForDay(admin, patient.id, todayKey)
+    return {
+      error: null,
+      alreadySubmitted: true,
+      checkin: dailyCheckinFromRow(existingRow, todayKey, completedToday),
+    }
   }
 
-  const todayKey = bucharestDateKey()
   const activeExerciseIds = await listActiveExerciseIdsForDay(admin, patient.id, todayKey)
   if (activeExerciseIds === null) {
     return { error: "Nu am putut verifica exercițiile de azi. Încearcă din nou." }
@@ -596,14 +616,25 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
     notes,
   }
 
-  const insertError = await insertCheckInRow(admin, {
+  const insertResult = await insertCheckInRow(admin, {
     ...base,
+    local_date: todayKey,
     energy_level: energy,
     exercise_duration_seconds: exerciseDurationSeconds,
   })
 
-  if (insertError) {
-    return { error: insertError }
+  if (!insertResult.ok && insertResult.uniqueViolation) {
+    const firstRow = await fetchTodaysCheckInRow(admin, patient.id, todayKey)
+    const completedToday = await listCompletedExerciseIdsForDay(admin, patient.id, todayKey)
+    return {
+      error: null,
+      alreadySubmitted: true,
+      checkin: firstRow ? dailyCheckinFromRow(firstRow, todayKey, completedToday) : null,
+    }
+  }
+
+  if (!insertResult.ok) {
+    return { error: insertResult.error }
   }
 
   if (completedExerciseIds.length > 0) {
@@ -611,10 +642,10 @@ export async function submitPatientCheckin(formData: FormData): Promise<{ error:
       supabase: admin,
       patientId: patient.id,
       exerciseIds: completedExerciseIds,
-      completedOn: bucharestDateKey(),
+      completedOn: todayKey,
     })
   }
 
-  return { error: null }
+  return { error: null, alreadySubmitted: false }
 }
 

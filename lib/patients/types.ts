@@ -44,6 +44,8 @@ export type PatientProgram = {
   exercises: Exercise[]
   /** Exerciții marcate ca efectuate azi (din Supabase, ziua București). */
   completedExerciseIdsToday?: string[]
+  /** Check-in-ul de azi din baza de date (primul rămâne valabil). */
+  todaysCheckin?: DailyCheckin | null
   therapistName: string
   therapistPhone: string | null
 }

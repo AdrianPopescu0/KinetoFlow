@@ -32,6 +32,7 @@ export type CheckInRecord = {
   pain_type: string | null
   notes: string | null
   created_at: string
+  local_date?: string | null
   /** Secunde de la primul exercițiu până la trimiterea check-in-ului. */
   exercise_duration_seconds: number | null
 }
