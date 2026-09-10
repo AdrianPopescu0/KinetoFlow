@@ -6,7 +6,7 @@ export function therapistInviteMessage(input: {
   const firstName = input.therapistName.trim().split(/\s+/)[0] || input.therapistName
   return [
     `Salut ${firstName}! Clinica ${input.clinicName} te-a invitat în echipa KinetoFlow.`,
-    "Deschide linkul unic, introdu emailul tău personal și setează-ți parola. Contul ți-l creezi tu, fără ca administratorul să-ți facă unul dinainte:",
+    "Deschide linkul, alege o parolă și activează-ți contul. Emailul e deja pe invitație:",
     `👉 ${input.inviteLink}`,
   ].join("\n")
 }

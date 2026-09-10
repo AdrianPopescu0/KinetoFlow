@@ -16,7 +16,6 @@ import {
   THERAPIST_INVITE_CLIENT_COOKIE,
   THERAPIST_INVITE_COOKIE,
   inviteTokenFromAuthUser,
-  therapistInviteFinalizeHref,
 } from "@/lib/clinics/invite-session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
 
@@ -43,7 +42,11 @@ export default async function OnboardingPage() {
     inviteTokenFromAuthUser(user),
   )
   if (inviteToken) {
-    redirect(therapistInviteFinalizeHref(inviteToken))
+    const attachedByToken = await attachTherapistInviteToUser({ token: inviteToken, user })
+    if (attachedByToken.ok) {
+      await supabase.auth.refreshSession()
+    }
+    redirect("/dashboard")
   }
 
   const attached = await attachTherapistInviteToUser({ user })

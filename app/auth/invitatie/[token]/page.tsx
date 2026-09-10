@@ -16,7 +16,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Invitație în clinică | KinetoFlow",
-  description: "Creează-ți contul de terapeut cu Google sau cu emailul personal.",
+  description: "Activează-ți contul de terapeut cu parola aleasă. Fără cod pe email.",
 }
 
 type InvitePageProps = {
@@ -32,15 +32,27 @@ export default async function TherapistInvitePage({ params, searchParams }: Invi
   let status: "ok" | "invalid" | "expired" | "missing-table" = "invalid"
   let clinicName = ""
   let therapistName = ""
+  let inviteEmail: string | null = null
 
   if (isTherapistInviteToken(token)) {
     try {
       const admin = createServiceRoleClient()
-      const { data, error } = await admin
+      const withEmail = await admin
         .from("therapist_invites")
-        .select("clinic_name, therapist_name, expires_at, accepted_at")
+        .select("clinic_name, therapist_name, email, expires_at, accepted_at")
         .eq("token", token)
         .maybeSingle()
+      const missingEmailColumn =
+        withEmail.error &&
+        (withEmail.error.code === "PGRST204" ||
+          (withEmail.error.message ?? "").toLowerCase().includes("email"))
+      const { data, error } = missingEmailColumn
+        ? await admin
+            .from("therapist_invites")
+            .select("clinic_name, therapist_name, expires_at, accepted_at")
+            .eq("token", token)
+            .maybeSingle()
+        : withEmail
 
       if (error && isMissingTherapistInvitesTable(error)) {
         status = "missing-table"
@@ -48,6 +60,8 @@ export default async function TherapistInvitePage({ params, searchParams }: Invi
         status = "ok"
         clinicName = String(data.clinic_name ?? "").trim()
         therapistName = String(data.therapist_name ?? "").trim()
+        const raw = "email" in data && typeof data.email === "string" ? data.email.trim().toLowerCase() : ""
+        inviteEmail = raw || null
       } else if (data) {
         status = "expired"
       }
@@ -71,14 +85,18 @@ export default async function TherapistInvitePage({ params, searchParams }: Invi
           {status === "ok" ? (
             <>
               <h1 className="mt-4 text-2xl font-semibold tracking-tight text-slate-800">
-                Creează-ți contul de terapeut
+                Activează-ți contul de terapeut
               </h1>
               <p className="mt-2 mb-6 text-sm leading-relaxed text-slate-600">
-                {clinicName} te-a invitat{therapistName ? ` ca ${therapistName}` : ""}. Continuă cu
-                Google sau introdu emailul personal și o parolă. Îți confirmăm adresa cu un cod de
-                6 cifre, apoi intri direct în clinică — fără onboarding.
+                {clinicName} te-a invitat{therapistName ? ` ca ${therapistName}` : ""}. Alege o parolă
+                pentru {inviteEmail ?? "adresa din invitație"} — fără cod pe email — și intri direct
+                în dashboard-ul clinicii.
               </p>
-              <AcceptTherapistInviteForm token={token} initialError={therapistInviteReasonMessage(reason)} />
+              <AcceptTherapistInviteForm
+                token={token}
+                inviteEmail={inviteEmail}
+                initialError={therapistInviteReasonMessage(reason)}
+              />
             </>
           ) : (
             <>

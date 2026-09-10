@@ -1,8 +1,9 @@
 -- KinetoFlow — invitații terapeuți (SMS / WhatsApp), fără cont Auth dinainte
 -- Rulează în Supabase: SQL Editor → New query → Run
 --
--- Adminul salvează o invitație + token unic. Terapeutul deschide
--- /auth/invitatie/<token>, își pune emailul și parola și își creează contul.
+-- Adminul salvează o invitație + token unic + email. Terapeutul deschide
+-- /auth/invitatie/<token>, își alege parola (emailul e precompletat) și
+-- activează contul, fără OTP.
 
 create table if not exists public.therapist_invites (
   id uuid primary key default gen_random_uuid(),

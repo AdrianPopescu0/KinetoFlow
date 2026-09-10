@@ -108,8 +108,8 @@ export function InviteTherapistDialog({
                     Link de invitație gata
                   </h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    Trimite-l lui {ready.therapistName} pe WhatsApp sau SMS. Își pune singur emailul
-                    și parola — nu îi creezi contul tu.
+                    Trimite-l lui {ready.therapistName} pe WhatsApp sau SMS. Își alege parola pe
+                    link — nu îi creezi contul tu și nu primește un cod pe email.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-center">
@@ -146,8 +146,8 @@ export function InviteTherapistDialog({
                       Invită terapeut
                     </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      Nume, telefon și, opțional, emailul Google. Generăm un link unic; terapeutul
-                      își creează contul singur.
+                      Nume, telefon și email. Generăm un link unic; terapeutul își alege doar
+                      parola și intră în clinică, fără onboarding.
                     </p>
                   </div>
                 </div>
@@ -163,18 +163,19 @@ export function InviteTherapistDialog({
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="invite-email">Email (opțional, pentru Google)</Label>
+                    <Label htmlFor="invite-email">Email</Label>
                     <Input
                       id="invite-email"
                       name="email"
                       type="email"
+                      required
                       autoComplete="off"
                       className="h-11"
-                      placeholder="terapeut@gmail.com"
+                      placeholder="terapeut@clinica.ro"
                     />
                     <p className="text-xs leading-relaxed text-slate-500">
-                      Dacă îl completezi, autentificarea cu Google pe același email asociază
-                      invitația existentă și deschide dashboard-ul clinicii, fără onboarding.
+                      Apare precompletat pe pagina de invitație. Terapeutul își alege doar parola —
+                      fără cod pe email — și intră în dashboard.
                     </p>
                   </div>
                   <div className="flex flex-col gap-2">

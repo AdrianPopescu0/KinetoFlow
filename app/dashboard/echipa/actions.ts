@@ -94,14 +94,14 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
   const therapistName = readTrimmed(formData, "therapist_name")
   const phoneRaw = readTrimmed(formData, "phone")
   const emailRaw = readTrimmed(formData, "email")
-  const email = emailRaw ? normalizeAuthEmail(emailRaw) : null
+  const email = normalizeAuthEmail(emailRaw)
 
   if (therapistName.length < 2) {
     return { error: "Introdu numele complet al terapeutului." }
   }
 
-  if (emailRaw && !email) {
-    return { error: "Emailul terapeutului nu este valid." }
+  if (!email) {
+    return { error: "Emailul terapeutului este obligatoriu. Apare precompletat pe pagina de invitație." }
   }
 
   const phone = normalizeStoredPhone(phoneRaw)
@@ -193,18 +193,13 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
       if (isMissingTherapistInvitesTable(insertError)) {
         return { error: MISSING_THERAPIST_INVITES_TABLE }
       }
-      if (email && isMissingColumn(insertError, "email")) {
-        delete insertPayload.email
-        const retry = await admin.from("therapist_invites").insert(insertPayload)
-        if (retry.error) {
-          if (isMissingTherapistInvitesTable(retry.error)) {
-            return { error: MISSING_THERAPIST_INVITES_TABLE }
-          }
-          return { error: formatSupabaseError(retry.error) }
+      if (isMissingColumn(insertError, "email")) {
+        return {
+          error:
+            "Tabela de invitații nu are coloana email. Rulează sql/029_therapist_invites_email.sql în Supabase SQL Editor.",
         }
-      } else {
-        return { error: formatSupabaseError(insertError) }
       }
+      return { error: formatSupabaseError(insertError) }
     }
 
     const message = therapistInviteMessage({

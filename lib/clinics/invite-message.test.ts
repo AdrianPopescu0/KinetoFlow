@@ -13,6 +13,7 @@ test("therapistInviteMessage include numele, clinica și linkul unic", () => {
   assert.match(message, /Salut Andrei!/)
   assert.match(message, /KinetoKlinik/)
   assert.match(message, /https:\/\/kinetoflow\.ro\/auth\/invitatie\/AbCdEfGhIjKlMnOpQrStUvWx/)
-  assert.match(message, /emailul tău personal/)
+  assert.match(message, /parolă/)
+  assert.doesNotMatch(message, /cod/i)
   assert.doesNotMatch(message, /Codul tău de acces/)
 })
