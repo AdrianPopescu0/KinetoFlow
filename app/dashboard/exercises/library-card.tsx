@@ -21,6 +21,9 @@ const DIFFICULTY_CLASS = {
   avansat: "bg-rose-50 text-rose-800",
 } as const
 
+/** Aceeași cutie ca „Șterge din bibliotecă”: size xl (44px, py-2.5). */
+const LIBRARY_CARD_BUTTON = "w-full rounded-xl"
+
 export const LibraryCard = memo(function LibraryCard({
   exercise,
   onPreview,
@@ -87,25 +90,39 @@ export const LibraryCard = memo(function LibraryCard({
             <dd className="font-semibold text-slate-800">{equipmentLabels(exercise.equipments)}</dd>
           </div>
         </dl>
-        <div className="mt-auto flex flex-col gap-2 sm:flex-row">
-          <Button type="button" variant="outline" onClick={() => onPreview(exercise)} className="h-11 flex-1 rounded-xl">
-            Vezi detalii
-          </Button>
-          <Button type="button" onClick={() => onAssign(exercise)} className="h-11 flex-1 rounded-xl">
-            + Atribuie
-          </Button>
+        <div className="mt-auto flex flex-col gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-stretch">
+            <Button
+              type="button"
+              variant="outline"
+              size="xl"
+              onClick={() => onPreview(exercise)}
+              className={LIBRARY_CARD_BUTTON}
+            >
+              Vezi detalii
+            </Button>
+            <Button
+              type="button"
+              size="xl"
+              onClick={() => onAssign(exercise)}
+              className={LIBRARY_CARD_BUTTON}
+            >
+              + Atribuie
+            </Button>
+          </div>
+          {onDelete ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="xl"
+              onClick={() => onDelete(exercise.id)}
+              className={cn(LIBRARY_CARD_BUTTON, "border-red-200 text-red-700 hover:bg-red-50")}
+            >
+              <Trash2 className="size-4" />
+              Șterge din bibliotecă
+            </Button>
+          ) : null}
         </div>
-        {onDelete ? (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onDelete(exercise.id)}
-            className="h-11 min-h-[44px] w-full rounded-xl border-red-200 text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="size-4" />
-            Șterge din bibliotecă
-          </Button>
-        ) : null}
       </div>
     </article>
   )
