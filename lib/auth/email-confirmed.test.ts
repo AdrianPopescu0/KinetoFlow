@@ -6,6 +6,7 @@ import {
   isEmailAlreadyRegisteredError,
   isEmailConfirmedUser,
   isEmailNotConfirmedAuthError,
+  isIncompleteEmailSignup,
   isInvalidLoginCredentialsError,
   shouldConfirmEmailAndRetrySignIn,
 } from "./email-confirmed.ts"
@@ -23,6 +24,42 @@ test("identitatea Google e considerată confirmată chiar fără email_confirmed
       identities: [{ provider: "google" }],
     }),
     true,
+  )
+})
+
+test("un signup email fără clinică rămâne incomplet, chiar dacă Auth l-a marcat confirmat", () => {
+  assert.equal(
+    isIncompleteEmailSignup({
+      email_confirmed_at: null,
+      identities: [{ provider: "email" }],
+    }),
+    true,
+  )
+  assert.equal(
+    isIncompleteEmailSignup({
+      email_confirmed_at: "2026-09-10T20:00:00.000Z",
+      last_sign_in_at: null,
+      identities: [{ provider: "email" }],
+    }),
+    true,
+  )
+  assert.equal(
+    isIncompleteEmailSignup(
+      {
+        email_confirmed_at: "2026-09-10T20:00:00.000Z",
+        last_sign_in_at: "2026-09-10T20:01:00.000Z",
+        identities: [{ provider: "email" }],
+      },
+      { hasClinicProfile: true },
+    ),
+    false,
+  )
+  assert.equal(
+    isIncompleteEmailSignup({
+      email_confirmed_at: "2026-09-10T20:00:00.000Z",
+      identities: [{ provider: "google" }],
+    }),
+    false,
   )
 })
 

@@ -2,7 +2,7 @@ import "server-only"
 
 import { Resend } from "resend"
 
-import { isEmailAlreadyRegisteredError } from "@/lib/auth/email-confirmed"
+import { isEmailAlreadyRegisteredError, isIncompleteEmailSignup } from "@/lib/auth/email-confirmed"
 import {
   EMAIL_OTP_MAX_ATTEMPTS,
   EMAIL_OTP_RESEND_MS,
@@ -110,6 +110,81 @@ async function sendAuthOtpEmail(input: {
 const EXISTING_ACCOUNT_MESSAGE =
   "Există deja un cont cu acest email. Intră în cont din tabul de autentificare."
 
+const OTP_REGENERATE_ERROR =
+  "Nu am putut genera un cod nou. Apasă „Retrimite codul de confirmare”."
+
+async function userHasClinicProfile(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+): Promise<boolean> {
+  const { data } = await admin.from("clinic_profiles").select("user_id").eq("user_id", userId).maybeSingle()
+  return Boolean(data && typeof data.user_id === "string")
+}
+
+async function loadAuthUserByEmail(email: string) {
+  const existingId = await findAuthUserIdByEmail(email)
+  if (!existingId) {
+    return null
+  }
+  const admin = createServiceRoleClient()
+  const { data } = await admin.auth.admin.getUserById(existingId)
+  return data.user ?? null
+}
+
+async function generateOtpForExistingEmailUser(input: {
+  email: string
+  password?: string
+  userId?: string
+}): Promise<{ code: string } | { error: string; status?: number }> {
+  const admin = createServiceRoleClient()
+
+  if (input.userId && input.password) {
+    const { error: passwordError } = await admin.auth.admin.updateUserById(input.userId, {
+      password: input.password,
+    })
+    if (passwordError) {
+      console.warn("[auth-otp] nu am putut actualiza parola pentru retrimitere:", passwordError.message)
+    }
+  }
+
+  for (const type of ["magiclink", "recovery"] as const) {
+    const { data, error } = await admin.auth.admin.generateLink({
+      type,
+      email: input.email,
+    })
+    const otp = data.properties?.email_otp
+    if (!error && otp && isEmailOtpCode(otp)) {
+      return { code: otp }
+    }
+  }
+
+  return { error: OTP_REGENERATE_ERROR, status: 503 }
+}
+
+async function otpForExistingRegisterUser(input: {
+  email: string
+  password: string
+  user?: Awaited<ReturnType<typeof loadAuthUserByEmail>>
+}): Promise<{ code: string } | { error: string; status?: number }> {
+  const user = input.user ?? (await loadAuthUserByEmail(input.email).catch(() => null))
+  if (user?.id) {
+    const hasClinicProfile = await userHasClinicProfile(createServiceRoleClient(), user.id)
+    if (!isIncompleteEmailSignup(user, { hasClinicProfile })) {
+      return { error: EXISTING_ACCOUNT_MESSAGE, status: 409 }
+    }
+    return generateOtpForExistingEmailUser({
+      email: input.email,
+      password: input.password,
+      userId: user.id,
+    })
+  }
+
+  return generateOtpForExistingEmailUser({
+    email: input.email,
+    password: input.password,
+  })
+}
+
 async function supabaseEmailOtpCode(input: {
   email: string
   purpose: AuthEmailOtpPurpose
@@ -124,24 +199,9 @@ async function supabaseEmailOtpCode(input: {
     }
 
     try {
-      const existingId = await findAuthUserIdByEmail(input.email)
-      if (existingId) {
-        const { data: existing } = await admin.auth.admin.getUserById(existingId)
-        if (existing.user?.email_confirmed_at) {
-          return { error: EXISTING_ACCOUNT_MESSAGE, status: 409 }
-        }
-        const { data, error } = await admin.auth.admin.generateLink({
-          type: "magiclink",
-          email: input.email,
-        })
-        const otp = data.properties?.email_otp
-        if (error || !otp || !isEmailOtpCode(otp)) {
-          return {
-            error: "Nu am putut genera un cod nou. Apasă „Retrimite codul”.",
-            status: 503,
-          }
-        }
-        return { code: otp }
+      const existing = await loadAuthUserByEmail(input.email)
+      if (existing) {
+        return otpForExistingRegisterUser({ email: input.email, password, user: existing })
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Nu am putut verifica emailul."
@@ -157,18 +217,7 @@ async function supabaseEmailOtpCode(input: {
     })
     if (error) {
       if (isEmailAlreadyRegisteredError(error)) {
-        const { data: retry, error: retryError } = await admin.auth.admin.generateLink({
-          type: "magiclink",
-          email: input.email,
-        })
-        const retryOtp = retry.properties?.email_otp
-        if (retryError || !retryOtp || !isEmailOtpCode(retryOtp)) {
-          return {
-            error: "Nu am putut genera un cod nou. Apasă „Retrimite codul”.",
-            status: 503,
-          }
-        }
-        return { code: retryOtp }
+        return otpForExistingRegisterUser({ email: input.email, password })
       }
       return { error: formatSupabaseError(error) }
     }

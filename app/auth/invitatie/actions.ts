@@ -150,13 +150,12 @@ export async function requestInviteRegisterOtp(
   const supabase = await createClient()
   await supabase.auth.signOut()
 
-  const force = String(formData.get("resend") ?? "") === "1"
   const issued = await issueAuthEmailOtp({
     email: parsed.email,
     purpose: "register",
     password: parsed.password,
     returnPath: `${THERAPIST_INVITE_PATH}/${token}`,
-    force,
+    force: true,
   })
 
   // A failed send must never create a session or attach the clinic.

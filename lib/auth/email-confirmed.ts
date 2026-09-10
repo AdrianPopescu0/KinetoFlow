@@ -14,10 +14,41 @@ export function isEmailConfirmedUser(user: {
   if (user.email_confirmed_at) {
     return true
   }
-  return (user.identities ?? []).some((identity) => {
+  return hasNonEmailIdentity(user)
+}
+
+export function hasNonEmailIdentity(user: {
+  identities?: Array<{ provider?: string | null }> | null
+} | null | undefined): boolean {
+  return (user?.identities ?? []).some((identity) => {
     const provider = identity.provider ?? ""
     return provider.length > 0 && provider !== "email"
   })
+}
+
+/**
+ * Cont creat la înregistrare, dar încă neactivat: fără identitate Google, fără
+ * profil de clinică. Include atât email neconfirmat, cât și contul auto-confirmat
+ * rămas după un OTP care nu a plecat pe email.
+ */
+export function isIncompleteEmailSignup(
+  user: {
+    email_confirmed_at?: string | null
+    last_sign_in_at?: string | null
+    identities?: Array<{ provider?: string | null }> | null
+  } | null | undefined,
+  options?: { hasClinicProfile?: boolean },
+): boolean {
+  if (!user) {
+    return false
+  }
+  if (hasNonEmailIdentity(user)) {
+    return false
+  }
+  if (options?.hasClinicProfile) {
+    return false
+  }
+  return true
 }
 
 export function isEmailNotConfirmedAuthError(error: {

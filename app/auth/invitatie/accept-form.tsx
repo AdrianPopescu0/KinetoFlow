@@ -289,7 +289,7 @@ export function AcceptTherapistInviteForm({
                   Se retrimite…
                 </>
               ) : (
-                "Retrimite codul"
+                "Retrimite codul de confirmare"
               )}
             </Button>
           ) : null}
@@ -322,7 +322,7 @@ export function AcceptTherapistInviteForm({
                   Se retrimite…
                 </>
               ) : (
-                "Retrimite codul"
+                "Retrimite codul de confirmare"
               )}
             </Button>
           )}

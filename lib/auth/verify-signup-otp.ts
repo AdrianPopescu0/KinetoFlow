@@ -5,7 +5,7 @@ import type { EmailOtpType } from "@supabase/supabase-js"
 import { isEmailOtpCode, normalizeAuthEmail } from "@/lib/auth/email-otp"
 import { createClient } from "@/utils/supabase/server"
 
-const SIGNUP_OTP_TYPES: EmailOtpType[] = ["signup", "email", "magiclink"]
+const SIGNUP_OTP_TYPES: EmailOtpType[] = ["signup", "email", "magiclink", "invite", "recovery"]
 
 export type VerifySignupOtpResult =
   | { ok: true }
