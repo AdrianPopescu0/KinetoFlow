@@ -1,8 +1,7 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useState, useTransition } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
 
 import { login, register, requestAuthEmailOtpAction } from "@/app/login/actions"
@@ -31,8 +30,7 @@ export function LoginForm({
   initialInfo?: string | null
   initialOtpVerified?: boolean
 }) {
-  const router = useRouter()
-  const [tab, setTab] = useState<AuthTab>(initialTab)
+  const tab = initialTab
   const [error, setError] = useState<string | null>(initialError)
   const [info, setInfo] = useState<string | null>(initialInfo)
   const [showPassword, setShowPassword] = useState(false)
@@ -47,23 +45,7 @@ export function LoginForm({
   const canSubmitRegister = passwordChecks.isValid && acceptedTerms
   const busy = isPending || googlePending
 
-  useEffect(() => {
-    setTab(initialTab)
-  }, [initialTab])
-
-  function switchTab(next: AuthTab) {
-    setTab(next)
-    setError(null)
-    setInfo(null)
-    setPassword("")
-    setAcceptedTerms(false)
-    setOtp("")
-    setOtpSent(false)
-    setDevCode(null)
-    router.replace(loginHref(next === "register" ? "signup" : "signin"), { scroll: false })
-  }
-
-  const handleGoogleLogin = async () => {
+  const handleGoogleAuth = async () => {
     if (tab === "register" && !acceptedTerms) {
       setError(LEGAL_ACCEPT_ERROR)
       return
@@ -83,7 +65,9 @@ export function LoginForm({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: oauthBrowserRedirectTo(window.location.origin, { next: "/dashboard" }),
+          redirectTo: oauthBrowserRedirectTo(window.location.origin, {
+            next: tab === "register" ? "/onboarding" : "/dashboard",
+          }),
         },
       })
       if (error) {
@@ -138,14 +122,6 @@ export function LoginForm({
       }
       if (result?.info) {
         setInfo(result.info)
-        if (tab === "register") {
-          setTab("login")
-          setAcceptedTerms(false)
-          setOtp("")
-          setOtpSent(false)
-          setDevCode(null)
-          router.replace(loginHref("signin"), { scroll: false })
-        }
         return
       }
       enterTherapistApp(result?.next)
@@ -159,12 +135,12 @@ export function LoginForm({
         aria-label="Autentificare sau înregistrare"
         className="grid grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1"
       >
-        <TabButton active={tab === "login"} onClick={() => switchTab("login")}>
+        <AuthModeTab href={loginHref("signin")} active={tab === "login"}>
           Intră în cont
-        </TabButton>
-        <TabButton active={tab === "register"} onClick={() => switchTab("register")}>
+        </AuthModeTab>
+        <AuthModeTab href={loginHref("signup")} active={tab === "register"}>
           Înregistrează clinică nouă
-        </TabButton>
+        </AuthModeTab>
       </div>
 
       {error ? (
@@ -187,9 +163,9 @@ export function LoginForm({
         type="button"
         variant="outline"
         disabled={busy}
-        aria-label="Sign in with Google"
+        aria-label={tab === "register" ? "Creează cont cu Google" : "Intră cu Google"}
         onClick={() => {
-          void handleGoogleLogin()
+          void handleGoogleAuth()
         }}
         className="h-12 min-h-[48px] w-full rounded-xl border-slate-300 bg-white text-sm font-semibold text-slate-800"
       >
@@ -198,7 +174,7 @@ export function LoginForm({
         ) : (
           <GoogleMark className="size-5" />
         )}
-        Sign In with Google
+        {tab === "register" ? "Creează cont cu Google" : "Intră cu Google"}
       </Button>
 
       <div className="flex items-center gap-3" role="separator" aria-label="sau">
@@ -414,27 +390,27 @@ export function LoginForm({
   )
 }
 
-function TabButton({
+function AuthModeTab({
+  href,
   active,
-  onClick,
   children,
 }: {
+  href: string
   active: boolean
-  onClick: () => void
   children: string
 }) {
   return (
-    <button
-      type="button"
+    <Link
+      href={href}
       role="tab"
       aria-selected={active}
-      onClick={onClick}
+      scroll={false}
       className={cn(
-        "h-auto min-h-11 rounded-lg px-2 py-2 text-sm font-medium leading-tight whitespace-normal transition-colors",
+        "inline-flex h-auto min-h-11 items-center justify-center rounded-lg px-2 py-2 text-center text-sm font-medium leading-tight whitespace-normal transition-colors",
         active ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900",
       )}
     >
       {children}
-    </button>
+    </Link>
   )
 }

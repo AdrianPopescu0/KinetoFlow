@@ -7,6 +7,7 @@ import { isEmailAlreadyRegisteredError } from "@/lib/auth/email-confirmed"
 import { readVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
+import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import {
   AUTH_ERROR_MESSAGE,
   parseLoginCredentials,
@@ -132,14 +133,6 @@ export async function register(formData: FormData): Promise<LoginActionState> {
   }
 
   if (duplicateIdentity || isEmailAlreadyRegisteredError(error)) {
-    const signedIn = await signInAfterEmailVerified({
-      email: parsed.email,
-      password: parsed.password,
-      emailJustVerified: true,
-    })
-    if (signedIn.ok) {
-      return { next: await resolveTherapistAppPath() }
-    }
     return { error: EXISTING_ACCOUNT_MESSAGE }
   }
 
@@ -155,5 +148,7 @@ export async function register(formData: FormData): Promise<LoginActionState> {
     return verifiedSignInFailureMessage(signedIn, REGISTER_ERROR_MESSAGE)
   }
 
-  return { next: await resolveTherapistAppPath() }
+  const jar = await cookies()
+  jar.delete(SIGNED_OUT_GATE_COOKIE)
+  return { next: "/onboarding" }
 }

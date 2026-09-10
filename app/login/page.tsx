@@ -47,6 +47,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       }
     >
       <LoginForm
+        key={signup ? "register" : "login"}
         initialTab={signup ? "register" : "login"}
         initialError={loginReasonMessage(params.reason)}
         initialInfo={

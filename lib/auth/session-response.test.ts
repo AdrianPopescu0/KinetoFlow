@@ -1,8 +1,18 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { isPublicMarketingPath, shouldStayOnTherapistLogin, therapistAppPath } from "./paths.ts"
+import { isPublicMarketingPath, isSignupAuthMode, loginHref, shouldStayOnTherapistLogin, therapistAppPath } from "./paths.ts"
 import { isSupabaseAuthCookieName, oauthBrowserRedirectTo, therapistEnterPath } from "./oauth-redirect.ts"
+
+test("taburile de autentificare și înregistrare au rute distincte", () => {
+  assert.equal(loginHref("signin"), "/login?mode=signin")
+  assert.equal(loginHref("signup"), "/login?mode=signup")
+  assert.notEqual(loginHref("signin"), loginHref("signup"))
+  assert.equal(isSignupAuthMode({ mode: "signup" }), true)
+  assert.equal(isSignupAuthMode({ tab: "register" }), true)
+  assert.equal(isSignupAuthMode({ mode: "signin" }), false)
+  assert.equal(isSignupAuthMode({}), false)
+})
 
 test("landing-ul public e pagina de marketing, nu dashboard-ul", () => {
   assert.equal(isPublicMarketingPath("/"), true)
