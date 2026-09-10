@@ -1,4 +1,4 @@
-import { isTherapistInviteToken, THERAPIST_INVITE_PATH } from "./therapist-invite.ts"
+import { isTherapistInviteToken, THERAPIST_INVITE_PATH } from "./therapist-invite-token.ts"
 
 export const THERAPIST_INVITE_COOKIE = "kf_therapist_invite"
 export const THERAPIST_INVITE_STORAGE_KEY = "kf_therapist_invite"
@@ -29,6 +29,19 @@ export function inviteTokenFromPathname(pathname: string): string | null {
 
 export function isInviteFinalizePath(pathname: string): boolean {
   return pathname === THERAPIST_INVITE_FINALIZE_PATH || pathname.startsWith(`${THERAPIST_INVITE_FINALIZE_PATH}/`)
+}
+
+export function readTherapistInviteToken(
+  queryInvite: string | null | undefined,
+  cookieInvite?: string | null,
+): string | null {
+  for (const value of [queryInvite, cookieInvite]) {
+    const token = typeof value === "string" ? value.trim() : ""
+    if (isTherapistInviteToken(token)) {
+      return token
+    }
+  }
+  return null
 }
 
 export function persistTherapistInviteToken(token: string) {

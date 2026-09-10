@@ -1,16 +1,15 @@
 import { randomBytes } from "node:crypto"
 
+import { isTherapistInviteToken, THERAPIST_INVITE_PATH } from "./therapist-invite-token.ts"
+
+export { isTherapistInviteToken, THERAPIST_INVITE_PATH } from "./therapist-invite-token.ts"
+
 export const THERAPIST_INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000
-export const THERAPIST_INVITE_PATH = "/auth/invitatie"
 export const MISSING_THERAPIST_INVITES_TABLE =
   "Tabela pentru invitații lipsește. Rulează sql/027_therapist_invites.sql în Supabase SQL Editor."
 
 export function generateTherapistInviteToken(): string {
   return randomBytes(24).toString("base64url")
-}
-
-export function isTherapistInviteToken(value: string): boolean {
-  return /^[A-Za-z0-9_-]{20,80}$/.test(value.trim())
 }
 
 export function therapistInviteUrl(siteUrl: string, token: string): string {

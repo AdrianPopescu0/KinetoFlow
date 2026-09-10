@@ -6,12 +6,12 @@ import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { isPublicMarketingPath, shouldStayOnTherapistLogin, therapistAppPath } from "@/lib/auth/paths"
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
-import { readTherapistInviteToken } from "@/lib/clinics/invite-attach"
 import {
   THERAPIST_INVITE_COOKIE,
   THERAPIST_INVITE_FINALIZE_PATH,
   inviteTokenFromPathname,
   isInviteFinalizePath,
+  readTherapistInviteToken,
   therapistInviteCookieOptions,
 } from "@/lib/clinics/invite-session"
 import {

@@ -1,5 +1,8 @@
 import { normalizeAuthEmail } from "../auth/email-otp.ts"
-import { isTherapistInviteOpen, isTherapistInviteToken, THERAPIST_INVITE_PATH } from "./therapist-invite.ts"
+import { isTherapistInviteOpen } from "./therapist-invite.ts"
+import { THERAPIST_INVITE_PATH } from "./therapist-invite-token.ts"
+
+export { readTherapistInviteToken } from "./invite-session.ts"
 
 export const INVITE_NO_EMAIL_ERROR =
   "Google nu a trimis o adresă de email. Folosește un cont Google cu email vizibil sau creează contul cu email și parolă."
@@ -32,19 +35,6 @@ export function googleAccountEmail(user: {
   const raw = googleIdentity?.identity_data?.email
   const fromGoogle = typeof raw === "string" ? raw : null
   return normalizeAuthEmail(fromGoogle) ?? normalizeAuthEmail(user.email)
-}
-
-export function readTherapistInviteToken(
-  queryInvite: string | null | undefined,
-  cookieInvite?: string | null,
-): string | null {
-  for (const value of [queryInvite, cookieInvite]) {
-    const token = typeof value === "string" ? value.trim() : ""
-    if (isTherapistInviteToken(token)) {
-      return token
-    }
-  }
-  return null
 }
 
 export function therapistInvitePagePath(token: string, reason?: string): string {
