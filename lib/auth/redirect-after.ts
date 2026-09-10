@@ -52,20 +52,14 @@ export async function resolveTherapistAppPath(): Promise<TherapistAppPath> {
     jar.get(THERAPIST_INVITE_CLIENT_COOKIE)?.value,
     inviteTokenFromAuthUser(user),
   )
-  if (inviteToken) {
-    await supabase.auth.updateUser({
-      data: {
-        invite_token: inviteToken,
-        invited: true,
-        role: "therapist",
-      },
-    })
-    const attached = await attachTherapistInviteToUser({ token: inviteToken, user })
-    if (attached.ok) {
-      jar.delete(THERAPIST_INVITE_COOKIE)
-      jar.delete(THERAPIST_INVITE_CLIENT_COOKIE)
-      return "/dashboard"
-    }
+  const attached = await attachTherapistInviteToUser({
+    token: inviteToken,
+    user,
+  })
+  if (attached.ok) {
+    jar.delete(THERAPIST_INVITE_COOKIE)
+    jar.delete(THERAPIST_INVITE_CLIENT_COOKIE)
+    return "/dashboard"
   }
 
   if (invitedTherapistFromUser(user)) {

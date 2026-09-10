@@ -51,15 +51,24 @@ export function InvitedTherapistOnboardingGate({ children }: { children: ReactNo
       window.location.replace(therapistInviteFinalizeHref(token))
       return
     }
-    const supabase = createClient()
-    void supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user && (clinicReadyFromUser(user) || invitedTherapistFromUser(user))) {
+    void claimPendingTherapistInvite().then((result) => {
+      if (result.ok) {
         window.location.replace("/dashboard")
         return
       }
-      setAllowed(true)
-    }).catch(() => {
-      setAllowed(true)
+      const supabase = createClient()
+      void supabase.auth
+        .getUser()
+        .then(({ data: { user } }) => {
+          if (user && (clinicReadyFromUser(user) || invitedTherapistFromUser(user))) {
+            window.location.replace("/dashboard")
+            return
+          }
+          setAllowed(true)
+        })
+        .catch(() => {
+          setAllowed(true)
+        })
     })
   }, [])
 
@@ -78,17 +87,23 @@ export function ResumeTherapistInviteAfterAuth() {
   useLayoutEffect(() => {
     const token = readStoredTherapistInviteToken()
     if (!token) {
-      const supabase = createClient()
-      void supabase.auth.getUser().then(({ data: { user } }) => {
-        if (!user) {
-          window.location.replace("/login")
-          return
-        }
-        if (clinicReadyFromUser(user) || invitedTherapistFromUser(user)) {
+      void claimPendingTherapistInvite().then((result) => {
+        if (result.ok) {
           window.location.replace("/dashboard")
           return
         }
-        window.location.replace("/onboarding")
+        const supabase = createClient()
+        void supabase.auth.getUser().then(({ data: { user } }) => {
+          if (!user) {
+            window.location.replace("/login")
+            return
+          }
+          if (clinicReadyFromUser(user) || invitedTherapistFromUser(user)) {
+            window.location.replace("/dashboard")
+            return
+          }
+          window.location.replace("/onboarding")
+        })
       })
       return
     }

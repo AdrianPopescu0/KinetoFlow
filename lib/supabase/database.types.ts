@@ -226,6 +226,7 @@ export type Database = {
           invited_by: string
           therapist_name: string
           phone: string
+          email: string | null
           expires_at: string
           accepted_at: string | null
           accepted_user_id: string | null
@@ -239,6 +240,7 @@ export type Database = {
           invited_by: string
           therapist_name: string
           phone: string
+          email?: string | null
           expires_at: string
           accepted_at?: string | null
           accepted_user_id?: string | null

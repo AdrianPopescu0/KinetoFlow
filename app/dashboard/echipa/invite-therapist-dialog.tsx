@@ -146,8 +146,8 @@ export function InviteTherapistDialog({
                       Invită terapeut
                     </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      Nume și telefon. Generăm un link unic; terapeutul își creează contul cu
-                      emailul lui personal.
+                      Nume, telefon și, opțional, emailul Google. Generăm un link unic; terapeutul
+                      își creează contul singur.
                     </p>
                   </div>
                 </div>
@@ -161,6 +161,21 @@ export function InviteTherapistDialog({
                       className="h-11"
                       placeholder="Andrei Popescu"
                     />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="invite-email">Email (opțional, pentru Google)</Label>
+                    <Input
+                      id="invite-email"
+                      name="email"
+                      type="email"
+                      autoComplete="off"
+                      className="h-11"
+                      placeholder="terapeut@gmail.com"
+                    />
+                    <p className="text-xs leading-relaxed text-slate-500">
+                      Dacă îl completezi, autentificarea cu Google pe același email asociază
+                      invitația existentă și deschide dashboard-ul clinicii, fără onboarding.
+                    </p>
                   </div>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="invite-phone">Număr de telefon</Label>

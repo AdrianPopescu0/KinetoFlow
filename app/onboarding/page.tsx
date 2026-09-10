@@ -9,6 +9,7 @@ import { Logo } from "@/components/Logo"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { getCachedUser } from "@/lib/auth/session"
+import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
 import { invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 import { readTherapistInviteToken } from "@/lib/clinics/invite-attach"
 import {
@@ -44,6 +45,13 @@ export default async function OnboardingPage() {
   if (inviteToken) {
     redirect(therapistInviteFinalizeHref(inviteToken))
   }
+
+  const attached = await attachTherapistInviteToUser({ user })
+  if (attached.ok) {
+    await supabase.auth.refreshSession()
+    redirect("/dashboard")
+  }
+
   if (invitedTherapistFromUser(user)) {
     redirect("/dashboard")
   }

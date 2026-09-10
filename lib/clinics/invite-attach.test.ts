@@ -7,6 +7,7 @@ import {
   INVITE_EXPIRED_ERROR,
   INVITE_NO_EMAIL_ERROR,
   INVITE_OTHER_CLINIC_ERROR,
+  pickTherapistInviteCandidate,
   readTherapistInviteToken,
   therapistInvitePagePath,
   therapistInviteReasonMessage,
@@ -33,6 +34,60 @@ test("readTherapistInviteToken acceptă doar tokenuri valide, query înaintea co
   assert.equal(readTherapistInviteToken(token, "aaaaaaaaaaaaaaaaaaaaaa"), token)
   assert.equal(readTherapistInviteToken(null, token), token)
   assert.equal(readTherapistInviteToken("scurt", "tot-scurt"), null)
+})
+
+test("pickTherapistInviteCandidate folosește emailul pending înainte de a concluziona că nu există clinică", () => {
+  const pendingByEmail = {
+    clinic_name: "KinetoCare",
+    email: "ana@gmail.com",
+    expires_at: future,
+    accepted_at: null,
+    accepted_user_id: null,
+  }
+  const picked = pickTherapistInviteCandidate({
+    byToken: null,
+    byEmail: pendingByEmail,
+    byAcceptedUser: null,
+  })
+  assert.equal(picked, pendingByEmail)
+  assert.equal(
+    decideTherapistInviteAttach({
+      email: "ana@gmail.com",
+      userId: "google-user-1",
+      invite: pendingByEmail,
+      existingClinicName: null,
+    }).action,
+    "attach",
+  )
+  assert.equal(
+    pickTherapistInviteCandidate({
+      byToken: { token: "token-1", expires_at: future },
+      byEmail: pendingByEmail,
+      byAcceptedUser: null,
+    })?.token,
+    "token-1",
+  )
+  const expiredToken = {
+    token: "token-expirat",
+    expires_at: past,
+    accepted_at: null,
+    accepted_user_id: null,
+  }
+  const pickedOverExpired = pickTherapistInviteCandidate({
+    byToken: expiredToken,
+    byEmail: pendingByEmail,
+    byAcceptedUser: null,
+    userId: "google-user-1",
+  })
+  assert.equal(pickedOverExpired, pendingByEmail)
+  assert.equal(
+    pickTherapistInviteCandidate({
+      byToken: expiredToken,
+      byEmail: null,
+      byAcceptedUser: null,
+    }),
+    expiredToken,
+  )
 })
 
 test("decideTherapistInviteAttach cere email Google și o invitație deschisă", () => {

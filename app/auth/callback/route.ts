@@ -167,23 +167,25 @@ export async function GET(request: NextRequest) {
     return redirectWithCookies(request, "/login?reason=confirm_email", sessionCookies)
   }
 
-  if (resolvedInviteToken) {
-    if (!user) {
-      const response = redirectWithCookies(request, therapistInvitePagePath(resolvedInviteToken, "oauth"), sessionCookies)
-      stampInviteCookie(response, resolvedInviteToken)
+  if (user) {
+    const attached = await attachTherapistInviteToUser({
+      token: resolvedInviteToken,
+      user,
+    })
+    if (attached.ok) {
+      await supabase.auth.updateUser({
+        data: {
+          ...(resolvedInviteToken ? { invite_token: resolvedInviteToken } : {}),
+          invited: true,
+          role: "therapist",
+        },
+      })
+      await supabase.auth.refreshSession()
+      const response = redirectWithCookies(request, "/dashboard", sessionCookies)
+      clearInviteCookie(response)
       return response
     }
-
-    await supabase.auth.updateUser({
-      data: {
-        invite_token: resolvedInviteToken,
-        invited: true,
-        role: "therapist",
-      },
-    })
-
-    const attached = await attachTherapistInviteToUser({ token: resolvedInviteToken, user })
-    if (!attached.ok) {
+    if (resolvedInviteToken && attached.reason !== "no_invite") {
       await supabase.auth.signOut()
       const response = redirectWithCookies(
         request,
@@ -193,19 +195,11 @@ export async function GET(request: NextRequest) {
       stampInviteCookie(response, resolvedInviteToken)
       return response
     }
+  }
 
-    await supabase.auth.refreshSession()
-    const {
-      data: { user: refreshed },
-    } = await supabase.auth.getUser()
-    const clinicReady =
-      (refreshed ? clinicReadyFromUser(refreshed) : false) || (await therapistHasClinicProfile(supabase, user.id))
-    const response = redirectWithCookies(request, "/dashboard", sessionCookies)
-    if (clinicReady) {
-      clearInviteCookie(response)
-    } else {
-      stampInviteCookie(response, resolvedInviteToken)
-    }
+  if (resolvedInviteToken && !user) {
+    const response = redirectWithCookies(request, therapistInvitePagePath(resolvedInviteToken, "oauth"), sessionCookies)
+    stampInviteCookie(response, resolvedInviteToken)
     return response
   }
 

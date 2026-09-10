@@ -12,6 +12,7 @@ create table if not exists public.therapist_invites (
   invited_by uuid not null,
   therapist_name text not null,
   phone text not null,
+  email text,
   expires_at timestamptz not null,
   accepted_at timestamptz,
   accepted_user_id uuid,
@@ -27,6 +28,10 @@ create unique index if not exists therapist_invites_token_idx
 create index if not exists therapist_invites_clinic_pending_idx
   on public.therapist_invites (clinic_name, phone, created_at desc)
   where accepted_at is null;
+
+create index if not exists therapist_invites_pending_email_idx
+  on public.therapist_invites (email, created_at desc)
+  where accepted_at is null and email is not null;
 
 alter table public.therapist_invites enable row level security;
 

@@ -47,11 +47,19 @@ export async function GET(request: NextRequest) {
     return response
   }
 
+  const supabase = await createClient()
+
   if (!inviteToken) {
+    const attached = await attachTherapistInviteToUser({ user })
+    if (attached.ok) {
+      await supabase.auth.refreshSession()
+      const response = NextResponse.redirect(absoluteUrl(request, "/dashboard"), 303)
+      clearInviteCookie(response)
+      return response
+    }
     return NextResponse.redirect(absoluteUrl(request, "/dashboard"), 303)
   }
 
-  const supabase = await createClient()
   await supabase.auth.updateUser({
     data: {
       invite_token: inviteToken,

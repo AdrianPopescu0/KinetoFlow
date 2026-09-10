@@ -8,7 +8,7 @@ import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import { parseRegisterCredentials } from "@/lib/auth/validation"
 import { verifySignupEmailOtp } from "@/lib/auth/verify-signup-otp"
-import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
+import { attachTherapistInviteToUser, stampTherapistInviteEmail } from "@/lib/clinics/attach-therapist-invite"
 import {
   THERAPIST_INVITE_CLIENT_COOKIE,
   THERAPIST_INVITE_COOKIE,
@@ -146,6 +146,8 @@ export async function requestInviteRegisterOtp(
   if (inviteError) {
     return { error: inviteError }
   }
+
+  await stampTherapistInviteEmail(token, parsed.email)
 
   const supabase = await createClient()
   await supabase.auth.signOut()

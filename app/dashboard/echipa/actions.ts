@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { getCachedUser } from "@/lib/auth/session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
 import { resolveInviteSiteUrl } from "@/lib/auth/invite-link"
+import { normalizeAuthEmail } from "@/lib/auth/email-otp"
 import { therapistInviteMessage } from "@/lib/clinics/invite-message"
 import {
   generateTherapistInviteToken,
@@ -92,9 +93,15 @@ function readTrimmed(formData: FormData, key: string): string {
 export async function inviteTherapistAction(formData: FormData): Promise<InviteTherapistState> {
   const therapistName = readTrimmed(formData, "therapist_name")
   const phoneRaw = readTrimmed(formData, "phone")
+  const emailRaw = readTrimmed(formData, "email")
+  const email = emailRaw ? normalizeAuthEmail(emailRaw) : null
 
   if (therapistName.length < 2) {
     return { error: "Introdu numele complet al terapeutului." }
+  }
+
+  if (emailRaw && !email) {
+    return { error: "Emailul terapeutului nu este valid." }
   }
 
   const phone = normalizeStoredPhone(phoneRaw)
@@ -158,7 +165,16 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
       return { error: formatSupabaseError(pending.error) }
     }
 
-    const { error: insertError } = await admin.from("therapist_invites").insert({
+    const insertPayload: {
+      token: string
+      clinic_name: string
+      clinic_owner_id: string
+      invited_by: string
+      therapist_name: string
+      phone: string
+      expires_at: string
+      email?: string
+    } = {
       token,
       clinic_name: clinicName,
       clinic_owner_id: clinicOwnerId,
@@ -166,13 +182,29 @@ export async function inviteTherapistAction(formData: FormData): Promise<InviteT
       therapist_name: therapistName,
       phone,
       expires_at: expiresAt,
-    })
+    }
+    if (email) {
+      insertPayload.email = email
+    }
+
+    const { error: insertError } = await admin.from("therapist_invites").insert(insertPayload)
 
     if (insertError) {
       if (isMissingTherapistInvitesTable(insertError)) {
         return { error: MISSING_THERAPIST_INVITES_TABLE }
       }
-      return { error: formatSupabaseError(insertError) }
+      if (email && isMissingColumn(insertError, "email")) {
+        delete insertPayload.email
+        const retry = await admin.from("therapist_invites").insert(insertPayload)
+        if (retry.error) {
+          if (isMissingTherapistInvitesTable(retry.error)) {
+            return { error: MISSING_THERAPIST_INVITES_TABLE }
+          }
+          return { error: formatSupabaseError(retry.error) }
+        }
+      } else {
+        return { error: formatSupabaseError(insertError) }
+      }
     }
 
     const message = therapistInviteMessage({

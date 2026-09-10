@@ -27,15 +27,21 @@ export function OnboardingClient({
   useLayoutEffect(() => {
     const token = readStoredTherapistInviteToken()
     if (!token) {
-      const supabase = createClient()
-      void supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user && (clinicReadyFromUser(user) || invitedTherapistFromUser(user))) {
+      void claimPendingTherapistInvite().then((result) => {
+        if (result.ok) {
           window.location.replace("/dashboard")
           return
         }
-        setPhase("form")
-      }).catch(() => {
-        setPhase("form")
+        const supabase = createClient()
+        void supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user && (clinicReadyFromUser(user) || invitedTherapistFromUser(user))) {
+            window.location.replace("/dashboard")
+            return
+          }
+          setPhase("form")
+        }).catch(() => {
+          setPhase("form")
+        })
       })
       return
     }

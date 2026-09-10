@@ -20,11 +20,7 @@ export type ClaimPendingInviteResult =
   | { ok: true }
   | { ok: false; error: string; reason?: "expired" | "other_clinic" | "no_email" | "failed" }
 
-export async function claimPendingTherapistInvite(token: string): Promise<ClaimPendingInviteResult> {
-  if (!isTherapistInviteToken(token)) {
-    return { ok: false, error: "Linkul de invitație este invalid.", reason: "expired" }
-  }
-
+export async function claimPendingTherapistInvite(token?: string | null): Promise<ClaimPendingInviteResult> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -33,21 +29,26 @@ export async function claimPendingTherapistInvite(token: string): Promise<ClaimP
     return { ok: false, error: "Autentificarea a expirat. Intră din nou în cont.", reason: "failed" }
   }
 
-  await supabase.auth.updateUser({
-    data: {
-      invite_token: token,
-      invited: true,
-      role: "therapist",
-    },
-  })
+  const resolved = isTherapistInviteToken(token ?? "") ? token : null
+  if (resolved) {
+    await supabase.auth.updateUser({
+      data: {
+        invite_token: resolved,
+        invited: true,
+        role: "therapist",
+      },
+    })
+  }
 
-  const attached = await attachTherapistInviteToUser({ token, user })
+  const attached = await attachTherapistInviteToUser({ token: resolved, user })
   if (!attached.ok) {
-    return { ok: false, error: attached.error, reason: attached.reason }
+    return { ok: false, error: attached.error, reason: attached.reason === "no_invite" ? "failed" : attached.reason }
   }
 
   const jar = await cookies()
-  writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
+  if (resolved) {
+    writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), resolved)
+  }
   await supabase.auth.refreshSession()
   revalidatePath("/", "layout")
   return { ok: true }

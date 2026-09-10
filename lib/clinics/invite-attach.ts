@@ -68,6 +68,50 @@ export function therapistInviteReasonMessage(reason: string | undefined): string
   return null
 }
 
+export type TherapistInviteCandidate = {
+  token?: string | null
+  email?: string | null
+  accepted_user_id?: string | null
+  expires_at: string
+  accepted_at?: string | null
+}
+
+function inviteAcceptedByUser(
+  invite: TherapistInviteCandidate | null,
+  userId: string | undefined,
+): boolean {
+  return Boolean(invite && userId && invite.accepted_user_id === userId)
+}
+
+/**
+ * Tokenul deschis din link bate restul. Un token expirat NU trebuie să
+ * ascundă invitația pending cu același email Google — altfel OAuth cade pe
+ * onboarding deși adminul a creat deja rândul.
+ */
+export function pickTherapistInviteCandidate(input: {
+  byToken: TherapistInviteCandidate | null
+  byEmail: TherapistInviteCandidate | null
+  byAcceptedUser: TherapistInviteCandidate | null
+  userId?: string
+  nowMs?: number
+}): TherapistInviteCandidate | null {
+  const token = input.byToken
+  const email = input.byEmail
+  const accepted = input.byAcceptedUser
+  const nowMs = input.nowMs
+
+  if (token && (inviteAcceptedByUser(token, input.userId) || isTherapistInviteOpen(token, nowMs))) {
+    return token
+  }
+  if (email && isTherapistInviteOpen(email, nowMs)) {
+    return email
+  }
+  if (accepted) {
+    return accepted
+  }
+  return token ?? email ?? null
+}
+
 export function decideTherapistInviteAttach(input: {
   email: string | null
   userId: string
