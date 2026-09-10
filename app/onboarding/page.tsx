@@ -2,10 +2,9 @@ import type { Metadata } from "next"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-import { OnboardingForm } from "@/app/onboarding/onboarding-form"
+import { OnboardingClient } from "@/app/onboarding/onboarding-client"
 import { logout } from "@/app/dashboard/actions"
 import { Logo } from "@/components/Logo"
-import { InvitedTherapistOnboardingGate } from "@/components/auth/pending-therapist-invite"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { getCachedUser } from "@/lib/auth/session"
@@ -53,31 +52,7 @@ export default async function OnboardingPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 py-10">
-        <InvitedTherapistOnboardingGate>
-          <p className="text-xs font-semibold tracking-wide text-teal-800 uppercase">Prima configurare</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-            Configurează cabinetul tău
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            Aceste date separă activitatea clinicii tale de a altor cabinete din platformă.
-            {user.email ? (
-              <>
-                {" "}
-                Cont: <span className="font-medium text-slate-800">{user.email}</span>
-              </>
-            ) : null}
-          </p>
-
-          {clinicLoadError ? (
-            <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Nu am putut citi profilul clinicii: {clinicLoadError}
-            </p>
-          ) : null}
-
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <OnboardingForm />
-          </div>
-        </InvitedTherapistOnboardingGate>
+        <OnboardingClient email={user.email} clinicLoadError={clinicLoadError} />
       </main>
     </div>
   )

@@ -1,8 +1,12 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { cookies } from "next/headers"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
+import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
+import { THERAPIST_INVITE_COOKIE } from "@/lib/clinics/invite-session"
+import { isTherapistInviteToken } from "@/lib/clinics/therapist-invite"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 import { createClient } from "@/utils/supabase/server"
@@ -11,6 +15,35 @@ export type OnboardingState = {
   error?: string
   ok?: boolean
 } | null
+
+export type ClaimPendingInviteResult =
+  | { ok: true }
+  | { ok: false; error: string; reason?: "expired" | "other_clinic" | "no_email" | "failed" }
+
+export async function claimPendingTherapistInvite(token: string): Promise<ClaimPendingInviteResult> {
+  if (!isTherapistInviteToken(token)) {
+    return { ok: false, error: "Linkul de invitație este invalid.", reason: "expired" }
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user || !isEmailConfirmedUser(user)) {
+    return { ok: false, error: "Autentificarea a expirat. Intră din nou în cont.", reason: "failed" }
+  }
+
+  const attached = await attachTherapistInviteToUser({ token, user })
+  if (!attached.ok) {
+    return { ok: false, error: attached.error, reason: attached.reason }
+  }
+
+  const jar = await cookies()
+  jar.delete(THERAPIST_INVITE_COOKIE)
+  await supabase.auth.refreshSession()
+  revalidatePath("/", "layout")
+  return { ok: true }
+}
 
 function readRequired(formData: FormData, key: string): string | null {
   const value = formData.get(key)

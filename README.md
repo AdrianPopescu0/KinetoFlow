@@ -59,7 +59,7 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi 
 | `/auth/email-cod` | Linkul din emailul OTP confirmă adresa și întoarce utilizatorul la `/login` |
 | `/termeni` | Termeni și Condiții (inclusiv disclaimer medical) |
 | `/confidentialitate` | Politica de Confidențialitate și prelucrare date (GDPR) |
-| `/onboarding` | Configurare clinică (obligatorie înainte de dashboard) |
+| `/onboarding` | Configurare clinică (doar pentru administratori fără invitație). Dacă `localStorage` are `kf_therapist_invite`, pagina asociază imediat contul și redirecționează la `/dashboard`, fără formularul de cabinet nou. |
 | `/recuperare-parola` | Cerere de resetare a parolei |
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
