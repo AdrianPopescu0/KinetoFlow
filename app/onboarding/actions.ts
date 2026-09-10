@@ -5,7 +5,7 @@ import { cookies } from "next/headers"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
-import { THERAPIST_INVITE_COOKIE } from "@/lib/clinics/invite-session"
+import { THERAPIST_INVITE_COOKIE, therapistInviteCookieOptions } from "@/lib/clinics/invite-session"
 import { isTherapistInviteToken } from "@/lib/clinics/therapist-invite"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
@@ -39,7 +39,7 @@ export async function claimPendingTherapistInvite(token: string): Promise<ClaimP
   }
 
   const jar = await cookies()
-  jar.delete(THERAPIST_INVITE_COOKIE)
+  jar.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
   await supabase.auth.refreshSession()
   revalidatePath("/", "layout")
   return { ok: true }

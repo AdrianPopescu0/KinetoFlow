@@ -94,6 +94,10 @@ function stampInviteCookie(response: NextResponse, token: string): void {
   response.cookies.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
 }
 
+function clearInviteCookie(response: NextResponse): void {
+  response.cookies.set(THERAPIST_INVITE_COOKIE, "", { ...therapistInviteCookieOptions(), maxAge: 0 })
+}
+
 function pendingInviteToken(request: NextRequest, pathname: string): string | null {
   return readTherapistInviteToken(
     request.nextUrl.searchParams.get("invite") ?? inviteTokenFromPathname(pathname),
@@ -223,6 +227,11 @@ export async function updateSession(request: NextRequest) {
     const clinicReady = clinicReadyFromUser(authenticatedUser)
       ? true
       : await therapistHasClinicProfile(supabase, authenticatedUser.id)
+
+    if (clinicReady && inviteToken) {
+      clearInviteCookie(supabaseResponse)
+    }
+
     const appPath = clinicReady
       ? "/dashboard"
       : inviteToken

@@ -17,7 +17,7 @@ import { createClient } from "@/utils/supabase/server"
 
 export type AcceptTherapistInviteState = {
   error?: string
-  next?: "/dashboard" | "/onboarding"
+  next?: "/dashboard"
 } | null
 
 function emailAlreadyRegistered(error: { message?: string; code?: string } | null): boolean {
@@ -167,7 +167,6 @@ export async function acceptTherapistInvite(
     jar.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
 
     if (!createdNewUser) {
-      jar.delete(THERAPIST_INVITE_COOKIE)
       return { next: "/dashboard" }
     }
 
@@ -180,7 +179,7 @@ export async function acceptTherapistInvite(
       return { error: "Contul a fost creat, dar autentificarea a eșuat. Intră din pagina de login cu același email." }
     }
 
-    jar.delete(THERAPIST_INVITE_COOKIE)
+    jar.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
     return { next: "/dashboard" }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Nu am putut activa invitația."

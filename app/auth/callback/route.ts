@@ -172,8 +172,13 @@ export async function GET(request: NextRequest) {
     }
 
     await supabase.auth.refreshSession()
+    const clinicReady = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
     const response = redirectWithCookies(request, "/dashboard", sessionCookies)
-    clearInviteCookie(response)
+    if (clinicReady) {
+      clearInviteCookie(response)
+    } else {
+      stampInviteCookie(response, inviteToken)
+    }
     return response
   }
 

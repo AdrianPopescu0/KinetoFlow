@@ -2,12 +2,14 @@
 
 import { useLayoutEffect, useState, type ReactNode } from "react"
 
+import { claimPendingTherapistInvite } from "@/app/onboarding/actions"
 import {
   clearStoredTherapistInviteToken,
   persistTherapistInviteToken,
   readStoredTherapistInviteToken,
   therapistInviteFinalizeHref,
 } from "@/lib/clinics/invite-session"
+import { therapistInvitePagePath } from "@/lib/clinics/invite-attach"
 import { createClient } from "@/utils/supabase/client"
 
 export function PersistTherapistInviteToken({ token }: { token: string }) {
@@ -65,25 +67,30 @@ export function InvitedTherapistOnboardingGate({ children }: { children: ReactNo
 export function ResumeTherapistInviteAfterAuth() {
   useLayoutEffect(() => {
     const token = readStoredTherapistInviteToken()
-    if (token) {
-      persistTherapistInviteToken(token)
-      window.location.replace(therapistInviteFinalizeHref(token))
+    if (!token) {
+      const supabase = createClient()
+      void supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) {
+          window.location.replace("/login")
+          return
+        }
+        const clinicName = user.user_metadata?.clinic_name
+        if (typeof clinicName === "string" && clinicName.trim().length > 0) {
+          window.location.replace("/dashboard")
+          return
+        }
+        window.location.replace("/onboarding")
+      })
       return
     }
 
-    const supabase = createClient()
-    void supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        window.location.replace("/login")
-        return
-      }
-      const clinicName = user.user_metadata?.clinic_name
-      if (typeof clinicName === "string" && clinicName.trim().length > 0) {
-        clearStoredTherapistInviteToken()
+    persistTherapistInviteToken(token)
+    void claimPendingTherapistInvite(token).then((result) => {
+      if (result.ok) {
         window.location.replace("/dashboard")
         return
       }
-      window.location.replace("/onboarding")
+      window.location.replace(therapistInvitePagePath(token, result.reason))
     })
   }, [])
 

@@ -8,6 +8,7 @@ import {
   THERAPIST_INVITE_COOKIE,
   therapistInviteCookieOptions,
 } from "@/lib/clinics/invite-session"
+import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import { createClient } from "@/utils/supabase/server"
 
 export const dynamic = "force-dynamic"
@@ -51,7 +52,12 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient()
   await supabase.auth.refreshSession()
+  const clinicReady = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
   const response = NextResponse.redirect(absoluteUrl(request, "/dashboard"), 303)
-  clearInviteCookie(response)
+  if (clinicReady) {
+    clearInviteCookie(response)
+  } else {
+    response.cookies.set(THERAPIST_INVITE_COOKIE, inviteToken, therapistInviteCookieOptions())
+  }
   return response
 }

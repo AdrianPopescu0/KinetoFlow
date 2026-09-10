@@ -33,7 +33,6 @@ export function OnboardingClient({
     setPhase("joining")
     void claimPendingTherapistInvite(token).then((result) => {
       if (result.ok) {
-        clearStoredTherapistInviteToken()
         window.location.replace("/dashboard")
         return
       }
