@@ -11,6 +11,7 @@ import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invi
 import { invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 import { readTherapistInviteToken } from "@/lib/clinics/invite-attach"
 import {
+  THERAPIST_INVITE_CHECKED_COOKIE,
   THERAPIST_INVITE_CLIENT_COOKIE,
   THERAPIST_INVITE_COOKIE,
   inviteTokenFromAuthUser,
@@ -59,10 +60,11 @@ export async function resolveTherapistAppPath(): Promise<TherapistAppPath> {
   if (attached.ok) {
     jar.delete(THERAPIST_INVITE_COOKIE)
     jar.delete(THERAPIST_INVITE_CLIENT_COOKIE)
+    jar.delete(THERAPIST_INVITE_CHECKED_COOKIE)
     return "/dashboard"
   }
 
-  if (invitedTherapistFromUser(user)) {
+  if (inviteToken || invitedTherapistFromUser(user)) {
     return "/dashboard"
   }
 

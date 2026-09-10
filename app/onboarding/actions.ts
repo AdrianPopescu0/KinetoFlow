@@ -5,7 +5,11 @@ import { cookies } from "next/headers"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
-import { writeTherapistInviteCookies } from "@/lib/clinics/invite-session"
+import {
+  THERAPIST_INVITE_CHECKED_COOKIE,
+  therapistInviteCheckedCookieOptions,
+  writeTherapistInviteCookies,
+} from "@/lib/clinics/invite-session"
 import { isTherapistInviteToken } from "@/lib/clinics/therapist-invite"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
@@ -41,11 +45,15 @@ export async function claimPendingTherapistInvite(token?: string | null): Promis
   }
 
   const attached = await attachTherapistInviteToUser({ token: resolved, user })
+  const jar = await cookies()
   if (!attached.ok) {
+    if (attached.reason === "no_invite") {
+      jar.set(THERAPIST_INVITE_CHECKED_COOKIE, "1", therapistInviteCheckedCookieOptions())
+    }
     return { ok: false, error: attached.error, reason: attached.reason === "no_invite" ? "failed" : attached.reason }
   }
 
-  const jar = await cookies()
+  jar.delete(THERAPIST_INVITE_CHECKED_COOKIE)
   if (resolved) {
     writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), resolved)
   }

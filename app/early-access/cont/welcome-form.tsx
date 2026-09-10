@@ -133,6 +133,16 @@ export function EarlyAccessWelcomeForm({
       } catch {
         // Continuăm cu Google; callback-ul creează sesiunea nouă.
       }
+      const pendingAfterSignOut = readStoredTherapistInviteToken()
+      if (pendingAfterSignOut) {
+        persistTherapistInviteToken(pendingAfterSignOut)
+        const restamped = await prepareTherapistInviteOAuth(pendingAfterSignOut)
+        if (restamped?.error) {
+          setError(restamped.error)
+          setGooglePending(false)
+          return
+        }
+      }
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

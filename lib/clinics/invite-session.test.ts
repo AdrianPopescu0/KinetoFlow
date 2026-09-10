@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  afterGoogleOAuthPath,
   inviteTokenFromAuthUser,
   inviteTokenFromFormData,
   inviteTokenFromHref,
@@ -11,6 +12,7 @@ import {
   readTherapistInviteToken,
   THERAPIST_INVITE_CONTINUE_PATH,
   THERAPIST_INVITE_FINALIZE_PATH,
+  therapistInviteContinueRecoverScript,
   therapistInviteFinalizeHref,
   therapistInvitePersistScript,
   therapistPostAuthHref,
@@ -52,6 +54,10 @@ test("scriptul inline salvează imediat tokenul în localStorage și cookie-ul c
   assert.match(script, /kf_invite/)
   assert.match(script, new RegExp(token))
   assert.equal(therapistInvitePersistScript("scurt"), "")
+  const recover = therapistInviteContinueRecoverScript()
+  assert.match(recover, /localStorage\.getItem/)
+  assert.match(recover, /sessionStorage\.getItem/)
+  assert.match(recover, /\/auth\/invitatie\/finalize/)
 })
 
 test("după login, invitația în așteptare bate ecranul de clinică nouă", () => {
@@ -60,6 +66,20 @@ test("după login, invitația în așteptare bate ecranul de clinică nouă", ()
   assert.equal(therapistPostAuthHref("/onboarding", null), THERAPIST_INVITE_CONTINUE_PATH)
   assert.equal(therapistPostAuthHref("/dashboard", null), "/dashboard")
   assert.equal(therapistPostAuthHref(null, "nu"), "/dashboard")
+})
+
+test("după Google OAuth nu se deschide formularul de clinică nouă", () => {
+  assert.equal(afterGoogleOAuthPath({ attached: true, clinicReady: false, inviteToken: token }), "/dashboard")
+  assert.equal(afterGoogleOAuthPath({ attached: false, clinicReady: true }), "/dashboard")
+  assert.equal(
+    afterGoogleOAuthPath({ attached: false, clinicReady: false, inviteToken: token }),
+    `/auth/invitatie/finalize?invite=${token}`,
+  )
+  assert.equal(
+    afterGoogleOAuthPath({ attached: false, clinicReady: false, inviteToken: null }),
+    THERAPIST_INVITE_CONTINUE_PATH,
+  )
+  assert.notEqual(afterGoogleOAuthPath({ attached: false, clinicReady: false }), "/onboarding")
 })
 
 test("tokenul se citește din query, cookie httpOnly, cookie client sau metadate", () => {

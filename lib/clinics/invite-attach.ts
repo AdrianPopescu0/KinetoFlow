@@ -26,15 +26,27 @@ export function normalizeClinicName(value: unknown): string {
 
 export function googleAccountEmail(user: {
   email?: string | null
+  user_metadata?: Record<string, unknown> | null
   identities?: Array<{
     provider?: string | null
     identity_data?: Record<string, unknown> | null
   }> | null
 }): string | null {
-  const googleIdentity = (user.identities ?? []).find((identity) => identity.provider === "google")
-  const raw = googleIdentity?.identity_data?.email
-  const fromGoogle = typeof raw === "string" ? raw : null
-  return normalizeAuthEmail(fromGoogle) ?? normalizeAuthEmail(user.email)
+  const identities = user.identities ?? []
+  const googleIdentity = identities.find((identity) => identity.provider === "google")
+  const fromGoogle =
+    typeof googleIdentity?.identity_data?.email === "string" ? googleIdentity.identity_data.email : null
+  const fromAnyIdentity = identities
+    .map((identity) => identity.identity_data?.email)
+    .find((value): value is string => typeof value === "string")
+  const fromMetadata =
+    user.user_metadata && typeof user.user_metadata.email === "string" ? user.user_metadata.email : null
+  return (
+    normalizeAuthEmail(fromGoogle) ??
+    normalizeAuthEmail(user.email) ??
+    normalizeAuthEmail(fromMetadata) ??
+    normalizeAuthEmail(fromAnyIdentity)
+  )
 }
 
 export function therapistInvitePagePath(token: string, reason?: string): string {
@@ -124,10 +136,10 @@ export function decideTherapistInviteAttach(input: {
   existingClinicName: string | null
   nowMs?: number
 }): TherapistInviteAttachDecision {
-  if (!input.email) {
-    return { action: "no_email", error: INVITE_NO_EMAIL_ERROR }
-  }
   if (!input.invite) {
+    if (!input.email) {
+      return { action: "no_email", error: INVITE_NO_EMAIL_ERROR }
+    }
     return { action: "expired", error: INVITE_EXPIRED_ERROR }
   }
 

@@ -64,7 +64,7 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi 
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
 | `/dashboard/setari` | Setări cont: date personale, parolă și preferințe de profil |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
-| `/auth/callback` | Schimb `code` (PKCE) sau `token_hash` (recovery) → sesiune, apoi redirect |
+| `/auth/callback` | Schimb `code` (PKCE) sau `token_hash` (recovery) → sesiune. **Înainte de /onboarding**, asociază invitația (token din query/cookie/sesiune sau email Google). Succes → `/dashboard`. Fără token pe server → `/auth/invitatie/continue` (citește localStorage), **niciodată** formularul de clinică nouă. |
 | `/auth/invitatie/[token]` | Link unic din WhatsApp/SMS. Emailul e precompletat din invitație; terapeutul alege **doar parola** și apasă activarea. Serverul creează contul Auth (`email_confirm: true`, **fără OTP**), face **UPDATE** pe rândul `therapist_invites` (`accepted_user_id`, `accepted_at`) și redirecționează **instant** la `/dashboard`. **Google** rămâne o alternativă: după OAuth, asocierea e pe token sau emailul pending, tot spre `/dashboard`, fără `/onboarding`. |
 | `/auth/activare` | Pagină intermediară pentru invitațiile vechi (recovery Supabase) |
 | `/auth/set-password` | Setare parolă după invitațiile vechi |

@@ -25,6 +25,14 @@ test("googleAccountEmail preferă emailul din identitatea Google", () => {
     }),
     "terapeut@gmail.com",
   )
+  assert.equal(
+    googleAccountEmail({
+      email: null,
+      user_metadata: { email: "  Meta@Gmail.com " },
+      identities: [],
+    }),
+    "meta@gmail.com",
+  )
   assert.equal(googleAccountEmail({ email: "  Ana@Clinica.RO " }), "ana@clinica.ro")
   assert.equal(googleAccountEmail({ email: "nu-e-email" }), null)
 })
@@ -90,12 +98,21 @@ test("pickTherapistInviteCandidate folosește emailul pending înainte de a conc
   )
 })
 
-test("decideTherapistInviteAttach cere email Google și o invitație deschisă", () => {
+test("decideTherapistInviteAttach asociază pe token chiar dacă Google n-a trimis încă emailul", () => {
   assert.equal(
     decideTherapistInviteAttach({
       email: null,
       userId: "user-1",
       invite: { clinic_name: "KinetoCare", expires_at: future },
+      existingClinicName: null,
+    }).action,
+    "attach",
+  )
+  assert.equal(
+    decideTherapistInviteAttach({
+      email: null,
+      userId: "user-1",
+      invite: null,
       existingClinicName: null,
     }).action,
     "no_email",

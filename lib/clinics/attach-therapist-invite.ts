@@ -15,6 +15,7 @@ export type AttachTherapistInviteResult =
 type InviteUser = {
   id: string
   email?: string | null
+  user_metadata?: Record<string, unknown> | null
   identities?: Array<{
     provider?: string | null
     identity_data?: Record<string, unknown> | null
@@ -263,13 +264,13 @@ export async function attachTherapistInviteToUser(input: {
   user: InviteUser
 }): Promise<AttachTherapistInviteResult> {
   const token = typeof input.token === "string" && isTherapistInviteToken(input.token) ? input.token : null
-  const email = googleAccountEmail(input.user)
+  const lookupEmail = googleAccountEmail(input.user)
 
   try {
     const admin = createServiceRoleClient()
     const loaded = await loadPendingTherapistInvite({
       token,
-      email,
+      email: lookupEmail,
       userId: input.user.id,
     })
     if (loaded.error) {
@@ -280,6 +281,8 @@ export async function attachTherapistInviteToUser(input: {
     if (data && (data.clinic_owner_id === input.user.id || data.invited_by === input.user.id)) {
       return { ok: true }
     }
+
+    const email = googleAccountEmail(input.user) ?? normalizeAuthEmail(data?.email)
 
     const { data: existingProfile, error: profileReadError } = await admin
       .from("clinic_profiles")

@@ -7,6 +7,7 @@ import { isPublicMarketingPath, shouldStayOnTherapistLogin } from "@/lib/auth/pa
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
 import { clinicReadyFromUser, invitedTherapistFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import {
+  THERAPIST_INVITE_CHECKED_COOKIE,
   THERAPIST_INVITE_CLIENT_COOKIE,
   THERAPIST_INVITE_COOKIE,
   THERAPIST_INVITE_CONTINUE_PATH,
@@ -258,8 +259,17 @@ export async function updateSession(request: NextRequest) {
       return redirectWithAuthCookies(request, supabaseResponse, appPath)
     }
 
-    if (isOnboardingPath(pathname) && (clinicReady || invitedTherapist || activeInviteToken)) {
-      return redirectWithAuthCookies(request, supabaseResponse, "/dashboard")
+    if (isOnboardingPath(pathname)) {
+      if (clinicReady || invitedTherapist) {
+        return redirectWithAuthCookies(request, supabaseResponse, "/dashboard")
+      }
+      if (activeInviteToken) {
+        return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
+      }
+      const inviteAlreadyChecked = request.cookies.get(THERAPIST_INVITE_CHECKED_COOKIE)?.value === "1"
+      if (!inviteAlreadyChecked) {
+        return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_CONTINUE_PATH)
+      }
     }
 
     if (isProtectedPath(pathname) && !clinicReady) {

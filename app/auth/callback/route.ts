@@ -9,12 +9,14 @@ import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invi
 import { invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 import { readTherapistInviteToken, therapistInvitePagePath } from "@/lib/clinics/invite-attach"
 import {
+  THERAPIST_INVITE_CHECKED_COOKIE,
   THERAPIST_INVITE_CLIENT_COOKIE,
   THERAPIST_INVITE_COOKIE,
-  THERAPIST_INVITE_CONTINUE_PATH,
+  afterGoogleOAuthPath,
   clearTherapistInviteCookies,
   inviteTokenFromAuthUser,
   inviteTokenFromPathname,
+  therapistInviteCheckedCookieOptions,
   writeTherapistInviteCookies,
 } from "@/lib/clinics/invite-session"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
@@ -56,6 +58,7 @@ function redirectWithCookies(request: NextRequest, path: string, cookiesToSet: S
 
 function clearInviteCookie(response: NextResponse) {
   clearTherapistInviteCookies((name, value, options) => response.cookies.set(name, value, options))
+  response.cookies.set(THERAPIST_INVITE_CHECKED_COOKIE, "", { ...therapistInviteCheckedCookieOptions(), maxAge: 0 })
 }
 
 function stampInviteCookie(response: NextResponse, token: string) {
@@ -208,12 +211,26 @@ export async function GET(request: NextRequest) {
       clinicReadyFromUser(user) ||
       invitedTherapistFromUser(user) ||
       (await therapistHasClinicProfile(supabase, user.id))
-    if (clinicReady) {
-      return redirectWithCookies(request, "/dashboard", sessionCookies)
+    const path = afterGoogleOAuthPath({
+      attached: false,
+      clinicReady,
+      inviteToken: resolvedInviteToken,
+    })
+    const response = redirectWithCookies(request, path, sessionCookies)
+    if (resolvedInviteToken && path !== "/dashboard") {
+      stampInviteCookie(response, resolvedInviteToken)
     }
-    return redirectWithCookies(request, THERAPIST_INVITE_CONTINUE_PATH, sessionCookies)
+    return response
   }
 
-  const destination = next === "/onboarding" ? THERAPIST_INVITE_CONTINUE_PATH : next
-  return redirectWithCookies(request, destination, sessionCookies)
+  const destination = afterGoogleOAuthPath({
+    attached: false,
+    clinicReady: false,
+    inviteToken: resolvedInviteToken,
+  })
+  const response = redirectWithCookies(request, destination, sessionCookies)
+  if (resolvedInviteToken) {
+    stampInviteCookie(response, resolvedInviteToken)
+  }
+  return response
 }

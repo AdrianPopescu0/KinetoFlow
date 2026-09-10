@@ -4,6 +4,7 @@ export { THERAPIST_INVITE_PATH }
 
 export const THERAPIST_INVITE_COOKIE = "kf_therapist_invite"
 export const THERAPIST_INVITE_CLIENT_COOKIE = "kf_invite"
+export const THERAPIST_INVITE_CHECKED_COOKIE = "kf_invite_checked"
 export const THERAPIST_INVITE_STORAGE_KEY = "kf_therapist_invite"
 export const THERAPIST_INVITE_FINALIZE_PATH = `${THERAPIST_INVITE_PATH}/finalize`
 export const THERAPIST_INVITE_CONTINUE_PATH = `${THERAPIST_INVITE_PATH}/continue`
@@ -36,6 +37,11 @@ export function therapistInviteClientCookieOptions(maxAge = INVITE_COOKIE_MAX_AG
     path: "/",
     maxAge,
   }
+}
+
+/** Marchează că am căutat deja o invitație pending — altfel /onboarding e interzis. */
+export function therapistInviteCheckedCookieOptions(): TherapistInviteCookieOptions {
+  return therapistInviteCookieOptions(10 * 60)
 }
 
 type InviteCookieWriter = (name: string, value: string, options: TherapistInviteCookieOptions) => void
@@ -197,6 +203,14 @@ export function therapistInvitePersistScript(token: string): string {
   return `try{var t=${JSON.stringify(token)};var k=${JSON.stringify(THERAPIST_INVITE_STORAGE_KEY)};localStorage.setItem(k,t);sessionStorage.setItem(k,t);document.cookie=${JSON.stringify(THERAPIST_INVITE_CLIENT_COOKIE)}+"="+encodeURIComponent(t)+"; Path=/; Max-Age=${INVITE_COOKIE_MAX_AGE}; SameSite=Lax"+(location.protocol==="https:"?"; Secure":"")}catch(e){}`
 }
 
+/** După Google: dacă tokenul e în localStorage, sari la finalize înainte de onboarding. */
+export function therapistInviteContinueRecoverScript(): string {
+  const key = JSON.stringify(THERAPIST_INVITE_STORAGE_KEY)
+  const cookie = JSON.stringify(THERAPIST_INVITE_CLIENT_COOKIE)
+  const finalize = JSON.stringify(`${THERAPIST_INVITE_FINALIZE_PATH}?invite=`)
+  return `try{var k=${key};var t=localStorage.getItem(k)||sessionStorage.getItem(k);if(t&&/^[A-Za-z0-9_-]{20,80}$/.test(t)){document.cookie=${cookie}+"="+encodeURIComponent(t)+"; Path=/; Max-Age=${INVITE_COOKIE_MAX_AGE}; SameSite=Lax"+(location.protocol==="https:"?"; Secure":"");location.replace(${finalize}+encodeURIComponent(t))}}catch(e){}`
+}
+
 /** După login/OAuth, invitația în așteptare bate ecranul de clinică nouă. */
 export function therapistPostAuthHref(
   next?: string | null,
@@ -206,4 +220,23 @@ export function therapistPostAuthHref(
     return therapistInviteFinalizeHref(storedInvite)
   }
   return next === "/onboarding" ? THERAPIST_INVITE_CONTINUE_PATH : "/dashboard"
+}
+
+/**
+ * După Google OAuth: niciodată /onboarding.
+ * Token (URL, cookie, sesiune) → finalize (asociază clinica).
+ * Fără token → continue, care citește localStorage/sessionStorage.
+ */
+export function afterGoogleOAuthPath(input: {
+  attached: boolean
+  clinicReady: boolean
+  inviteToken?: string | null
+}): string {
+  if (input.attached || input.clinicReady) {
+    return "/dashboard"
+  }
+  if (input.inviteToken && isTherapistInviteToken(input.inviteToken)) {
+    return therapistInviteFinalizeHref(input.inviteToken)
+  }
+  return THERAPIST_INVITE_CONTINUE_PATH
 }

@@ -1,14 +1,14 @@
-"use client"
-
 import { ResumeTherapistInviteAfterAuth } from "@/components/auth/pending-therapist-invite"
 import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Logo } from "@/components/Logo"
+import { therapistInviteContinueRecoverScript } from "@/lib/clinics/invite-session"
 
 export default function TherapistInviteContinuePage() {
   return (
     <AppShell>
       <main className="flex flex-1 items-center justify-center px-5 py-12">
         <div className={surfaceCardClassName("w-full max-w-md p-6 sm:p-8")}>
+          <script dangerouslySetInnerHTML={{ __html: therapistInviteContinueRecoverScript() }} />
           <Logo size="md" />
           <h1 className="mt-4 text-2xl font-semibold tracking-tight text-slate-800">
             Intrăm în clinica ta
