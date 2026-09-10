@@ -186,7 +186,7 @@ export function ExerciseLibrary({
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Bibliotecă Exerciții</h1>
         <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <p className="max-w-xl text-sm text-slate-600">
-            Catalog clinic după regiune anatomică și obiectiv terapeutic. Caută, filtrează și asignează direct pe fișa
+            Catalog clinic după regiune anatomică și obiectiv terapeutic. Caută, filtrează și atribuie direct pe fișa
             pacientului.
           </p>
           {canModifyLibrary ? (

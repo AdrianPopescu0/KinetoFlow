@@ -92,7 +92,7 @@ export const LibraryCard = memo(function LibraryCard({
             Vezi detalii
           </Button>
           <Button type="button" onClick={() => onAssign(exercise)} className="h-11 flex-1 rounded-xl">
-            + Asignează
+            + Atribuie
           </Button>
         </div>
         {onDelete ? (

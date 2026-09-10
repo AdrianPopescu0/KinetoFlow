@@ -101,7 +101,7 @@ export function PreviewDialog({
           Închide
         </Button>
         <Button type="button" onClick={onAssign} className="h-11 rounded-xl">
-          + Asignează la pacient
+          + Atribuie la pacient
         </Button>
       </div>
     </Overlay>
@@ -136,13 +136,13 @@ export function AssignDialog({
         setError(result.error)
         return
       }
-      toast("Exercițiul a fost asignat pacientului.")
+      toast("Exercițiul a fost atribuit pacientului.")
       onClose()
     })
   }
 
   return (
-    <Overlay title="Asignează la pacient" onClose={onClose}>
+    <Overlay title="Atribuie la pacient" onClose={onClose}>
       <p className="mt-1 text-sm text-slate-600">
         Adaugă „{exercise.title}” în programul unui pacient. Seturile și repetările recomandate se copiază pe fișă.
       </p>

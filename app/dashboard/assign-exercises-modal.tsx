@@ -186,7 +186,7 @@ function AssignExercisesModalContent({
       >
         <header className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <h2 id="assign-exercises-title" className="truncate text-lg font-semibold text-slate-900">
-            Asignează exerciții — {patientName}
+            Atribuie exerciții — {patientName}
           </h2>
           <button
             type="button"

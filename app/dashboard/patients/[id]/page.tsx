@@ -145,7 +145,7 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
           <div className="border-b border-slate-200 px-5 py-4">
             <h2 className="text-base font-semibold text-slate-800">Exerciții prescrise</h2>
             <p className="text-sm text-slate-600">
-              Planul pacientului, asignat din biblioteca verificată de exerciții.
+              Planul pacientului, atribuit din biblioteca verificată de exerciții.
             </p>
           </div>
           <ExerciseManager patientId={patient.id} patientName={patient.full_name} exercises={exercises} />
