@@ -59,9 +59,9 @@ export function NotifyChannelActions({
         <span className="font-medium text-slate-800">{notifyChannelLabel(channel)}</span>
         ) și îl folosește la reminder-ele de check-in.
       </p>
-      {whatsappWebHref ? (
+      {whatsappHref ? (
         <a
-          href={whatsappWebHref}
+          href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => {
@@ -74,12 +74,12 @@ export function NotifyChannelActions({
           )}
         >
           <MessageCircle className="size-4 shrink-0" />
-          Deschide pe WhatsApp Web
+          Deschide în Aplicație
         </a>
       ) : null}
-      {whatsappHref ? (
+      {whatsappWebHref ? (
         <a
-          href={whatsappHref}
+          href={whatsappWebHref}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => {
@@ -88,11 +88,11 @@ export function NotifyChannelActions({
           className={cn(
             buttonVariants({ variant: "outline" }),
             sendActionClassName,
-            "border-emerald-600 text-emerald-800 hover:bg-emerald-50",
+            "border-slate-300 text-slate-800 hover:bg-slate-50",
           )}
         >
           <MessageCircle className="size-4 shrink-0" />
-          Deschide în Aplicație
+          Deschide pe WhatsApp Web
         </a>
       ) : null}
       {smsHref ? (
