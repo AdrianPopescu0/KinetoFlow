@@ -6,6 +6,14 @@ import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { isPublicMarketingPath, shouldStayOnTherapistLogin, therapistAppPath } from "@/lib/auth/paths"
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
+import { readTherapistInviteToken } from "@/lib/clinics/invite-attach"
+import {
+  THERAPIST_INVITE_COOKIE,
+  THERAPIST_INVITE_FINALIZE_PATH,
+  inviteTokenFromPathname,
+  isInviteFinalizePath,
+  therapistInviteCookieOptions,
+} from "@/lib/clinics/invite-session"
 import {
   PATIENT_RESUME_COOKIE,
   PATIENT_SESSION_COOKIE,
@@ -81,6 +89,17 @@ function stampPatientCookies(response: NextResponse, token: string): void {
   response.cookies.set(PATIENT_RESUME_COOKIE, token, patientResumeCookieOptions)
 }
 
+function stampInviteCookie(response: NextResponse, token: string): void {
+  response.cookies.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
+}
+
+function pendingInviteToken(request: NextRequest, pathname: string): string | null {
+  return readTherapistInviteToken(
+    request.nextUrl.searchParams.get("invite") ?? inviteTokenFromPathname(pathname),
+    request.cookies.get(THERAPIST_INVITE_COOKIE)?.value,
+  )
+}
+
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const urlTokenRaw = patientTokenFromPath(pathname)
@@ -101,6 +120,11 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
+
+  const inviteToken = pendingInviteToken(request, pathname)
+  if (inviteToken) {
+    stampInviteCookie(supabaseResponse, inviteToken)
+  }
 
   if (urlToken) {
     stampPatientCookies(supabaseResponse, urlToken)
@@ -155,6 +179,9 @@ export async function updateSession(request: NextRequest) {
         if (urlToken) {
           stampPatientCookies(supabaseResponse, urlToken)
         }
+        if (inviteToken) {
+          stampInviteCookie(supabaseResponse, inviteToken)
+        }
       },
     },
   })
@@ -195,7 +222,8 @@ export async function updateSession(request: NextRequest) {
     const clinicReady = clinicReadyFromUser(authenticatedUser)
       ? true
       : await therapistHasClinicProfile(supabase, authenticatedUser.id)
-    const appPath = therapistAppPath(clinicReady)
+    const appPath =
+      inviteToken && !clinicReady ? THERAPIST_INVITE_FINALIZE_PATH : therapistAppPath(clinicReady)
 
     if (!stayOnLogin && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname))) {
       return redirectWithAuthCookies(request, supabaseResponse, appPath)
@@ -206,7 +234,18 @@ export async function updateSession(request: NextRequest) {
     }
 
     if (isProtectedPath(pathname) && !clinicReady) {
+      if (inviteToken && !isInviteFinalizePath(pathname)) {
+        return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
+      }
       return redirectWithAuthCookies(request, supabaseResponse, "/onboarding")
+    }
+
+    if (isOnboardingPath(pathname) && inviteToken) {
+      return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
+    }
+
+    if (pathname.startsWith("/auth/invitatie/") && !isInviteFinalizePath(pathname) && inviteToken && !clinicReady) {
+      return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
     }
   }
 

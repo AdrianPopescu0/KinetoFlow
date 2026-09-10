@@ -1,3 +1,8 @@
+import {
+  persistTherapistInviteToken,
+  readStoredTherapistInviteToken,
+  therapistPostAuthHref,
+} from "../clinics/invite-session.ts"
 import { resolveAppOrigin } from "./site-origin.ts"
 
 export const SIGNED_OUT_GATE_COOKIE = "kf_signed_out"
@@ -15,7 +20,11 @@ export function enterTherapistApp(next?: string | null) {
   if (typeof window === "undefined") {
     return
   }
-  window.location.assign(therapistEnterPath(next))
+  const invite = readStoredTherapistInviteToken()
+  if (invite) {
+    persistTherapistInviteToken(invite)
+  }
+  window.location.assign(therapistPostAuthHref(next, invite))
 }
 
 export function oauthBrowserRedirectTo(
@@ -32,4 +41,18 @@ export function oauthBrowserRedirectTo(
     url.searchParams.set("invite", options.invite)
   }
   return url.toString()
+}
+
+export function oauthBrowserRedirectToWithPendingInvite(
+  origin: string,
+  fallbackNext: "/dashboard" | "/onboarding" = "/dashboard",
+): string {
+  const invite = readStoredTherapistInviteToken()
+  if (invite) {
+    persistTherapistInviteToken(invite)
+  }
+  return oauthBrowserRedirectTo(origin, {
+    next: invite ? "/dashboard" : fallbackNext,
+    invite: invite ?? undefined,
+  })
 }

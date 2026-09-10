@@ -7,6 +7,9 @@ import { confirmAuthUserEmailById } from "@/lib/auth/verified-password-session"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { therapistAppPath } from "@/lib/auth/paths"
+import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
+import { readTherapistInviteToken } from "@/lib/clinics/invite-attach"
+import { THERAPIST_INVITE_COOKIE } from "@/lib/clinics/invite-session"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import { createClient } from "@/utils/supabase/server"
 
@@ -36,6 +39,15 @@ export async function resolveTherapistAppPath(): Promise<TherapistAppPath> {
   if (!user || !isEmailConfirmedUser(user)) {
     // Sesiunea e scrisă; middleware duce pe onboarding/dashboard sau înapoi la login.
     return "/dashboard"
+  }
+
+  const inviteToken = readTherapistInviteToken(null, jar.get(THERAPIST_INVITE_COOKIE)?.value)
+  if (inviteToken) {
+    const attached = await attachTherapistInviteToUser({ token: inviteToken, user })
+    if (attached.ok) {
+      jar.delete(THERAPIST_INVITE_COOKIE)
+      return "/dashboard"
+    }
   }
 
   const ready = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))

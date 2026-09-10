@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 }
 
 type LoginPageProps = {
-  searchParams: Promise<{ mode?: string; tab?: string; reason?: string; signedout?: string }>
+  searchParams: Promise<{ mode?: string; tab?: string; reason?: string; signedout?: string; invite?: string }>
 }
 
 function loginReasonMessage(reason: string | undefined): string | null {

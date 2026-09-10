@@ -1,8 +1,10 @@
 "use server"
 
+import { cookies } from "next/headers"
+
 import { AUTH_ERROR_MESSAGE, parseRegisterCredentials } from "@/lib/auth/validation"
-import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
+import { THERAPIST_INVITE_COOKIE, therapistInviteCookieOptions } from "@/lib/clinics/invite-session"
 import {
   isMissingTherapistInvitesTable,
   isTherapistInviteOpen,
@@ -56,6 +58,9 @@ export async function prepareTherapistInviteOAuth(token: string): Promise<Accept
     if (!data || !isTherapistInviteOpen(data)) {
       return { error: "Invitația a expirat sau a fost deja folosită. Cere administratorului un link nou." }
     }
+
+    const jar = await cookies()
+    jar.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
 
     return null
   } catch (error) {
@@ -158,8 +163,12 @@ export async function acceptTherapistInvite(
       return { error: attached.error }
     }
 
+    const jar = await cookies()
+    jar.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
+
     if (!createdNewUser) {
-      return { next: await resolveTherapistAppPath() }
+      jar.delete(THERAPIST_INVITE_COOKIE)
+      return { next: "/dashboard" }
     }
 
     const supabase = await createClient()
@@ -171,7 +180,8 @@ export async function acceptTherapistInvite(
       return { error: "Contul a fost creat, dar autentificarea a eșuat. Intră din pagina de login cu același email." }
     }
 
-    return { next: await resolveTherapistAppPath() }
+    jar.delete(THERAPIST_INVITE_COOKIE)
+    return { next: "/dashboard" }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Nu am putut activa invitația."
     if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {

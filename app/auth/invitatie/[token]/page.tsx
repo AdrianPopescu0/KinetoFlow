@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 
 import { AcceptTherapistInviteForm } from "@/app/auth/invitatie/accept-form"
 import { LeaveUnavailableInviteButton } from "@/app/auth/invitatie/leave-unavailable-button"
+import { PersistTherapistInviteToken } from "@/components/auth/pending-therapist-invite"
 import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Logo } from "@/components/Logo"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
@@ -70,6 +71,7 @@ export default async function TherapistInvitePage({ params, searchParams }: Invi
                 Google sau introdu emailul personal și o parolă. Contul se creează acum, fără ca
                 administratorul să-ți fi făcut unul dinainte.
               </p>
+              <PersistTherapistInviteToken token={token} />
               <AcceptTherapistInviteForm token={token} initialError={therapistInviteReasonMessage(reason)} />
             </>
           ) : (

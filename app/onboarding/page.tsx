@@ -1,12 +1,16 @@
 import type { Metadata } from "next"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { OnboardingForm } from "@/app/onboarding/onboarding-form"
 import { logout } from "@/app/dashboard/actions"
 import { Logo } from "@/components/Logo"
+import { ResumePendingTherapistInvite } from "@/components/auth/pending-therapist-invite"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { getCachedUser } from "@/lib/auth/session"
+import { readTherapistInviteToken } from "@/lib/clinics/invite-attach"
+import { THERAPIST_INVITE_COOKIE, therapistInviteFinalizeHref } from "@/lib/clinics/invite-session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
 
 export const metadata: Metadata = {
@@ -22,6 +26,12 @@ export default async function OnboardingPage() {
   }
   if (!isEmailConfirmedUser(user)) {
     redirect("/login?reason=confirm_email")
+  }
+
+  const jar = await cookies()
+  const inviteToken = readTherapistInviteToken(null, jar.get(THERAPIST_INVITE_COOKIE)?.value)
+  if (inviteToken) {
+    redirect(therapistInviteFinalizeHref(inviteToken))
   }
 
   const { profile, error: clinicLoadError } = await fetchClinicProfile(supabase, user.id)
@@ -62,6 +72,8 @@ export default async function OnboardingPage() {
             Nu am putut citi profilul clinicii: {clinicLoadError}
           </p>
         ) : null}
+
+        <ResumePendingTherapistInvite />
 
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <OnboardingForm />

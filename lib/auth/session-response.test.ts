@@ -55,6 +55,10 @@ test("callback-ul Google duce în dashboard, nu pe pagina principală", () => {
     oauthBrowserRedirectTo("https://app.example", { next: "/dashboard", invite: "tok" }),
     /invite=tok/,
   )
+  assert.match(
+    oauthBrowserRedirectTo("https://kinetoflow.ro", { next: "/onboarding", invite: "AbCdEfGhIjKlMnOpQrStUv" }),
+    /invite=AbCdEfGhIjKlMnOpQrStUv/,
+  )
 })
 
 test("recunoaște cookie-urile de sesiune Supabase", () => {

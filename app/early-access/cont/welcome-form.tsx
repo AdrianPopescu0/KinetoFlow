@@ -10,12 +10,14 @@ import {
   requestEarlyAccessEmailOtp,
   verifyEarlyAccessEmailOtp,
 } from "@/app/early-access/actions"
+import { prepareTherapistInviteOAuth } from "@/app/auth/invitatie/actions"
 import { GoogleMark } from "@/components/auth/google-mark"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { enterTherapistApp, oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
+import { enterTherapistApp, oauthBrowserRedirectToWithPendingInvite } from "@/lib/auth/oauth-redirect"
+import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
@@ -112,6 +114,16 @@ export function EarlyAccessWelcomeForm({
     setError(null)
     setInfo(null)
     setGooglePending(true)
+    const pendingInvite = readStoredTherapistInviteToken()
+    if (pendingInvite) {
+      persistTherapistInviteToken(pendingInvite)
+      const prepared = await prepareTherapistInviteOAuth(pendingInvite)
+      if (prepared?.error) {
+        setError(prepared.error)
+        setGooglePending(false)
+        return
+      }
+    }
     try {
       const supabase = createClient()
       try {
@@ -122,7 +134,7 @@ export function EarlyAccessWelcomeForm({
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: oauthBrowserRedirectTo(window.location.origin, { next: "/dashboard" }),
+          redirectTo: oauthBrowserRedirectToWithPendingInvite(window.location.origin, "/dashboard"),
         },
       })
       if (oauthError) {

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 
 import { DashboardHeader } from "@/app/dashboard/dashboard-header"
 import { AppShell } from "@/components/brand/app-atmosphere"
+import { ClearSettledTherapistInvite } from "@/components/auth/pending-therapist-invite"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { getCachedUser } from "@/lib/auth/session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
@@ -27,6 +28,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <AppShell>
+      <ClearSettledTherapistInvite />
       <DashboardHeader
         email={user.email}
         displayName={therapistDisplayName(user.email, profile?.therapist_name ?? metadataName)}

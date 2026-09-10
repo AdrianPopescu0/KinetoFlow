@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { enterTherapistApp, oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
+import { persistTherapistInviteToken } from "@/lib/clinics/invite-session"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
@@ -41,6 +42,7 @@ export function AcceptTherapistInviteForm({
 
     setError(null)
     setGooglePending(true)
+    persistTherapistInviteToken(token)
     const prepared = await prepareTherapistInviteOAuth(token)
     if (prepared?.error) {
       setError(prepared.error)
@@ -77,6 +79,7 @@ export function AcceptTherapistInviteForm({
   function handleSubmit(formData: FormData) {
     setError(null)
     startTransition(async () => {
+      persistTherapistInviteToken(token)
       if (!evaluateRegisterPassword(String(formData.get("password") ?? "")).isValid) {
         setError("Parola trebuie să aibă minim 8 caractere, o majusculă, o cifră și un caracter special.")
         return

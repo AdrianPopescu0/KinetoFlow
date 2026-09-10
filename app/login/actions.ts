@@ -150,5 +150,5 @@ export async function register(formData: FormData): Promise<LoginActionState> {
 
   const jar = await cookies()
   jar.delete(SIGNED_OUT_GATE_COOKIE)
-  return { next: "/onboarding" }
+  return { next: await resolveTherapistAppPath() }
 }

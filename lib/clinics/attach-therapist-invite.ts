@@ -47,11 +47,7 @@ export async function attachTherapistInviteToUser(input: {
     }
 
     if (data && (data.clinic_owner_id === input.user.id || data.invited_by === input.user.id)) {
-      return {
-        ok: false,
-        error: "Invitația este destinată unui coleg. Ești deja membru al acestei clinici.",
-        reason: "failed",
-      }
+      return { ok: true }
     }
 
     const { data: existingProfile, error: profileReadError } = await admin

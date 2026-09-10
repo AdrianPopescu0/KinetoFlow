@@ -1,16 +1,18 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
 
 import { login, register, requestAuthEmailOtpAction } from "@/app/login/actions"
+import { prepareTherapistInviteOAuth } from "@/app/auth/invitatie/actions"
 import { GoogleMark } from "@/components/auth/google-mark"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { enterTherapistApp, oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
+import { enterTherapistApp, oauthBrowserRedirectToWithPendingInvite } from "@/lib/auth/oauth-redirect"
+import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
 import { loginHref } from "@/lib/auth/paths"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
@@ -45,6 +47,13 @@ export function LoginForm({
   const canSubmitRegister = passwordChecks.isValid && acceptedTerms
   const busy = isPending || googlePending
 
+  useEffect(() => {
+    const invite = new URLSearchParams(window.location.search).get("invite")
+    if (invite) {
+      persistTherapistInviteToken(invite)
+    }
+  }, [])
+
   const handleGoogleAuth = async () => {
     if (tab === "register" && !acceptedTerms) {
       setError(LEGAL_ACCEPT_ERROR)
@@ -54,6 +63,17 @@ export function LoginForm({
     setError(null)
     setInfo(null)
     setGooglePending(true)
+
+    const pendingInvite = readStoredTherapistInviteToken()
+    if (pendingInvite) {
+      persistTherapistInviteToken(pendingInvite)
+      const prepared = await prepareTherapistInviteOAuth(pendingInvite)
+      if (prepared?.error) {
+        setError(prepared.error)
+        setGooglePending(false)
+        return
+      }
+    }
 
     try {
       const supabase = createClient()
@@ -65,9 +85,10 @@ export function LoginForm({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: oauthBrowserRedirectTo(window.location.origin, {
-            next: tab === "register" ? "/onboarding" : "/dashboard",
-          }),
+          redirectTo: oauthBrowserRedirectToWithPendingInvite(
+            window.location.origin,
+            tab === "register" ? "/onboarding" : "/dashboard",
+          ),
         },
       })
       if (error) {
