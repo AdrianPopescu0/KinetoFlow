@@ -3,11 +3,12 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { EARLY_ACCESS_COOKIE, hasValidEarlyAccessCookie } from "@/lib/auth/early-access"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
-import { isPublicMarketingPath, shouldStayOnTherapistLogin, therapistAppPath } from "@/lib/auth/paths"
+import { isPublicMarketingPath, shouldStayOnTherapistLogin } from "@/lib/auth/paths"
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import {
   THERAPIST_INVITE_COOKIE,
+  THERAPIST_INVITE_CONTINUE_PATH,
   THERAPIST_INVITE_FINALIZE_PATH,
   inviteTokenFromPathname,
   isInviteFinalizePath,
@@ -222,8 +223,11 @@ export async function updateSession(request: NextRequest) {
     const clinicReady = clinicReadyFromUser(authenticatedUser)
       ? true
       : await therapistHasClinicProfile(supabase, authenticatedUser.id)
-    const appPath =
-      inviteToken && !clinicReady ? THERAPIST_INVITE_FINALIZE_PATH : therapistAppPath(clinicReady)
+    const appPath = clinicReady
+      ? "/dashboard"
+      : inviteToken
+        ? THERAPIST_INVITE_FINALIZE_PATH
+        : THERAPIST_INVITE_CONTINUE_PATH
 
     if (!stayOnLogin && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname))) {
       return redirectWithAuthCookies(request, supabaseResponse, appPath)
@@ -237,7 +241,7 @@ export async function updateSession(request: NextRequest) {
       if (inviteToken && !isInviteFinalizePath(pathname)) {
         return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
       }
-      return redirectWithAuthCookies(request, supabaseResponse, "/onboarding")
+      return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_CONTINUE_PATH)
     }
 
     if (isOnboardingPath(pathname) && inviteToken) {

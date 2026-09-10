@@ -40,7 +40,11 @@ export function safeAuthNextPath(next: string | null | undefined): string | null
     next === "/onboarding" ||
     next === "/dashboard" ||
     next === SET_PASSWORD_PATH ||
-    next.startsWith("/dashboard/")
+    next.startsWith("/dashboard/") ||
+    next === "/auth/invitatie/continue" ||
+    next === "/auth/invitatie/finalize" ||
+    next.startsWith("/auth/invitatie/continue") ||
+    next.startsWith("/auth/invitatie/finalize")
   ) {
     return next
   }

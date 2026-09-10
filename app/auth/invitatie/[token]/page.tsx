@@ -6,12 +6,13 @@ import { PersistTherapistInviteToken } from "@/components/auth/pending-therapist
 import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Logo } from "@/components/Logo"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
+import { therapistInviteReasonMessage } from "@/lib/clinics/invite-attach"
+import { therapistInvitePersistScript } from "@/lib/clinics/invite-session"
 import {
   isMissingTherapistInvitesTable,
   isTherapistInviteOpen,
   isTherapistInviteToken,
 } from "@/lib/clinics/therapist-invite"
-import { therapistInviteReasonMessage } from "@/lib/clinics/invite-attach"
 
 export const metadata: Metadata = {
   title: "Invitație în clinică | KinetoFlow",
@@ -60,6 +61,12 @@ export default async function TherapistInvitePage({ params, searchParams }: Invi
     <AppShell>
       <main className="flex flex-1 items-center justify-center px-5 py-12">
         <div className={surfaceCardClassName("w-full max-w-md p-6 sm:p-8")}>
+          {isTherapistInviteToken(token) ? (
+            <>
+              <script dangerouslySetInnerHTML={{ __html: therapistInvitePersistScript(token) }} />
+              <PersistTherapistInviteToken token={token} />
+            </>
+          ) : null}
           <Logo size="md" />
           {status === "ok" ? (
             <>
@@ -71,7 +78,6 @@ export default async function TherapistInvitePage({ params, searchParams }: Invi
                 Google sau introdu emailul personal și o parolă. Contul se creează acum, fără ca
                 administratorul să-ți fi făcut unul dinainte.
               </p>
-              <PersistTherapistInviteToken token={token} />
               <AcceptTherapistInviteForm token={token} initialError={therapistInviteReasonMessage(reason)} />
             </>
           ) : (

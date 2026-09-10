@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { isPublicMarketingPath, isSignupAuthMode, loginHref, shouldStayOnTherapistLogin, therapistAppPath } from "./paths.ts"
+import { isPublicMarketingPath, isSignupAuthMode, loginHref, safeAuthNextPath, shouldStayOnTherapistLogin, therapistAppPath } from "./paths.ts"
 import { isSupabaseAuthCookieName, oauthBrowserRedirectTo, therapistEnterPath } from "./oauth-redirect.ts"
 
 test("taburile de autentificare și înregistrare au rute distincte", () => {
@@ -58,6 +58,18 @@ test("callback-ul Google duce în dashboard, nu pe pagina principală", () => {
   assert.match(
     oauthBrowserRedirectTo("https://kinetoflow.ro", { next: "/onboarding", invite: "AbCdEfGhIjKlMnOpQrStUv" }),
     /invite=AbCdEfGhIjKlMnOpQrStUv/,
+  )
+})
+
+test("callback-ul Google poate reveni pe pagina care citește invitația din localStorage", () => {
+  assert.equal(safeAuthNextPath("/auth/invitatie/continue"), "/auth/invitatie/continue")
+  assert.equal(safeAuthNextPath("/onboarding"), "/onboarding")
+  assert.match(
+    oauthBrowserRedirectTo("https://kinetoflow.ro", {
+      next: "/auth/invitatie/continue",
+      invite: "AbCdEfGhIjKlMnOpQrStUv",
+    }),
+    /next=%2Fauth%2Finvitatie%2Fcontinue/,
   )
 })
 

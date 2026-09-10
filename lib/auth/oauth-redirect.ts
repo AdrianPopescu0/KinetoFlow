@@ -52,7 +52,7 @@ export function oauthBrowserRedirectToWithPendingInvite(
     persistTherapistInviteToken(invite)
   }
   return oauthBrowserRedirectTo(origin, {
-    next: invite ? "/dashboard" : fallbackNext,
+    next: invite ? "/auth/invitatie/continue" : fallbackNext,
     invite: invite ?? undefined,
   })
 }

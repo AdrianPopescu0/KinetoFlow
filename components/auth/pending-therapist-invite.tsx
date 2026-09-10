@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useLayoutEffect, useState, type ReactNode } from "react"
 
 import {
   clearStoredTherapistInviteToken,
@@ -8,17 +8,26 @@ import {
   readStoredTherapistInviteToken,
   therapistInviteFinalizeHref,
 } from "@/lib/clinics/invite-session"
+import { createClient } from "@/utils/supabase/client"
 
 export function PersistTherapistInviteToken({ token }: { token: string }) {
-  useEffect(() => {
+  if (typeof window !== "undefined") {
     persistTherapistInviteToken(token)
-  }, [token])
+  }
   return null
+}
+
+function PendingInviteMessage({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-sm leading-relaxed text-slate-600" role="status">
+      {children}
+    </p>
+  )
 }
 
 /** Dacă Google a picat pe onboarding fără cookie, tokenul din localStorage duce la asocierea clinicii. */
 export function ResumePendingTherapistInvite() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const token = readStoredTherapistInviteToken()
     if (!token) {
       return
@@ -29,8 +38,60 @@ export function ResumePendingTherapistInvite() {
   return null
 }
 
+export function InvitedTherapistOnboardingGate({ children }: { children: ReactNode }) {
+  const [allowed, setAllowed] = useState(false)
+
+  useLayoutEffect(() => {
+    const token = readStoredTherapistInviteToken()
+    if (token) {
+      persistTherapistInviteToken(token)
+      window.location.replace(therapistInviteFinalizeHref(token))
+      return
+    }
+    setAllowed(true)
+  }, [])
+
+  if (!allowed) {
+    return (
+      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-relaxed text-slate-600 shadow-sm">
+        Avem o invitație în așteptare. Te ducem în clinica existentă, nu la crearea unui cabinet nou.
+      </div>
+    )
+  }
+
+  return children
+}
+
+export function ResumeTherapistInviteAfterAuth() {
+  useLayoutEffect(() => {
+    const token = readStoredTherapistInviteToken()
+    if (token) {
+      persistTherapistInviteToken(token)
+      window.location.replace(therapistInviteFinalizeHref(token))
+      return
+    }
+
+    const supabase = createClient()
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        window.location.replace("/login")
+        return
+      }
+      const clinicName = user.user_metadata?.clinic_name
+      if (typeof clinicName === "string" && clinicName.trim().length > 0) {
+        clearStoredTherapistInviteToken()
+        window.location.replace("/dashboard")
+        return
+      }
+      window.location.replace("/onboarding")
+    })
+  }, [])
+
+  return <PendingInviteMessage>Se asociază contul cu clinica din invitație…</PendingInviteMessage>
+}
+
 export function ClearSettledTherapistInvite() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     clearStoredTherapistInviteToken()
   }, [])
   return null

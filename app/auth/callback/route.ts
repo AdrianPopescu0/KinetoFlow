@@ -4,11 +4,12 @@ import type { EmailOtpType } from "@supabase/supabase-js"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { requestAppOrigin } from "@/lib/auth/site-origin"
-import { SET_PASSWORD_PATH, safeAuthNextPath, therapistAppPath } from "@/lib/auth/paths"
+import { SET_PASSWORD_PATH, safeAuthNextPath } from "@/lib/auth/paths"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
 import { readTherapistInviteToken, therapistInvitePagePath } from "@/lib/clinics/invite-attach"
 import {
   THERAPIST_INVITE_COOKIE,
+  THERAPIST_INVITE_CONTINUE_PATH,
   therapistInviteCookieOptions,
 } from "@/lib/clinics/invite-session"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
@@ -179,10 +180,10 @@ export async function GET(request: NextRequest) {
   if (user) {
     const clinicReady = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
     if (!clinicReady) {
-      return redirectWithCookies(request, therapistAppPath(false), sessionCookies)
+      return redirectWithCookies(request, THERAPIST_INVITE_CONTINUE_PATH, sessionCookies)
     }
   }
 
-  const destination = next === "/onboarding" ? therapistAppPath(true) : next
+  const destination = next === "/onboarding" ? THERAPIST_INVITE_CONTINUE_PATH : next
   return redirectWithCookies(request, destination, sessionCookies)
 }
