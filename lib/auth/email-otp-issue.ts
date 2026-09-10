@@ -18,6 +18,11 @@ import {
   type AuthEmailOtpPurpose,
 } from "@/lib/auth/email-otp"
 import { authOtpFromAddress, buildAuthOtpEmail } from "@/lib/auth/email-otp-email"
+import {
+  describeOtpMailerError,
+  logOtpMailerError,
+  logOtpMailerInfo,
+} from "@/lib/auth/email-otp-mailer"
 import { appOrigin } from "@/lib/auth/origin"
 import { loginHref } from "@/lib/auth/paths"
 import { findAuthUserIdByEmail } from "@/lib/auth/verified-password-session"
@@ -79,32 +84,88 @@ async function sendAuthOtpEmail(input: {
   code: string
   purpose: AuthEmailOtpPurpose
   loginUrl: string
-}): Promise<{ sent: boolean; error?: string }> {
+}): Promise<{ sent: boolean; error?: string; status?: number }> {
   const apiKey = process.env.RESEND_API_KEY?.trim()
+  const from = authOtpFromAddress()
+
   if (!apiKey) {
-    console.info("[auth-otp] RESEND_API_KEY lipsește. Cod local (nu se trimite email):", input.code, input.email)
+    if (process.env.NODE_ENV === "production") {
+      const described = describeOtpMailerError("config", "RESEND_API_KEY lipsește")
+      logOtpMailerError("email.neconfigurat", {
+        via: "resend.emails.send",
+        to: input.email,
+        from,
+        purpose: input.purpose,
+        detail: described.logMessage,
+      })
+      return { sent: false, error: described.userMessage, status: described.status }
+    }
+    logOtpMailerInfo("email.local-fara-resend", {
+      via: "console",
+      to: input.email,
+      from,
+      purpose: input.purpose,
+      note: "RESEND_API_KEY lipsește. Nu folosim signInWithOtp / auth.resend / mailer-ul de test Supabase.",
+      code: input.code,
+    })
     return { sent: false }
   }
 
-  const resend = new Resend(apiKey)
   const content = buildAuthOtpEmail({
     code: input.code,
     purpose: input.purpose,
     loginUrl: input.loginUrl,
   })
 
-  const { error } = await resend.emails.send({
-    from: authOtpFromAddress(),
-    to: [input.email],
-    subject: content.subject,
-    html: content.html,
-    text: content.text,
-  })
-
-  if (error) {
-    return { sent: false, error: error.message }
+  try {
+    logOtpMailerInfo("email.trimite", {
+      via: "resend.emails.send",
+      to: input.email,
+      from,
+      purpose: input.purpose,
+    })
+    const resend = new Resend(apiKey)
+    const { data, error } = await resend.emails.send({
+      from,
+      to: [input.email],
+      subject: content.subject,
+      html: content.html,
+      text: content.text,
+    })
+    if (error) {
+      const described = describeOtpMailerError("resend", error)
+      logOtpMailerError("email.resend-esuat", {
+        via: "resend.emails.send",
+        to: input.email,
+        from,
+        purpose: input.purpose,
+        kind: described.kind,
+        status: described.status,
+        detail: described.logMessage,
+      })
+      return { sent: false, error: described.userMessage, status: described.status }
+    }
+    logOtpMailerInfo("email.trimis", {
+      via: "resend.emails.send",
+      to: input.email,
+      from,
+      purpose: input.purpose,
+      id: data?.id ?? null,
+    })
+    return { sent: true }
+  } catch (error) {
+    const described = describeOtpMailerError("resend", error)
+    logOtpMailerError("email.resend-exceptie", {
+      via: "resend.emails.send",
+      to: input.email,
+      from,
+      purpose: input.purpose,
+      kind: described.kind,
+      status: described.status,
+      detail: described.logMessage,
+    })
+    return { sent: false, error: described.userMessage, status: described.status }
   }
-  return { sent: true }
 }
 
 const EXISTING_ACCOUNT_MESSAGE =
@@ -131,6 +192,74 @@ async function loadAuthUserByEmail(email: string) {
   return data.user ?? null
 }
 
+async function generateAuthEmailOtpLink(input: {
+  type: "signup" | "magiclink" | "recovery"
+  email: string
+  password?: string
+}): Promise<{ code: string } | { error: string; status?: number }> {
+  const admin = createServiceRoleClient()
+  try {
+    logOtpMailerInfo("auth.generateLink", {
+      via: "auth.admin.generateLink",
+      type: input.type,
+      email: input.email,
+      note: "Nu trimite email. Nu folosim signInWithOtp sau auth.resend.",
+    })
+    const { data, error } =
+      input.type === "signup"
+        ? await admin.auth.admin.generateLink({
+            type: "signup",
+            email: input.email,
+            password: input.password ?? "",
+          })
+        : await admin.auth.admin.generateLink({
+            type: input.type,
+            email: input.email,
+          })
+    if (error) {
+      const described = describeOtpMailerError("supabase", error)
+      logOtpMailerError("auth.generateLink-esuat", {
+        via: "auth.admin.generateLink",
+        type: input.type,
+        email: input.email,
+        kind: described.kind,
+        status: described.status,
+        detail: described.logMessage,
+        supabase: formatSupabaseError(error),
+      })
+      if (isEmailAlreadyRegisteredError(error)) {
+        return { error: formatSupabaseError(error), status: 409 }
+      }
+      return {
+        error: described.kind === "provider" ? formatSupabaseError(error) : described.userMessage,
+        status: described.status,
+      }
+    }
+    const otp = data.properties?.email_otp
+    if (otp && isEmailOtpCode(otp)) {
+      return { code: otp }
+    }
+    logOtpMailerError("auth.generateLink-fara-otp", {
+      via: "auth.admin.generateLink",
+      type: input.type,
+      email: input.email,
+      verificationType: data.properties?.verification_type ?? null,
+    })
+    return { error: "Nu am putut genera codul de confirmare. Încearcă din nou.", status: 503 }
+  } catch (error) {
+    const described = describeOtpMailerError("supabase", error)
+    logOtpMailerError("auth.generateLink-exceptie", {
+      via: "auth.admin.generateLink",
+      type: input.type,
+      email: input.email,
+      kind: described.kind,
+      status: described.status,
+      detail: described.logMessage,
+    })
+    return { error: described.userMessage, status: described.status }
+  }
+}
+
 async function generateOtpForExistingEmailUser(input: {
   email: string
   password?: string
@@ -139,26 +268,36 @@ async function generateOtpForExistingEmailUser(input: {
   const admin = createServiceRoleClient()
 
   if (input.userId && input.password) {
-    const { error: passwordError } = await admin.auth.admin.updateUserById(input.userId, {
-      password: input.password,
-    })
-    if (passwordError) {
-      console.warn("[auth-otp] nu am putut actualiza parola pentru retrimitere:", passwordError.message)
+    try {
+      const { error: passwordError } = await admin.auth.admin.updateUserById(input.userId, {
+        password: input.password,
+      })
+      if (passwordError) {
+        logOtpMailerError("auth.updateUser-parola", {
+          via: "auth.admin.updateUserById",
+          email: input.email,
+          detail: formatSupabaseError(passwordError),
+        })
+      }
+    } catch (error) {
+      logOtpMailerError("auth.updateUser-parola-exceptie", {
+        via: "auth.admin.updateUserById",
+        email: input.email,
+        detail: error instanceof Error ? error.message : String(error),
+      })
     }
   }
 
+  let lastError: { error: string; status?: number } | null = null
   for (const type of ["magiclink", "recovery"] as const) {
-    const { data, error } = await admin.auth.admin.generateLink({
-      type,
-      email: input.email,
-    })
-    const otp = data.properties?.email_otp
-    if (!error && otp && isEmailOtpCode(otp)) {
-      return { code: otp }
+    const issued = await generateAuthEmailOtpLink({ type, email: input.email })
+    if ("code" in issued) {
+      return issued
     }
+    lastError = issued
   }
 
-  return { error: OTP_REGENERATE_ERROR, status: 503 }
+  return lastError ?? { error: OTP_REGENERATE_ERROR, status: 503 }
 }
 
 async function otpForExistingRegisterUser(input: {
@@ -190,8 +329,6 @@ async function supabaseEmailOtpCode(input: {
   purpose: AuthEmailOtpPurpose
   password?: string
 }): Promise<{ code: string } | { error: string; status?: number }> {
-  const admin = createServiceRoleClient()
-
   if (input.purpose === "register") {
     const password = input.password
     if (!password) {
@@ -205,27 +342,28 @@ async function supabaseEmailOtpCode(input: {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Nu am putut verifica emailul."
+      logOtpMailerError("auth.lookup-email", {
+        via: "auth.admin.listUsers",
+        email: input.email,
+        detail: message,
+      })
       if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
         return { error: "Lipsește cheia de serviciu. Adaugă SUPABASE_SERVICE_ROLE_KEY în .env.local." }
       }
     }
 
-    const { data, error } = await admin.auth.admin.generateLink({
+    const issued = await generateAuthEmailOtpLink({
       type: "signup",
       email: input.email,
       password,
     })
-    if (error) {
-      if (isEmailAlreadyRegisteredError(error)) {
+    if ("error" in issued) {
+      if (issued.status === 409 || isEmailAlreadyRegisteredError({ message: issued.error })) {
         return otpForExistingRegisterUser({ email: input.email, password })
       }
-      return { error: formatSupabaseError(error) }
+      return issued
     }
-    const otp = data.properties?.email_otp
-    if (otp && isEmailOtpCode(otp)) {
-      return { code: otp }
-    }
-    return { error: "Nu am putut genera codul de confirmare. Încearcă din nou." }
+    return issued
   }
 
   return { error: "Codul de 6 cifre se trimite doar la crearea contului. Intră cu email și parolă." }
@@ -287,6 +425,12 @@ export async function issueAuthEmailOtp(input: {
 
     const issued = await supabaseEmailOtpCode({ email, purpose, password: input.password })
     if ("error" in issued) {
+      logOtpMailerError("otp.generate-esuat", {
+        via: "auth.admin.generateLink",
+        email,
+        status: issued.status ?? null,
+        detail: issued.error,
+      })
       return { ok: false, error: issued.error, status: issued.status }
     }
     const code = issued.code
@@ -324,16 +468,23 @@ export async function issueAuthEmailOtp(input: {
       if (inserted?.id) {
         await admin.from("auth_email_otps").update({ consumed_at: now.toISOString() }).eq("id", inserted.id)
       }
-      return { ok: false, error: `Nu am putut trimite emailul: ${sent.error}` }
+      return { ok: false, error: sent.error, status: sent.status ?? 503 }
     }
 
     return allowDevCodeInResponse() ? { ok: true, devCode: code } : { ok: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Nu am putut genera codul de acces."
+    const described = describeOtpMailerError("supabase", error)
+    logOtpMailerError("otp.issue-exceptie", {
+      via: "issueAuthEmailOtp",
+      kind: described.kind,
+      status: described.status,
+      detail: described.logMessage,
+    })
+    const message = error instanceof Error ? error.message : described.userMessage
     if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
       return { ok: false, error: "Lipsește cheia de serviciu. Adaugă SUPABASE_SERVICE_ROLE_KEY în .env.local." }
     }
-    return { ok: false, error: message }
+    return { ok: false, error: described.userMessage, status: described.status }
   }
 }
 

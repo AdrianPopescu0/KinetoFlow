@@ -27,5 +27,10 @@ declare namespace NodeJS {
     NEXT_PUBLIC_FIREBASE_MESSAGING_VAPID_KEY?: string
     NEXT_PUBLIC_FIREBASE_WEB_PUSH_CERTIFICATE?: string
     FIREBASE_SERVICE_ACCOUNT?: string
+    RESEND_API_KEY?: string
+    RESEND_FROM?: string
+    RESEND_AUTH_FROM?: string
+    AUTH_OTP_PEPPER?: string
+    SUPPORT_NOTIFY_EMAIL?: string
   }
 }
