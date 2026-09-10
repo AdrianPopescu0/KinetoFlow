@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useCallback, useMemo, useState, useTransition, type ChangeEvent } from "react"
+import { memo, useCallback, useEffect, useMemo, useState, useTransition, type ChangeEvent } from "react"
 import dynamic from "next/dynamic"
 import { Plus, Search } from "lucide-react"
 
@@ -11,6 +11,13 @@ import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/toaster"
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
 import { EMPTY_FILTERS, filterLibrary } from "@/lib/exercises/filter"
+import { isExerciseLibraryEditor } from "@/lib/exercises/library-admin"
+import {
+  HIDDEN_LIBRARY_IDS_KEY,
+  mergeLibraryCatalog,
+  parseHiddenLibraryIds,
+  serializeHiddenLibraryIds,
+} from "@/lib/exercises/merge-catalog"
 import {
   DIFFICULTIES,
   EQUIPMENT,
@@ -18,7 +25,6 @@ import {
   POSITIONS,
   REGIONS,
 } from "@/lib/exercises/taxonomy"
-import { isExerciseLibraryEditor } from "@/lib/exercises/library-admin"
 import type {
   AnatomicalRegion,
   AssignablePatient,
@@ -69,11 +75,21 @@ export function ExerciseLibrary({
   const [assign, setAssign] = useState<LibraryExercise | null>(null)
   const [adding, setAdding] = useState(false)
   const [extras, setExtras] = useState(storedExercises)
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set())
   const [, startDelete] = useTransition()
-  const catalog = useMemo(() => {
-    const storedIds = new Set(extras.map((item) => item.id))
-    return [...extras, ...LIBRARY_EXERCISES.filter((item) => !storedIds.has(item.id))]
-  }, [extras])
+
+  useEffect(() => {
+    try {
+      setHiddenIds(new Set(parseHiddenLibraryIds(window.localStorage.getItem(HIDDEN_LIBRARY_IDS_KEY))))
+    } catch {
+      // localStorage indisponibil (Safari privat, etc.)
+    }
+  }, [])
+
+  const catalog = useMemo(
+    () => mergeLibraryCatalog(extras, LIBRARY_EXERCISES, hiddenIds),
+    [extras, hiddenIds],
+  )
   const visible = useMemo(() => filterLibrary(catalog, filters), [catalog, filters])
 
   const update = useCallback(<K extends keyof LibraryFilters>(key: K, value: LibraryFilters[K]) => {
@@ -142,20 +158,27 @@ export function ExerciseLibrary({
     setExtras((current) => [exercise, ...current])
   }, [])
 
-  const deleteExercise = useCallback(
-    (id: string) => {
-      startDelete(async () => {
-        const result = await deleteLibraryExercise(id)
-        if (result.error) {
-          toast(result.error)
-          return
+  const deleteExercise = useCallback((id: string) => {
+    startDelete(async () => {
+      const result = await deleteLibraryExercise(id)
+      if (result.error) {
+        toast(result.error)
+        return
+      }
+      setExtras((current) => current.filter((item) => item.id !== id))
+      setHiddenIds((current) => {
+        const next = new Set(current)
+        next.add(id)
+        try {
+          window.localStorage.setItem(HIDDEN_LIBRARY_IDS_KEY, serializeHiddenLibraryIds(next))
+        } catch {
+          // ignore quota / private mode
         }
-        setExtras((current) => current.filter((item) => item.id !== id))
-        toast("Exercițiul a fost șters din bibliotecă.")
+        return next
       })
-    },
-    [],
-  )
+      toast("Exercițiul a fost șters din bibliotecă.")
+    })
+  }, [])
 
   return (
     <div className="flex w-full max-w-full flex-1 flex-col overflow-x-hidden">
@@ -238,7 +261,7 @@ export function ExerciseLibrary({
               exercise={exercise}
               onPreview={openPreview}
               onAssign={openAssign}
-              onDelete={canModifyLibrary && exercise.custom ? deleteExercise : undefined}
+              onDelete={canModifyLibrary ? deleteExercise : undefined}
             />
           ))}
         </div>

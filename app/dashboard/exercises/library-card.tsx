@@ -100,7 +100,7 @@ export const LibraryCard = memo(function LibraryCard({
             type="button"
             variant="outline"
             onClick={() => onDelete(exercise.id)}
-            className="h-11 min-h-[44px] rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+            className="h-11 min-h-[44px] w-full rounded-xl border-red-200 text-red-700 hover:bg-red-50"
           >
             <Trash2 className="size-4" />
             Șterge din bibliotecă

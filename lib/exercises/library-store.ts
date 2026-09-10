@@ -1,5 +1,6 @@
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
 import { hydrateLibraryExercise } from "@/lib/exercises/hydrate"
+import { mergeLibraryCatalog } from "@/lib/exercises/merge-catalog"
 import { serializeTagList } from "@/lib/exercises/tags"
 import { normalizePosition } from "@/lib/exercises/taxonomy"
 import type { LibraryExercise } from "@/lib/exercises/types"
@@ -84,8 +85,7 @@ export async function listStoredLibraryExercises(): Promise<LibraryExercise[]> {
 
 export async function listLibraryCatalog(): Promise<LibraryExercise[]> {
   const stored = await listStoredLibraryExercises()
-  const storedIds = new Set(stored.map((item) => item.id))
-  return [...stored, ...LIBRARY_EXERCISES.filter((item) => !storedIds.has(item.id))]
+  return mergeLibraryCatalog(stored, LIBRARY_EXERCISES)
 }
 
 export function libraryExerciseToRow(exercise: LibraryExercise) {

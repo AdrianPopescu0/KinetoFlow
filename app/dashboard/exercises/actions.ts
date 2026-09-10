@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { getCachedUser } from "@/lib/auth/session"
 import { LIBRARY_WRITE_FORBIDDEN, authUserCanEditLibrary } from "@/lib/exercises/library-admin"
 import { libraryExerciseToRow, listStoredLibraryExercises } from "@/lib/exercises/library-store"
+import { isPersistedLibraryId } from "@/lib/exercises/merge-catalog"
 import { hydrateLibraryExercise } from "@/lib/exercises/hydrate"
 import { isAnatomicalRegion, isEquipment, isExercisePosition, isTherapeuticObjective } from "@/lib/exercises/taxonomy"
 import type { LibraryExercise } from "@/lib/exercises/types"
@@ -149,9 +150,13 @@ export async function deleteLibraryExercise(exerciseId: string): Promise<Library
     return { error: gate.error ?? LIBRARY_WRITE_FORBIDDEN }
   }
 
-  const { error } = await gate.supabase.from("exercise_library").delete().eq("id", exerciseId)
-  if (error) {
-    return { error: formatSupabaseError(error) }
+  // Catalogul din seed folosește id-uri slug (ex. chin-tuck), nu UUID. Ștergerea
+  // din grilă trebuie să reușească și pe acele carduri, fără eroare Postgres.
+  if (isPersistedLibraryId(exerciseId)) {
+    const { error } = await gate.supabase.from("exercise_library").delete().eq("id", exerciseId)
+    if (error) {
+      return { error: formatSupabaseError(error) }
+    }
   }
 
   revalidatePath("/dashboard/exercises")
