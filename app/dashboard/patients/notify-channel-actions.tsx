@@ -7,7 +7,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { toast } from "@/components/ui/toaster"
 import { notifyChannelLabel, type PatientNotifyChannel } from "@/lib/patients/notify-channel"
 import { openPatientSms, patientSmsHref } from "@/lib/patients/phone"
-import { openExternalWhatsApp } from "@/lib/patients/whatsapp"
+import { openExternalWhatsApp, whatsappBlankAnchorProps } from "@/lib/patients/whatsapp"
 import { cn } from "@/lib/utils"
 
 type NotifyChannelActionsProps = {
@@ -62,10 +62,7 @@ export function NotifyChannelActions({
       </p>
       {whatsappHref ? (
         <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          referrerPolicy="no-referrer"
+          {...whatsappBlankAnchorProps(whatsappHref)}
           onClick={(event) => {
             openExternalWhatsApp(event, whatsappHref)
             void remember("whatsapp")
@@ -82,10 +79,7 @@ export function NotifyChannelActions({
       ) : null}
       {whatsappWebHref ? (
         <a
-          href={whatsappWebHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          referrerPolicy="no-referrer"
+          {...whatsappBlankAnchorProps(whatsappWebHref)}
           onClick={(event) => {
             openExternalWhatsApp(event, whatsappWebHref)
             void remember("whatsapp")

@@ -5,6 +5,9 @@ import {
   isExternalWhatsAppUrl,
   patientWhatsAppHref,
   patientWhatsAppWebHref,
+  WHATSAPP_BLANK_REL,
+  WHATSAPP_BLANK_TARGET,
+  whatsappBlankAnchorProps,
 } from "./whatsapp-links.ts"
 
 test("click-to-chat folosește api.whatsapp.com, nu o rută internă", () => {
@@ -32,6 +35,17 @@ test("WhatsApp Web rămâne pe web.whatsapp.com", () => {
 test("număr invalid nu produce link", () => {
   assert.equal(patientWhatsAppHref("12", "salut"), null)
   assert.equal(patientWhatsAppWebHref("", "salut"), null)
+})
+
+test("linkul WhatsApp se deschide într-un tab nou, nu în dashboard", () => {
+  const href = "https://api.whatsapp.com/send?phone=40722123456&text=x"
+  const props = whatsappBlankAnchorProps(href)
+  assert.equal(props.href, href)
+  assert.equal(props.target, WHATSAPP_BLANK_TARGET)
+  assert.equal(props.target, "_blank")
+  assert.equal(props.rel, WHATSAPP_BLANK_REL)
+  assert.equal(props.rel, "noopener noreferrer")
+  assert.equal(props.referrerPolicy, "no-referrer")
 })
 
 test("doar URL-uri https WhatsApp sunt acceptate pentru deschidere externă", () => {

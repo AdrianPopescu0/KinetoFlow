@@ -5,6 +5,9 @@ export {
   openExternalWhatsApp,
   patientWhatsAppHref,
   patientWhatsAppWebHref,
+  WHATSAPP_BLANK_REL,
+  WHATSAPP_BLANK_TARGET,
+  whatsappBlankAnchorProps,
 } from "@/lib/patients/whatsapp-links"
 
 export function publicSiteUrl(): string {

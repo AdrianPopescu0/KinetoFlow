@@ -31,6 +31,9 @@ export function patientWhatsAppWebHref(phone: string, message: string): string |
   return `https://web.whatsapp.com/send?phone=${digits}&text=${encodedWhatsAppText(message)}`
 }
 
+export const WHATSAPP_BLANK_TARGET = "_blank"
+export const WHATSAPP_BLANK_REL = "noopener noreferrer"
+
 export function isExternalWhatsAppUrl(href: string | null | undefined): boolean {
   if (!href) {
     return false
@@ -46,21 +49,55 @@ export function isExternalWhatsAppUrl(href: string | null | undefined): boolean 
   }
 }
 
+export function whatsappBlankAnchorProps(href: string): {
+  href: string
+  target: typeof WHATSAPP_BLANK_TARGET
+  rel: typeof WHATSAPP_BLANK_REL
+  referrerPolicy: "no-referrer"
+} {
+  return {
+    href,
+    target: WHATSAPP_BLANK_TARGET,
+    rel: WHATSAPP_BLANK_REL,
+    referrerPolicy: "no-referrer",
+  }
+}
+
+function openWhatsAppInNewTab(href: string): boolean {
+  const opened = window.open(href, WHATSAPP_BLANK_TARGET, "noopener,noreferrer")
+  if (opened) {
+    try {
+      opened.opener = null
+    } catch {
+      // Tab-ul e deja separat de pagina KinetoFlow.
+    }
+    return true
+  }
+
+  const anchor = document.createElement("a")
+  anchor.href = href
+  anchor.target = WHATSAPP_BLANK_TARGET
+  anchor.rel = WHATSAPP_BLANK_REL
+  anchor.referrerPolicy = "no-referrer"
+  anchor.style.display = "none"
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  return true
+}
+
 /**
- * Opens WhatsApp outside the Next.js router. Always preventDefault so a broken
- * or relative href cannot navigate inside the dashboard.
+ * Opens WhatsApp in a new browser tab. Always preventDefault so Next.js cannot
+ * treat the URL as an in-app route, and never replace the current dashboard tab.
  */
 export function openExternalWhatsApp(
-  event: { preventDefault: () => void },
+  event: { preventDefault: () => void; stopPropagation?: () => void },
   href: string | null | undefined,
 ): boolean {
   event.preventDefault()
+  event.stopPropagation?.()
   if (!href || !isExternalWhatsAppUrl(href) || typeof window === "undefined") {
     return false
   }
-  const opened = window.open(href, "_blank", "noopener,noreferrer")
-  if (!opened) {
-    window.location.assign(href)
-  }
-  return true
+  return openWhatsAppInNewTab(href)
 }

@@ -6,7 +6,7 @@ import { Check, Copy, MessageCircle, MessageSquareText } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { toast } from "@/components/ui/toaster"
 import { openPatientSms, patientSmsHref } from "@/lib/patients/phone"
-import { openExternalWhatsApp } from "@/lib/patients/whatsapp"
+import { openExternalWhatsApp, whatsappBlankAnchorProps } from "@/lib/patients/whatsapp"
 import { cn } from "@/lib/utils"
 
 const sendActionClassName =
@@ -63,10 +63,7 @@ export function ShareInviteActions({
     <div className="flex w-full min-w-0 flex-col gap-2.5">
       {whatsappHref ? (
         <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          referrerPolicy="no-referrer"
+          {...whatsappBlankAnchorProps(whatsappHref)}
           onClick={(event) => {
             openExternalWhatsApp(event, whatsappHref)
           }}
@@ -82,10 +79,7 @@ export function ShareInviteActions({
       ) : null}
       {whatsappWebHref ? (
         <a
-          href={whatsappWebHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          referrerPolicy="no-referrer"
+          {...whatsappBlankAnchorProps(whatsappWebHref)}
           onClick={(event) => {
             openExternalWhatsApp(event, whatsappWebHref)
           }}
