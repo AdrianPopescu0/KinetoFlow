@@ -6,7 +6,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * Trimite un OTP / link de autentificare pe email (admin sau terapeut).
+ * Trimite un OTP de autentificare pe email (admin sau terapeut).
  * Body: { email: string, purpose?: "login" | "register" }
  */
 export async function POST(request: Request) {

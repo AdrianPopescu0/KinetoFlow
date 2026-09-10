@@ -19,27 +19,24 @@ export function buildAuthOtpEmail(input: {
   code: string
   purpose: AuthEmailOtpPurpose
   loginUrl: string
-  magicUrl: string
 }): { subject: string; html: string; text: string } {
   const code = escapeHtml(input.code)
   const loginUrl = escapeHtml(input.loginUrl)
-  const magicUrl = escapeHtml(input.magicUrl)
   const isRegister = input.purpose === "register"
   const subject = isRegister
     ? "Codul tău KinetoFlow pentru crearea contului"
     : "Codul tău de autentificare KinetoFlow"
   const heading = isRegister ? "Confirmă crearea contului" : "Cod de autentificare"
   const intro = isRegister
-    ? "Folosește acest cod pentru a confirma adresa și a finaliza înregistrarea clinicii."
-    : "Folosește acest cod pentru a intra în contul de administrator sau terapeut."
+    ? "Introdu acest cod în aplicație, pe același telefon, tabletă sau calculator de pe care ai început înregistrarea. Emailul nu te autentifică automat."
+    : "Introdu acest cod în aplicație, pe dispozitivul de pe care ai cerut autentificarea."
 
   const text = [
     heading,
     intro,
     `Codul tău: ${input.code}`,
     "Valabil 10 minute. Dacă nu ai cerut acest email, poți să-l ignori.",
-    `Intră în cont: ${input.loginUrl}`,
-    `Sau confirmă adresa din acest link: ${input.magicUrl}`,
+    `Ecranul de confirmare este deja deschis în aplicație. Dacă l-ai închis: ${input.loginUrl}`,
   ].join("\n")
 
   const html = `
@@ -53,12 +50,10 @@ export function buildAuthOtpEmail(input: {
                   <p style="margin:0 0 8px;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#0f766e;font-weight:600">KinetoFlow</p>
                   <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;font-weight:600">${heading}</h1>
                   <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#475569">${intro}</p>
-                  <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#94a3b8">Cod unic de acces</p>
+                  <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#94a3b8">Cod de 6 cifre</p>
                   <p style="margin:0 0 24px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:32px;letter-spacing:0.28em;font-weight:700;color:#042f2e">${code}</p>
-                  <p style="margin:0 0 24px">
-                    <a href="${magicUrl}" style="display:inline-block;background:#042f2e;color:#ffffff;text-decoration:none;border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600">Confirmă adresa</a>
-                  </p>
-                  <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#64748b">Valabil 10 minute. Poți intra și de pe <a href="${loginUrl}" style="color:#0f766e">pagina de autentificare</a> și introduce codul.</p>
+                  <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#334155">Nu apăsa niciun buton din email. Tastează codul în ecranul KinetoFlow rămas deschis pe dispozitivul de pe care ai început.</p>
+                  <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#64748b">Valabil 10 minute. Dacă ai închis aplicația, revino la <a href="${loginUrl}" style="color:#0f766e">pagina de autentificare</a> și cere un cod nou.</p>
                   <p style="margin:0;font-size:12px;line-height:1.6;color:#94a3b8">Dacă nu ai cerut acest mesaj, ignoră-l. Nu trimitem parole pe email.</p>
                 </td>
               </tr>

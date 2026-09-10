@@ -11,6 +11,7 @@ import {
   signVerifiedEmailCookie,
 } from "./email-otp.ts"
 import { AUTH_OTP_FROM_DEFAULT, buildAuthOtpEmail } from "./email-otp-email.ts"
+import { emailOtpPageHref } from "./paths.ts"
 
 test("normalizeAuthEmail acceptă doar adrese valide", () => {
   assert.equal(normalizeAuthEmail("  Admin@Clinica.RO "), "admin@clinica.ro")
@@ -41,15 +42,26 @@ test("cookie-ul de email verificat suportă puncte în adresă", () => {
   assert.equal(readVerifiedEmailCookie(token, Date.now() + 120_000, pepper), null)
 })
 
-test("emailul OTP conține codul și expeditorul implicit e no-reply", () => {
+test("emailul OTP conține codul și nu are buton de autologin", () => {
   const built = buildAuthOtpEmail({
     code: "654321",
     purpose: "login",
     loginUrl: "http://127.0.0.1:43123/login",
-    magicUrl: "http://127.0.0.1:43123/auth/email-cod?token=abc",
   })
   assert.match(built.html, /654321/)
-  assert.match(built.text, /654321/)
+  assert.match(built.text, /Codul tău: 654321/)
   assert.match(built.subject, /autentificare/)
   assert.equal(AUTH_OTP_FROM_DEFAULT, "KinetoFlow <no-reply@kinetoflow.ro>")
+  assert.equal(built.html.includes("/auth/email-cod?token="), false)
+  assert.equal(built.text.includes("/auth/email-cod?token="), false)
+  assert.equal(built.html.includes("inline-block;background:#042f2e"), false)
+})
+
+test("ecranul de confirmare e o rută din aplicație, nu un link din email", () => {
+  assert.equal(
+    emailOtpPageHref("Admin@Clinica.RO", "register"),
+    "/auth/email-cod?email=Admin%40Clinica.RO&purpose=register",
+  )
+  assert.equal(emailOtpPageHref("ana@clinica.ro", "login").startsWith("/auth/email-cod?"), true)
+  assert.equal(emailOtpPageHref("ana@clinica.ro", "login").includes("token="), false)
 })

@@ -11,6 +11,14 @@ export function loginHref(mode: "signin" | "signup"): string {
   return mode === "signup" ? "/login?mode=signup" : "/login?mode=signin"
 }
 
+export function emailOtpPageHref(email: string, purpose: "login" | "register"): string {
+  const params = new URLSearchParams({
+    email,
+    purpose,
+  })
+  return `/auth/email-cod?${params.toString()}`
+}
+
 export const LOGIN_SIGNED_OUT_HREF = "/login?signedout=1"
 
 export function shouldStayOnTherapistLogin(search: string | URLSearchParams | null | undefined): boolean {

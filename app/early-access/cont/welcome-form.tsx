@@ -186,7 +186,7 @@ export function EarlyAccessWelcomeForm({
           />
           <p className="text-xs leading-relaxed text-slate-500">
             Folosește adresa ta, nu un alias de clinică dacă nu îl controlezi. Îți trimitem un
-            cod de 6 cifre și un link de confirmare.
+            cod de 6 cifre de introdus în aplicație.
           </p>
         </div>
 
@@ -214,7 +214,7 @@ export function EarlyAccessWelcomeForm({
               <p className="text-xs text-amber-800">Mediu local, fără Resend: folosește codul {devCode}.</p>
             ) : (
               <p className="text-xs text-slate-500">
-                6 cifre, valabile 10 minute. Poți confirma și din linkul primit pe email.
+                6 cifre, valabile 10 minute. Tastează-le aici, chiar dacă ai deschis emailul pe alt dispozitiv.
               </p>
             )}
             <button

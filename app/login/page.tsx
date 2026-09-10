@@ -19,7 +19,7 @@ function loginReasonMessage(reason: string | undefined): string | null {
     return "Linkul de invitație a expirat sau a fost deja folosit. Cere administratorului un link nou."
   }
   if (reason === "otp_invalid") {
-    return "Linkul de autentificare este invalid sau a expirat. Cere un cod nou din formular."
+    return "Codul de autentificare este invalid sau a expirat. Cere un cod nou din formular."
   }
   if (reason === "oauth") {
     return "Autentificarea cu Google a fost anulată sau a eșuat. Încearcă din nou."
@@ -54,7 +54,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           params.reason === "confirm_email"
             ? EMAIL_CONFIRM_REQUIRED
             : params.reason === "otp_ok"
-              ? "Adresa a fost confirmată din email. Introdu parola și apasă Intră în cont."
+              ? "Adresa a fost confirmată. Introdu parola și continuă."
               : null
         }
         initialOtpVerified={params.reason === "otp_ok"}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
 
 import { login, register, requestAuthEmailOtpAction } from "@/app/login/actions"
@@ -13,7 +14,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { enterTherapistApp, oauthBrowserRedirectToWithPendingInvite } from "@/lib/auth/oauth-redirect"
 import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
-import { loginHref } from "@/lib/auth/paths"
+import { emailOtpPageHref, loginHref } from "@/lib/auth/paths"
+import { writePendingEmailOtp } from "@/lib/auth/pending-email-otp"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
@@ -33,13 +35,12 @@ export function LoginForm({
   initialOtpVerified?: boolean
 }) {
   const tab = initialTab
+  const router = useRouter()
   const [error, setError] = useState<string | null>(initialError)
   const [info, setInfo] = useState<string | null>(initialInfo)
   const [showPassword, setShowPassword] = useState(false)
   const [password, setPassword] = useState("")
-  const [otp, setOtp] = useState("")
   const [otpSent, setOtpSent] = useState(initialOtpVerified)
-  const [devCode, setDevCode] = useState<string | null>(null)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [googlePending, setGooglePending] = useState(false)
@@ -127,15 +128,18 @@ export function LoginForm({
           setError(requested.error)
           return
         }
-        setOtpSent(true)
-        setInfo(requested?.info ?? "Ți-am trimis un cod de acces pe email.")
-        setDevCode(requested?.devCode ?? null)
+        const email = String(formData.get("email") ?? "").trim().toLowerCase()
+        writePendingEmailOtp({
+          email,
+          password: String(formData.get("password") ?? ""),
+          purpose: tab,
+          legalAccept: tab === "register" && formData.get(LEGAL_ACCEPT_FIELD) === "on",
+          devCode: requested?.devCode,
+        })
+        router.push(requested?.continuePath ?? emailOtpPageHref(email, tab))
         return
       }
 
-      if (otp.trim()) {
-        formData.set("otp", otp.trim())
-      }
       const result = tab === "register" ? await register(formData) : await login(formData)
       if (result?.error) {
         setError(result.error)
@@ -175,7 +179,7 @@ export function LoginForm({
       {info ? (
         <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
           <Mail />
-          <AlertTitle>{otpSent ? "Verifică emailul" : "Confirmă adresa de email"}</AlertTitle>
+          <AlertTitle>{otpSent ? "Adresa a fost verificată" : "Confirmă adresa de email"}</AlertTitle>
           <AlertDescription>{info}</AlertDescription>
         </Alert>
       ) : null}
@@ -336,46 +340,6 @@ export function LoginForm({
               .
             </span>
           </label>
-        ) : null}
-
-        {otpSent ? (
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="otp" className="text-slate-900">
-              Cod de acces din email
-            </Label>
-            <Input
-              id="otp"
-              name="otp"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="\d{6}"
-              maxLength={6}
-              required={!initialOtpVerified}
-              disabled={busy}
-              value={otp}
-              onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="000000"
-              className="h-12 min-h-12 border-slate-300 px-3 font-mono tracking-[0.28em]"
-            />
-            {devCode ? (
-              <p className="text-xs text-amber-800">Mediu local, fără Resend: folosește codul {devCode}.</p>
-            ) : (
-              <p className="text-xs text-slate-500">6 cifre, valabile 10 minute. Verifică și folderul Spam.</p>
-            )}
-            <button
-              type="button"
-              disabled={busy}
-              className="self-start text-sm font-medium text-[#042f2e] underline-offset-4 hover:underline disabled:opacity-50"
-              onClick={() => {
-                setOtpSent(false)
-                setOtp("")
-                setInfo(null)
-                setDevCode(null)
-              }}
-            >
-              Trimite un cod nou
-            </button>
-          </div>
         ) : null}
 
         <Button

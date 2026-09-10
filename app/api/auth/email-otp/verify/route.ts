@@ -6,8 +6,8 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * Verifică OTP-ul sau tokenul din linkul de email.
- * Body: { email?: string, code?: string, token?: string }
+ * Verifică OTP-ul de 6 cifre din email.
+ * Body: { email: string, code: string }
  */
 export async function POST(request: Request) {
   let body: { email?: unknown; code?: unknown; token?: unknown }

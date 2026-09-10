@@ -6,14 +6,16 @@ import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
 import { isEmailAlreadyRegisteredError } from "@/lib/auth/email-confirmed"
 import { readVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
-import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
 import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
+import { emailOtpPageHref } from "@/lib/auth/paths"
+import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
 import {
   AUTH_ERROR_MESSAGE,
   parseLoginCredentials,
   parseRegisterCredentials,
   REGISTER_ERROR_MESSAGE,
 } from "@/lib/auth/validation"
+import { verifySignupEmailOtp } from "@/lib/auth/verify-signup-otp"
 import {
   signInAfterEmailVerified,
   verifiedSignInFailureMessage,
@@ -25,11 +27,15 @@ export type LoginActionState = {
   info?: string
   otpSent?: boolean
   devCode?: string
+  continuePath?: string
   next?: "/dashboard" | "/onboarding"
 } | null
 
 const EXISTING_ACCOUNT_MESSAGE =
   "Există deja un cont cu acest email. Intră în cont din tabul de autentificare."
+
+const OTP_SENT_INFO =
+  "Ți-am trimis un cod de 6 cifre pe email. Introdu-l în aplicație pe același dispozitiv de pe care ai început. Este valabil 10 minute."
 
 async function requireEmailOtp(email: string, formData: FormData): Promise<string | null> {
   const jar = await cookies()
@@ -55,14 +61,19 @@ export async function requestAuthEmailOtpAction(formData: FormData): Promise<Log
     if ("error" in parsed) {
       return { error: parsed.error }
     }
-    const issued = await issueAuthEmailOtp({ email: parsed.email, purpose: "register" })
+    const issued = await issueAuthEmailOtp({
+      email: parsed.email,
+      purpose: "register",
+      password: parsed.password,
+    })
     if (!issued.ok) {
       return { error: issued.error }
     }
     return {
       otpSent: true,
-      info: "Ți-am trimis un cod de acces pe email. Este valabil 10 minute.",
+      info: OTP_SENT_INFO,
       devCode: issued.devCode,
+      continuePath: emailOtpPageHref(parsed.email, "register"),
     }
   }
 
@@ -77,8 +88,9 @@ export async function requestAuthEmailOtpAction(formData: FormData): Promise<Log
   }
   return {
     otpSent: true,
-    info: "Ți-am trimis un cod de acces pe email. Este valabil 10 minute.",
+    info: OTP_SENT_INFO,
     devCode: issued.devCode,
+    continuePath: emailOtpPageHref(credentials.email, "login"),
   }
 }
 
@@ -117,6 +129,15 @@ export async function register(formData: FormData): Promise<LoginActionState> {
     return { error: otpError }
   }
 
+  const code = String(formData.get("otp") ?? "")
+  const verified = await verifySignupEmailOtp(parsed.email, code)
+  if (verified.ok) {
+    const jar = await cookies()
+    jar.delete(SIGNED_OUT_GATE_COOKIE)
+    jar.delete(VERIFIED_OTP_COOKIE)
+    return { next: await resolveTherapistAppPath() }
+  }
+
   const supabase = await createClient()
   const origin = await appOrigin()
   const { data, error } = await supabase.auth.signUp({
@@ -133,11 +154,19 @@ export async function register(formData: FormData): Promise<LoginActionState> {
   }
 
   if (duplicateIdentity || isEmailAlreadyRegisteredError(error)) {
+    const signedInExisting = await signInAfterEmailVerified({
+      email: parsed.email,
+      password: parsed.password,
+      emailJustVerified: true,
+    })
+    if (signedInExisting.ok) {
+      const jar = await cookies()
+      jar.delete(SIGNED_OUT_GATE_COOKIE)
+      return { next: await resolveTherapistAppPath() }
+    }
     return { error: EXISTING_ACCOUNT_MESSAGE }
   }
 
-  // Semnătura din signUp e adesea fără email_confirmed_at. Confirmăm și
-  // autentificăm imediat — fără a goli sesiunea înainte de sign-in.
   const signedIn = await signInAfterEmailVerified({
     email: parsed.email,
     password: parsed.password,

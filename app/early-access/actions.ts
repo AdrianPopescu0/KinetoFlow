@@ -73,7 +73,7 @@ export async function requestEarlyAccessEmailOtp(formData: FormData): Promise<Ea
   return {
     email,
     otpSent: true,
-    info: "Ți-am trimis un cod de 6 cifre și un link pe acest email. Este valabil 10 minute.",
+    info: "Ți-am trimis un cod de 6 cifre pe acest email. Este valabil 10 minute. Introdu-l în aplicație — emailul nu te autentifică automat.",
     devCode: issued.devCode,
   }
 }

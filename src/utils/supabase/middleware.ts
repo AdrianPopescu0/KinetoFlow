@@ -42,7 +42,9 @@ function isTherapistAuthPage(pathname: string): boolean {
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/recuperare-parola" ||
-    pathname === "/early-access/cont"
+    pathname === "/early-access/cont" ||
+    pathname === "/auth/email-cod" ||
+    pathname.startsWith("/auth/email-cod/")
   )
 }
 
@@ -56,6 +58,8 @@ function allowsUnconfirmedEmail(pathname: string): boolean {
     pathname.startsWith("/auth/callback/") ||
     pathname === "/auth/activare" ||
     pathname.startsWith("/auth/activare/") ||
+    pathname === "/auth/email-cod" ||
+    pathname.startsWith("/auth/email-cod/") ||
     pathname === "/auth/invitatie" ||
     pathname.startsWith("/auth/invitatie/") ||
     pathname.startsWith("/auth/set-password")

@@ -2,7 +2,7 @@ import "server-only"
 
 import { Resend } from "resend"
 
-import { appOrigin } from "@/lib/auth/origin"
+import { isEmailAlreadyRegisteredError } from "@/lib/auth/email-confirmed"
 import {
   EMAIL_OTP_MAX_ATTEMPTS,
   EMAIL_OTP_RESEND_MS,
@@ -19,7 +19,9 @@ import {
   type AuthEmailOtpPurpose,
 } from "@/lib/auth/email-otp"
 import { authOtpFromAddress, buildAuthOtpEmail } from "@/lib/auth/email-otp-email"
+import { appOrigin } from "@/lib/auth/origin"
 import { loginHref } from "@/lib/auth/paths"
+import { findAuthUserIdByEmail } from "@/lib/auth/verified-password-session"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
@@ -77,7 +79,6 @@ async function sendAuthOtpEmail(input: {
   email: string
   code: string
   purpose: AuthEmailOtpPurpose
-  magicUrl: string
   loginUrl: string
 }): Promise<{ sent: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY?.trim()
@@ -91,7 +92,6 @@ async function sendAuthOtpEmail(input: {
     code: input.code,
     purpose: input.purpose,
     loginUrl: input.loginUrl,
-    magicUrl: input.magicUrl,
   })
 
   const { error } = await resend.emails.send({
@@ -108,9 +108,70 @@ async function sendAuthOtpEmail(input: {
   return { sent: true }
 }
 
+const EXISTING_ACCOUNT_MESSAGE =
+  "Există deja un cont cu acest email. Intră în cont din tabul de autentificare."
+
+async function supabaseEmailOtpCode(input: {
+  email: string
+  purpose: AuthEmailOtpPurpose
+  password?: string
+}): Promise<{ code: string } | { error: string; status?: number }> {
+  const admin = createServiceRoleClient()
+
+  if (input.purpose === "register") {
+    const password = input.password
+    if (!password) {
+      return { error: "Parola lipsește. Revino la formularul de înregistrare.", status: 400 }
+    }
+
+    try {
+      const existingId = await findAuthUserIdByEmail(input.email)
+      if (existingId) {
+        const { data: existing } = await admin.auth.admin.getUserById(existingId)
+        if (existing.user?.email_confirmed_at) {
+          return { error: EXISTING_ACCOUNT_MESSAGE, status: 409 }
+        }
+        const { data, error } = await admin.auth.admin.generateLink({
+          type: "magiclink",
+          email: input.email,
+        })
+        const otp = data.properties?.email_otp
+        if (error || !otp || !isEmailOtpCode(otp)) {
+          return { error: EXISTING_ACCOUNT_MESSAGE, status: 409 }
+        }
+        return { code: otp }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Nu am putut verifica emailul."
+      if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+        return { error: "Lipsește cheia de serviciu. Adaugă SUPABASE_SERVICE_ROLE_KEY în .env.local." }
+      }
+    }
+
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "signup",
+      email: input.email,
+      password,
+    })
+    if (error) {
+      if (isEmailAlreadyRegisteredError(error)) {
+        return { error: EXISTING_ACCOUNT_MESSAGE, status: 409 }
+      }
+      return { error: formatSupabaseError(error) }
+    }
+    const otp = data.properties?.email_otp
+    if (otp && isEmailOtpCode(otp)) {
+      return { code: otp }
+    }
+  }
+
+  return { code: generateEmailOtpCode() }
+}
+
 export async function issueAuthEmailOtp(input: {
   email: string
   purpose?: unknown
+  password?: string
 }): Promise<IssueAuthEmailOtpResult> {
   const email = normalizeAuthEmail(input.email)
   if (!email) {
@@ -150,12 +211,15 @@ export async function issueAuthEmailOtp(input: {
       await admin.from("auth_email_otps").update({ consumed_at: now.toISOString() }).eq("id", latest.id)
     }
 
-    const code = generateEmailOtpCode()
+    const issued = await supabaseEmailOtpCode({ email, purpose, password: input.password })
+    if ("error" in issued) {
+      return { ok: false, error: issued.error, status: issued.status }
+    }
+    const code = issued.code
     const linkToken = generateEmailOtpLinkToken()
     const expiresAt = otpExpiresAt(now, EMAIL_OTP_TTL_MS)
     const origin = await appOrigin()
     const loginUrl = `${origin}${loginHref(purpose === "register" ? "signup" : "signin")}`
-    const magicUrl = `${origin}/auth/email-cod?token=${encodeURIComponent(linkToken)}`
 
     const { data: inserted, error: insertError } = await admin
       .from("auth_email_otps")
@@ -176,7 +240,7 @@ export async function issueAuthEmailOtp(input: {
       return { ok: false, error: formatSupabaseError(insertError) }
     }
 
-    const sent = await sendAuthOtpEmail({ email, code, purpose, magicUrl, loginUrl })
+    const sent = await sendAuthOtpEmail({ email, code, purpose, loginUrl })
     if (sent.error) {
       if (inserted?.id) {
         await admin.from("auth_email_otps").update({ consumed_at: now.toISOString() }).eq("id", inserted.id)
