@@ -4,7 +4,7 @@ import { cookies } from "next/headers"
 
 import { AUTH_ERROR_MESSAGE, parseRegisterCredentials } from "@/lib/auth/validation"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
-import { THERAPIST_INVITE_COOKIE, therapistInviteCookieOptions } from "@/lib/clinics/invite-session"
+import { writeTherapistInviteCookies } from "@/lib/clinics/invite-session"
 import {
   isMissingTherapistInvitesTable,
   isTherapistInviteOpen,
@@ -60,7 +60,7 @@ export async function prepareTherapistInviteOAuth(token: string): Promise<Accept
     }
 
     const jar = await cookies()
-    jar.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
+    writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
 
     return null
   } catch (error) {
@@ -117,11 +117,14 @@ export async function acceptTherapistInvite(
         clinic_id: data.clinic_owner_id,
         phone: data.phone,
         invited_by: data.invited_by,
+        invite_token: token,
+        invited: true,
         role: "therapist",
       },
       app_metadata: {
         clinic_id: data.clinic_owner_id,
         role: "therapist",
+        invite_token: token,
       },
     })
 
@@ -164,7 +167,7 @@ export async function acceptTherapistInvite(
     }
 
     const jar = await cookies()
-    jar.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
+    writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
 
     if (!createdNewUser) {
       return { next: "/dashboard" }
@@ -179,7 +182,7 @@ export async function acceptTherapistInvite(
       return { error: "Contul a fost creat, dar autentificarea a eșuat. Intră din pagina de login cu același email." }
     }
 
-    jar.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
+    writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
     return { next: "/dashboard" }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Nu am putut activa invitația."

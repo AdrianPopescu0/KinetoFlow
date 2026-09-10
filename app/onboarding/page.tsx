@@ -4,12 +4,19 @@ import { redirect } from "next/navigation"
 
 import { OnboardingClient } from "@/app/onboarding/onboarding-client"
 import { logout } from "@/app/dashboard/actions"
+import { InvitedTherapistOnboardingGate } from "@/components/auth/pending-therapist-invite"
 import { Logo } from "@/components/Logo"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { getCachedUser } from "@/lib/auth/session"
+import { invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 import { readTherapistInviteToken } from "@/lib/clinics/invite-attach"
-import { THERAPIST_INVITE_COOKIE, therapistInviteFinalizeHref } from "@/lib/clinics/invite-session"
+import {
+  THERAPIST_INVITE_CLIENT_COOKIE,
+  THERAPIST_INVITE_COOKIE,
+  inviteTokenFromAuthUser,
+  therapistInviteFinalizeHref,
+} from "@/lib/clinics/invite-session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
 
 export const metadata: Metadata = {
@@ -28,9 +35,17 @@ export default async function OnboardingPage() {
   }
 
   const jar = await cookies()
-  const inviteToken = readTherapistInviteToken(null, jar.get(THERAPIST_INVITE_COOKIE)?.value)
+  const inviteToken = readTherapistInviteToken(
+    null,
+    jar.get(THERAPIST_INVITE_COOKIE)?.value,
+    jar.get(THERAPIST_INVITE_CLIENT_COOKIE)?.value,
+    inviteTokenFromAuthUser(user),
+  )
   if (inviteToken) {
     redirect(therapistInviteFinalizeHref(inviteToken))
+  }
+  if (invitedTherapistFromUser(user)) {
+    redirect("/dashboard")
   }
 
   const { profile, error: clinicLoadError } = await fetchClinicProfile(supabase, user.id)
@@ -52,7 +67,9 @@ export default async function OnboardingPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 py-10">
-        <OnboardingClient email={user.email} clinicLoadError={clinicLoadError} />
+        <InvitedTherapistOnboardingGate>
+          <OnboardingClient email={user.email} clinicLoadError={clinicLoadError} />
+        </InvitedTherapistOnboardingGate>
       </main>
     </div>
   )

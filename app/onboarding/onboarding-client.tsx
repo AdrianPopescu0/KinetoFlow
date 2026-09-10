@@ -5,11 +5,13 @@ import { useLayoutEffect, useState } from "react"
 import { claimPendingTherapistInvite } from "@/app/onboarding/actions"
 import { OnboardingForm } from "@/app/onboarding/onboarding-form"
 import { therapistInvitePagePath } from "@/lib/clinics/invite-attach"
+import { clinicReadyFromUser, invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 import {
   clearStoredTherapistInviteToken,
   persistTherapistInviteToken,
   readStoredTherapistInviteToken,
 } from "@/lib/clinics/invite-session"
+import { createClient } from "@/utils/supabase/client"
 
 type OnboardingPhase = "checking" | "joining" | "form"
 
@@ -25,7 +27,16 @@ export function OnboardingClient({
   useLayoutEffect(() => {
     const token = readStoredTherapistInviteToken()
     if (!token) {
-      setPhase("form")
+      const supabase = createClient()
+      void supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user && (clinicReadyFromUser(user) || invitedTherapistFromUser(user))) {
+          window.location.replace("/dashboard")
+          return
+        }
+        setPhase("form")
+      }).catch(() => {
+        setPhase("form")
+      })
       return
     }
 

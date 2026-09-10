@@ -8,8 +8,13 @@ import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { therapistAppPath } from "@/lib/auth/paths"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
+import { invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 import { readTherapistInviteToken } from "@/lib/clinics/invite-attach"
-import { THERAPIST_INVITE_COOKIE } from "@/lib/clinics/invite-session"
+import {
+  THERAPIST_INVITE_CLIENT_COOKIE,
+  THERAPIST_INVITE_COOKIE,
+  inviteTokenFromAuthUser,
+} from "@/lib/clinics/invite-session"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import { createClient } from "@/utils/supabase/server"
 
@@ -41,13 +46,30 @@ export async function resolveTherapistAppPath(): Promise<TherapistAppPath> {
     return "/dashboard"
   }
 
-  const inviteToken = readTherapistInviteToken(null, jar.get(THERAPIST_INVITE_COOKIE)?.value)
+  const inviteToken = readTherapistInviteToken(
+    null,
+    jar.get(THERAPIST_INVITE_COOKIE)?.value,
+    jar.get(THERAPIST_INVITE_CLIENT_COOKIE)?.value,
+    inviteTokenFromAuthUser(user),
+  )
   if (inviteToken) {
+    await supabase.auth.updateUser({
+      data: {
+        invite_token: inviteToken,
+        invited: true,
+        role: "therapist",
+      },
+    })
     const attached = await attachTherapistInviteToUser({ token: inviteToken, user })
     if (attached.ok) {
       jar.delete(THERAPIST_INVITE_COOKIE)
+      jar.delete(THERAPIST_INVITE_CLIENT_COOKIE)
       return "/dashboard"
     }
+  }
+
+  if (invitedTherapistFromUser(user)) {
+    return "/dashboard"
   }
 
   const ready = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))

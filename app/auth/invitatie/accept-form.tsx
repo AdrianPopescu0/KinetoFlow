@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
-import { persistTherapistInviteToken, THERAPIST_INVITE_CONTINUE_PATH } from "@/lib/clinics/invite-session"
+import { persistTherapistInviteToken, THERAPIST_INVITE_PATH } from "@/lib/clinics/invite-session"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
@@ -69,7 +69,7 @@ export function AcceptTherapistInviteForm({
         provider: "google",
         options: {
           redirectTo: oauthBrowserRedirectTo(window.location.origin, {
-            next: THERAPIST_INVITE_CONTINUE_PATH,
+            next: `${THERAPIST_INVITE_PATH}/${token}`,
             invite: token,
           }),
         },

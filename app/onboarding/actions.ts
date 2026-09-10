@@ -5,7 +5,7 @@ import { cookies } from "next/headers"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
-import { THERAPIST_INVITE_COOKIE, therapistInviteCookieOptions } from "@/lib/clinics/invite-session"
+import { writeTherapistInviteCookies } from "@/lib/clinics/invite-session"
 import { isTherapistInviteToken } from "@/lib/clinics/therapist-invite"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
@@ -33,13 +33,21 @@ export async function claimPendingTherapistInvite(token: string): Promise<ClaimP
     return { ok: false, error: "Autentificarea a expirat. Intră din nou în cont.", reason: "failed" }
   }
 
+  await supabase.auth.updateUser({
+    data: {
+      invite_token: token,
+      invited: true,
+      role: "therapist",
+    },
+  })
+
   const attached = await attachTherapistInviteToUser({ token, user })
   if (!attached.ok) {
     return { ok: false, error: attached.error, reason: attached.reason }
   }
 
   const jar = await cookies()
-  jar.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
+  writeTherapistInviteCookies((name, value, options) => jar.set(name, value, options), token)
   await supabase.auth.refreshSession()
   revalidatePath("/", "layout")
   return { ok: true }

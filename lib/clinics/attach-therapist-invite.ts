@@ -96,11 +96,14 @@ export async function attachTherapistInviteToUser(input: {
         clinic_id: data.clinic_owner_id,
         phone: data.phone,
         invited_by: data.invited_by,
+        invite_token: input.token,
+        invited: true,
         role: "therapist",
       },
       app_metadata: {
         clinic_id: data.clinic_owner_id,
         role: "therapist",
+        invite_token: input.token,
       },
     })
     if (updateError) {

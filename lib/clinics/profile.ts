@@ -4,6 +4,8 @@ import type { ClinicProfile, ClinicTherapistOption } from "@/lib/clinics/types"
 import { therapistDisplayName } from "@/lib/patients/display"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
 
+export { clinicReadyFromUser, invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
+
 export async function fetchClinicProfile(
   supabase: SupabaseClient,
   therapistId: string,
@@ -62,11 +64,6 @@ function mapClinicProfile(row: Record<string, unknown>, fallbackUserId: string):
 
 export function clinicSetupIsComplete(result: { profile: ClinicProfile | null }): boolean {
   return Boolean(result.profile)
-}
-
-export function clinicReadyFromUser(user: User): boolean {
-  const clinicName = user.user_metadata?.clinic_name
-  return typeof clinicName === "string" && clinicName.trim().length > 0
 }
 
 /** Identificatorul de cabinet pentru pacienți (JWT / user.id), nu o coloană din clinic_profiles. */

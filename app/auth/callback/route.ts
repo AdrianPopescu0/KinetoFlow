@@ -6,11 +6,16 @@ import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { requestAppOrigin } from "@/lib/auth/site-origin"
 import { SET_PASSWORD_PATH, safeAuthNextPath } from "@/lib/auth/paths"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
+import { invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 import { readTherapistInviteToken, therapistInvitePagePath } from "@/lib/clinics/invite-attach"
 import {
+  THERAPIST_INVITE_CLIENT_COOKIE,
   THERAPIST_INVITE_COOKIE,
   THERAPIST_INVITE_CONTINUE_PATH,
-  therapistInviteCookieOptions,
+  clearTherapistInviteCookies,
+  inviteTokenFromAuthUser,
+  inviteTokenFromPathname,
+  writeTherapistInviteCookies,
 } from "@/lib/clinics/invite-session"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import type { Database } from "@/lib/supabase/database.types"
@@ -50,11 +55,11 @@ function redirectWithCookies(request: NextRequest, path: string, cookiesToSet: S
 }
 
 function clearInviteCookie(response: NextResponse) {
-  response.cookies.set(THERAPIST_INVITE_COOKIE, "", { ...therapistInviteCookieOptions(), maxAge: 0 })
+  clearTherapistInviteCookies((name, value, options) => response.cookies.set(name, value, options))
 }
 
 function stampInviteCookie(response: NextResponse, token: string) {
-  response.cookies.set(THERAPIST_INVITE_COOKIE, token, therapistInviteCookieOptions())
+  writeTherapistInviteCookies((name, value, options) => response.cookies.set(name, value, options), token)
 }
 
 /**
@@ -71,7 +76,9 @@ export async function GET(request: NextRequest) {
   const next = safeAuthNextPath(searchParams.get("next")) ?? "/dashboard"
   const inviteToken = readTherapistInviteToken(
     searchParams.get("invite"),
+    inviteTokenFromPathname(next),
     request.cookies.get(THERAPIST_INVITE_COOKIE)?.value,
+    request.cookies.get(THERAPIST_INVITE_CLIENT_COOKIE)?.value,
   )
 
   if (errorCode === "otp_expired") {
@@ -145,48 +152,72 @@ export async function GET(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const resolvedInviteToken = readTherapistInviteToken(inviteToken, inviteTokenFromAuthUser(user))
+
   if (user && !isEmailConfirmedUser(user)) {
-    if (inviteToken) {
-      return redirectWithCookies(request, therapistInvitePagePath(inviteToken, "failed"), sessionCookies)
+    if (resolvedInviteToken) {
+      const response = redirectWithCookies(
+        request,
+        therapistInvitePagePath(resolvedInviteToken, "failed"),
+        sessionCookies,
+      )
+      stampInviteCookie(response, resolvedInviteToken)
+      return response
     }
     return redirectWithCookies(request, "/login?reason=confirm_email", sessionCookies)
   }
 
-  if (inviteToken) {
+  if (resolvedInviteToken) {
     if (!user) {
-      const response = redirectWithCookies(request, therapistInvitePagePath(inviteToken, "oauth"), sessionCookies)
-      stampInviteCookie(response, inviteToken)
+      const response = redirectWithCookies(request, therapistInvitePagePath(resolvedInviteToken, "oauth"), sessionCookies)
+      stampInviteCookie(response, resolvedInviteToken)
       return response
     }
 
-    const attached = await attachTherapistInviteToUser({ token: inviteToken, user })
+    await supabase.auth.updateUser({
+      data: {
+        invite_token: resolvedInviteToken,
+        invited: true,
+        role: "therapist",
+      },
+    })
+
+    const attached = await attachTherapistInviteToUser({ token: resolvedInviteToken, user })
     if (!attached.ok) {
       await supabase.auth.signOut()
       const response = redirectWithCookies(
         request,
-        therapistInvitePagePath(inviteToken, attached.reason),
+        therapistInvitePagePath(resolvedInviteToken, attached.reason),
         sessionCookies,
       )
-      stampInviteCookie(response, inviteToken)
+      stampInviteCookie(response, resolvedInviteToken)
       return response
     }
 
     await supabase.auth.refreshSession()
-    const clinicReady = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
+    const {
+      data: { user: refreshed },
+    } = await supabase.auth.getUser()
+    const clinicReady =
+      (refreshed ? clinicReadyFromUser(refreshed) : false) || (await therapistHasClinicProfile(supabase, user.id))
     const response = redirectWithCookies(request, "/dashboard", sessionCookies)
     if (clinicReady) {
       clearInviteCookie(response)
     } else {
-      stampInviteCookie(response, inviteToken)
+      stampInviteCookie(response, resolvedInviteToken)
     }
     return response
   }
 
   if (user) {
-    const clinicReady = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
-    if (!clinicReady) {
-      return redirectWithCookies(request, THERAPIST_INVITE_CONTINUE_PATH, sessionCookies)
+    const clinicReady =
+      clinicReadyFromUser(user) ||
+      invitedTherapistFromUser(user) ||
+      (await therapistHasClinicProfile(supabase, user.id))
+    if (clinicReady) {
+      return redirectWithCookies(request, "/dashboard", sessionCookies)
     }
+    return redirectWithCookies(request, THERAPIST_INVITE_CONTINUE_PATH, sessionCookies)
   }
 
   const destination = next === "/onboarding" ? THERAPIST_INVITE_CONTINUE_PATH : next

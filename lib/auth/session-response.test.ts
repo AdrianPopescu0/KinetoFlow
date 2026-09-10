@@ -64,6 +64,10 @@ test("callback-ul Google duce în dashboard, nu pe pagina principală", () => {
 test("callback-ul Google poate reveni pe pagina care citește invitația din localStorage", () => {
   assert.equal(safeAuthNextPath("/auth/invitatie/continue"), "/auth/invitatie/continue")
   assert.equal(safeAuthNextPath("/onboarding"), "/onboarding")
+  assert.equal(
+    safeAuthNextPath("/auth/invitatie/AbCdEfGhIjKlMnOpQrStUvWx"),
+    "/auth/invitatie/AbCdEfGhIjKlMnOpQrStUvWx",
+  )
   assert.match(
     oauthBrowserRedirectTo("https://kinetoflow.ro", {
       next: "/auth/invitatie/continue",

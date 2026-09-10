@@ -3,6 +3,7 @@
 import { useLayoutEffect, useState, type ReactNode } from "react"
 
 import { claimPendingTherapistInvite } from "@/app/onboarding/actions"
+import { clinicReadyFromUser, invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 import {
   clearStoredTherapistInviteToken,
   persistTherapistInviteToken,
@@ -50,7 +51,16 @@ export function InvitedTherapistOnboardingGate({ children }: { children: ReactNo
       window.location.replace(therapistInviteFinalizeHref(token))
       return
     }
-    setAllowed(true)
+    const supabase = createClient()
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user && (clinicReadyFromUser(user) || invitedTherapistFromUser(user))) {
+        window.location.replace("/dashboard")
+        return
+      }
+      setAllowed(true)
+    }).catch(() => {
+      setAllowed(true)
+    })
   }, [])
 
   if (!allowed) {
@@ -74,8 +84,7 @@ export function ResumeTherapistInviteAfterAuth() {
           window.location.replace("/login")
           return
         }
-        const clinicName = user.user_metadata?.clinic_name
-        if (typeof clinicName === "string" && clinicName.trim().length > 0) {
+        if (clinicReadyFromUser(user) || invitedTherapistFromUser(user)) {
           window.location.replace("/dashboard")
           return
         }

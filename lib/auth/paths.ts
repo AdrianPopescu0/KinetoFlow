@@ -1,3 +1,5 @@
+import { inviteTokenFromPathname } from "../clinics/invite-session.ts"
+
 export function isSignupAuthMode(search: { mode?: string; tab?: string } | null | undefined): boolean {
   if (!search) {
     return false
@@ -36,17 +38,21 @@ export function safeAuthNextPath(next: string | null | undefined): string | null
   if (!next || !next.startsWith("/") || next.startsWith("//")) {
     return null
   }
+  const pathOnly = next.split("?")[0] ?? next
+  if (inviteTokenFromPathname(pathOnly)) {
+    return pathOnly
+  }
   if (
-    next === "/onboarding" ||
-    next === "/dashboard" ||
-    next === SET_PASSWORD_PATH ||
-    next.startsWith("/dashboard/") ||
-    next === "/auth/invitatie/continue" ||
-    next === "/auth/invitatie/finalize" ||
-    next.startsWith("/auth/invitatie/continue") ||
-    next.startsWith("/auth/invitatie/finalize")
+    pathOnly === "/onboarding" ||
+    pathOnly === "/dashboard" ||
+    pathOnly === SET_PASSWORD_PATH ||
+    pathOnly.startsWith("/dashboard/") ||
+    pathOnly === "/auth/invitatie/continue" ||
+    pathOnly === "/auth/invitatie/finalize" ||
+    pathOnly.startsWith("/auth/invitatie/continue") ||
+    pathOnly.startsWith("/auth/invitatie/finalize")
   ) {
-    return next
+    return pathOnly
   }
   return null
 }

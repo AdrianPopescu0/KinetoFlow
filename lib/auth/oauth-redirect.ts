@@ -2,6 +2,7 @@ import {
   persistTherapistInviteToken,
   readStoredTherapistInviteToken,
   therapistPostAuthHref,
+  THERAPIST_INVITE_PATH,
 } from "../clinics/invite-session.ts"
 import { resolveAppOrigin } from "./site-origin.ts"
 
@@ -52,7 +53,7 @@ export function oauthBrowserRedirectToWithPendingInvite(
     persistTherapistInviteToken(invite)
   }
   return oauthBrowserRedirectTo(origin, {
-    next: invite ? "/auth/invitatie/continue" : fallbackNext,
+    next: invite ? `${THERAPIST_INVITE_PATH}/${invite}` : fallbackNext,
     invite: invite ?? undefined,
   })
 }
