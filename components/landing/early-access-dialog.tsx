@@ -51,7 +51,7 @@ export function EarlyAccessButton({
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
                   Introdu codul secret de {EARLY_ACCESS_CODE_LENGTH} caractere. Dacă e valid, vei
-                  continua cu adresa de email ca să creezi sau să asociezi contul.
+                  intra cu email și parolă. Codul de 6 cifre pe email e doar la înregistrare.
                 </p>
               </div>
             </div>

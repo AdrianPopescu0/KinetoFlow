@@ -88,7 +88,7 @@ export function EarlyAccessWelcomeForm({
           return
         }
         setOtpSent(true)
-        setInfo(requested?.info ?? "Ți-am trimis un cod de acces pe email.")
+        setInfo(requested?.info ?? "Ți-am trimis un cod de 6 cifre pe email.")
         setDevCode(requested?.devCode ?? null)
         return
       }

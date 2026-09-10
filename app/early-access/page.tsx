@@ -41,8 +41,8 @@ export default async function EarlyAccessPage() {
               </h1>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 KinetoFlow este în Early Access. Introduceți codul secret de 12 caractere
-                primit de la noi. După validare, veți introduce adresa de email ca să
-                primiți un cod de acces și să creați sau să asociați contul.
+                primit de la noi. După validare intrați cu email și parolă. Codul de 6
+                cifre pe email se cere doar la crearea unui cont nou.
               </p>
             </div>
           </div>
