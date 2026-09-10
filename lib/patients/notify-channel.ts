@@ -16,7 +16,10 @@ export function resolveNotifyChannel(_value?: unknown): PatientNotifyChannel {
 }
 
 export function notifyChannelLabel(channel: PatientNotifyChannel | null): string {
-  if (channel === "sms" || channel === "whatsapp") {
+  if (channel === "whatsapp") {
+    return "WhatsApp"
+  }
+  if (channel === "sms") {
     return "SMS"
   }
   return "Nesetat"

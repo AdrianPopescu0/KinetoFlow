@@ -79,7 +79,7 @@ export function AddPatientDialog() {
   async function copyMessage(message: string) {
     await navigator.clipboard.writeText(message)
     setCopiedMessage(true)
-    toast("Mesajul a fost copiat. Poți da paste în WhatsApp Web.")
+        toast("Mesajul a fost copiat. Poți da paste în WhatsApp.")
     window.setTimeout(() => setCopiedMessage(false), 2000)
   }
 

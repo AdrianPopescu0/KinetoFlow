@@ -55,7 +55,7 @@ export function ExerciseManager({
   return (
     <div className="flex flex-col gap-5 p-5">
       <div className="flex justify-end">
-        <Button type="button" onClick={() => setLibraryOpen(true)} className="h-11 rounded-xl">
+        <Button type="button" onClick={() => setLibraryOpen(true)} className="h-11 w-full min-h-[44px] rounded-xl sm:w-auto">
           <Library className="size-4" />
           + Atribuie din Bibliotecă
         </Button>

@@ -6,6 +6,7 @@ import { Check, Copy, MessageCircle, MessageSquareText } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { toast } from "@/components/ui/toaster"
 import { openPatientSms, patientSmsHref } from "@/lib/patients/phone"
+import { openExternalWhatsApp } from "@/lib/patients/whatsapp"
 import { cn } from "@/lib/utils"
 
 const sendActionClassName =
@@ -31,7 +32,7 @@ export function ShareInviteActions({
     }
     await navigator.clipboard.writeText(message)
     setCopiedMessage(true)
-    toast("Mesajul a fost copiat. Poți da paste în WhatsApp Web.")
+    toast("Mesajul a fost copiat. Poți da paste în WhatsApp.")
     window.setTimeout(() => setCopiedMessage(false), 2000)
   }
 
@@ -60,11 +61,15 @@ export function ShareInviteActions({
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-2.5">
-      {whatsappWebHref ? (
+      {whatsappHref ? (
         <a
-          href={whatsappWebHref}
+          href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
+          referrerPolicy="no-referrer"
+          onClick={(event) => {
+            openExternalWhatsApp(event, whatsappHref)
+          }}
           className={cn(
             buttonVariants({ variant: "default" }),
             sendActionClassName,
@@ -72,22 +77,26 @@ export function ShareInviteActions({
           )}
         >
           <MessageCircle className="size-4 shrink-0" />
-          Deschide pe WhatsApp Web
+          Deschide WhatsApp
         </a>
       ) : null}
-      {whatsappHref ? (
+      {whatsappWebHref ? (
         <a
-          href={whatsappHref}
+          href={whatsappWebHref}
           target="_blank"
           rel="noopener noreferrer"
+          referrerPolicy="no-referrer"
+          onClick={(event) => {
+            openExternalWhatsApp(event, whatsappWebHref)
+          }}
           className={cn(
             buttonVariants({ variant: "outline" }),
             sendActionClassName,
-            "border-emerald-600 text-emerald-800 hover:bg-emerald-50",
+            "hidden border-slate-300 text-slate-800 hover:bg-slate-50 md:inline-flex",
           )}
         >
           <MessageCircle className="size-4 shrink-0" />
-          Deschide în Aplicație
+          Deschide pe WhatsApp Web
         </a>
       ) : null}
       {smsHref ? (

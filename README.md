@@ -62,6 +62,7 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi 
 | `/onboarding` | Configurare clinică (doar pentru administratori fără invitație). Dacă `localStorage` are `kf_therapist_invite`, pagina asociază imediat contul și redirecționează la `/dashboard`, fără formularul de cabinet nou. |
 | `/recuperare-parola` | Cerere de resetare a parolei |
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
+| `/dashboard/setari` | Setări cont: date personale, parolă și preferințe de profil |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
 | `/auth/callback` | Schimb `code` (PKCE) sau `token_hash` (recovery) → sesiune, apoi redirect |
 | `/auth/invitatie/[token]` | Link unic din WhatsApp/SMS: tokenul se scrie imediat în `localStorage` (script inline, înainte de click pe Google) și în cookie-ul `kf_therapist_invite`. După OAuth, `/auth/callback` (fără clinică) duce la `/auth/invitatie/continue`, care citește `localStorage`, asociază contul prin `/auth/invitatie/finalize` (`therapist_invites` + `clinic_profiles`) și deschide `/dashboard`. Ecranul de clinică nouă e blocat cât timp există invitație. |

@@ -3,7 +3,12 @@ import "server-only"
 import { NextResponse } from "next/server"
 
 import { clinicNameForUser } from "@/lib/clinics/members"
-import { resolveNotifyChannel, type PatientNotifyChannel } from "@/lib/patients/notify-channel"
+import {
+  DEFAULT_NOTIFY_CHANNEL,
+  parseNotifyChannel,
+  resolveNotifyChannel,
+  type PatientNotifyChannel,
+} from "@/lib/patients/notify-channel"
 import { sendPatientNotification } from "@/lib/patients/notify-patient"
 import { rememberPatientNotifyChannel } from "@/lib/patients/remember-notify-channel"
 import { getOwnPatientRow } from "@/lib/patients/tenant"
@@ -30,15 +35,23 @@ export async function handlePatientInviteNotify(
 
   let patientId: unknown
   let channelRaw: unknown
+  let rememberOnly = false
   try {
-    const body = (await request.json()) as { patientId?: unknown; channel?: unknown }
+    const body = (await request.json()) as {
+      patientId?: unknown
+      channel?: unknown
+      rememberOnly?: unknown
+    }
     patientId = body.patientId
     channelRaw = body.channel
+    rememberOnly = body.rememberOnly === true
   } catch {
     return NextResponse.json({ error: "Payload invalid.", sent: false }, { status: 400 })
   }
 
-  const channel = resolveNotifyChannel(forcedChannel ?? channelRaw)
+  const storedChannel =
+    parseNotifyChannel(forcedChannel ?? channelRaw) ?? DEFAULT_NOTIFY_CHANNEL
+  const channel = rememberOnly ? storedChannel : resolveNotifyChannel(forcedChannel ?? channelRaw)
 
   if (typeof patientId !== "string" || patientId.length < 8) {
     return NextResponse.json({ error: "Lipsește pacientul.", sent: false }, { status: 400 })
@@ -62,7 +75,24 @@ export async function handlePatientInviteNotify(
   const clinicName = (await clinicNameForUser(supabase, user.id)) || "KinetoFlow"
   const message = patientWhatsAppMessage({ fullName, clinicName, accessCode })
 
-  const remembered = await rememberPatientNotifyChannel(supabase, patientId, channel)
+  const remembered = await rememberPatientNotifyChannel(supabase, patientId, storedChannel)
+
+  if (rememberOnly) {
+    return NextResponse.json({
+      sent: false,
+      channel: storedChannel,
+      provider: null,
+      saved: remembered.saved,
+      missingColumn: remembered.missingColumn ?? false,
+      error: remembered.error ?? null,
+      portalUrl: patientAccessUrl(),
+      whatsappHref: phone ? patientWhatsAppHref(phone, message) : null,
+      whatsappWebHref: phone ? patientWhatsAppWebHref(phone, message) : null,
+      message,
+      whatsappMessage: message,
+    })
+  }
+
   const result = phone
     ? await sendPatientNotification(phone, message, channel)
     : { sent: false, channel, provider: null, error: "Lipsește telefonul." }

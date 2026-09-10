@@ -1,5 +1,11 @@
 import { CANONICAL_PRODUCTION_ORIGIN, resolveAppOrigin } from "@/lib/auth/site-origin"
-import { toWhatsAppNumber } from "@/lib/patients/phone"
+
+export {
+  isExternalWhatsAppUrl,
+  openExternalWhatsApp,
+  patientWhatsAppHref,
+  patientWhatsAppWebHref,
+} from "@/lib/patients/whatsapp-links"
 
 export function publicSiteUrl(): string {
   return resolveAppOrigin({
@@ -56,26 +62,4 @@ export function patientCheckinReminderMessage(input: {
     `(Codul tău de acces este ${input.accessCode} și s-a completat automat).`,
     "Spor la recuperare!",
   ].join("\n")
-}
-
-function encodedWhatsAppText(message: string): string {
-  return encodeURIComponent(message)
-}
-
-/** Click-to-chat for the native WhatsApp app (Windows/Mac/mobile). */
-export function patientWhatsAppHref(phone: string, message: string): string | null {
-  const digits = toWhatsAppNumber(phone)
-  if (!digits) {
-    return null
-  }
-  return `https://wa.me/${digits}?text=${encodedWhatsAppText(message)}`
-}
-
-/** Opens WhatsApp Web in a new tab — avoids OS “open in app?” dialogs on Linux/PC. */
-export function patientWhatsAppWebHref(phone: string, message: string): string | null {
-  const digits = toWhatsAppNumber(phone)
-  if (!digits) {
-    return null
-  }
-  return `https://web.whatsapp.com/send?phone=${digits}&text=${encodedWhatsAppText(message)}`
 }

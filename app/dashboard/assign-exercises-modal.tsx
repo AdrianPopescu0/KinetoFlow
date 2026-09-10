@@ -171,7 +171,7 @@ function AssignExercisesModalContent({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <button
         type="button"
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
@@ -182,35 +182,37 @@ function AssignExercisesModalContent({
         role="dialog"
         aria-modal="true"
         aria-labelledby="assign-exercises-title"
-        className="relative flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        className="relative z-10 flex h-[94dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:h-auto sm:max-h-[94vh] sm:rounded-2xl"
       >
-        <header className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-          <h2 id="assign-exercises-title" className="truncate text-lg font-semibold text-slate-900">
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
+          <h2 id="assign-exercises-title" className="min-w-0 text-base font-semibold text-slate-900 sm:text-lg">
             Atribuie exerciții — {patientName}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
             aria-label="Închide"
           >
             <X className="size-4" />
           </button>
         </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <div className="shrink-0 space-y-3 border-b border-slate-100 px-4 py-3 sm:px-5">
           <section>
             <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
               Perioadă de tratament
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
                 De la
                 <Input
                   type="date"
                   value={startDate}
                   onChange={(event) => setStartDate(event.target.value)}
-                  className="h-10 border-slate-300"
+                  className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
                 />
               </label>
               <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
@@ -220,62 +222,60 @@ function AssignExercisesModalContent({
                   min={startDate}
                   value={endDate}
                   onChange={(event) => setEndDate(event.target.value)}
-                  className="h-10 border-slate-300"
+                  className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
                 />
               </label>
             </div>
           </section>
 
-          <section>
-            <div className="relative mb-2">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Caută exerciții după titlu sau regiune"
-                className="h-10 border-slate-300 pl-9"
-              />
-            </div>
-
-            <ul className="max-h-[360px] divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
-              {filtered.length === 0 ? (
-                <li className="px-4 py-8 text-center text-sm text-slate-500">
-                  Niciun exercițiu găsit.
-                </li>
-              ) : (
-                filtered.map((exercise) => {
-                  const dose = doses[exercise.id] ?? {
-                    sets: exercise.sets,
-                    reps: exercise.reps,
-                  }
-                  return (
-                    <AssignExerciseRow
-                      key={exercise.id}
-                      exercise={exercise}
-                      checked={selectedIds.includes(exercise.id)}
-                      sets={dose.sets}
-                      reps={dose.reps}
-                      onToggle={toggleExercise}
-                      onDoseChange={updateDose}
-                    />
-                  )
-                })
-              )}
-            </ul>
-          </section>
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Caută exerciții după titlu sau regiune"
+              className="h-11 min-h-11 border-slate-300 pl-9 text-base md:text-sm"
+            />
+          </div>
         </div>
 
-        <footer className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
+          <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
+            {filtered.length === 0 ? (
+              <li className="px-4 py-8 text-center text-sm text-slate-500">Niciun exercițiu găsit.</li>
+            ) : (
+              filtered.map((exercise) => {
+                const dose = doses[exercise.id] ?? {
+                  sets: exercise.sets,
+                  reps: exercise.reps,
+                }
+                return (
+                  <AssignExerciseRow
+                    key={exercise.id}
+                    exercise={exercise}
+                    checked={selectedIds.includes(exercise.id)}
+                    sets={dose.sets}
+                    reps={dose.reps}
+                    onToggle={toggleExercise}
+                    onDoseChange={updateDose}
+                  />
+                )
+              })
+            )}
+          </ul>
+        </div>
+
+        <footer className="flex shrink-0 flex-col gap-3 border-t border-slate-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:pb-4">
           <p className="text-xs leading-relaxed text-slate-600">
             {selectedIds.length} {selectedIds.length === 1 ? "exercițiu selectat" : "exerciții selectate"}{" "}
             pentru intervalul <span className="font-semibold text-slate-800">{intervalLabel}</span>.
           </p>
-          <div className="flex shrink-0 justify-end gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:justify-end">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="h-11 rounded-xl"
+              className="h-12 min-h-12 rounded-xl"
               disabled={isPending}
             >
               Anulează
@@ -283,7 +283,7 @@ function AssignExercisesModalContent({
             <Button
               type="button"
               onClick={save}
-              className="h-11 rounded-xl"
+              className="h-12 min-h-12 rounded-xl"
               disabled={isPending || selectedIds.length === 0 || !intervalValid}
             >
               {isPending ? (
@@ -320,56 +320,74 @@ const AssignExerciseRow = memo(function AssignExerciseRow({
   return (
     <li
       className={cn(
-        "grid grid-cols-[auto_minmax(0,1fr)_4rem_4rem] items-center gap-2 px-3 py-2.5",
+        "flex flex-col gap-2 px-3 py-3 sm:grid sm:grid-cols-[auto_minmax(0,1fr)_5.5rem_5.5rem] sm:items-center sm:gap-2 sm:py-2.5",
         checked && "bg-teal-50/60",
       )}
     >
-      <label className="flex size-8 cursor-pointer items-center justify-center">
-        <span
-          className={cn(
-            "flex size-5 items-center justify-center rounded-md border",
-            checked ? "border-[#042f2e] bg-[#042f2e] text-white" : "border-slate-300 bg-white",
-          )}
+      <div className="flex min-w-0 items-start gap-2 sm:contents">
+        <label className="flex size-11 shrink-0 cursor-pointer items-center justify-center">
+          <span
+            className={cn(
+              "flex size-6 items-center justify-center rounded-md border",
+              checked ? "border-[#042f2e] bg-[#042f2e] text-white" : "border-slate-300 bg-white",
+            )}
+          >
+            {checked ? <Check className="size-3.5" /> : null}
+          </span>
+          <input
+            type="checkbox"
+            className="sr-only"
+            checked={checked}
+            onChange={() => onToggle(exercise.id)}
+          />
+        </label>
+
+        <button type="button" onClick={() => onToggle(exercise.id)} className="min-w-0 flex-1 py-1.5 text-left">
+          <span className="block text-sm font-medium text-slate-900 sm:truncate">{exercise.title}</span>
+          <span className="mt-0.5 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+            {exercise.regions.map((id) => regionById(id).shortLabel).join(" · ")}
+          </span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:contents">
+        <label
+          className="text-xs font-medium text-slate-500"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
         >
-          {checked ? <Check className="size-3" /> : null}
-        </span>
-        <input
-          type="checkbox"
-          className="sr-only"
-          checked={checked}
-          onChange={() => onToggle(exercise.id)}
-        />
-      </label>
-
-      <button type="button" onClick={() => onToggle(exercise.id)} className="min-w-0 text-left">
-        <span className="block truncate text-sm font-medium text-slate-900">{exercise.title}</span>
-        <span className="mt-0.5 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-          {exercise.regions.map((id) => regionById(id).shortLabel).join(" · ")}
-        </span>
-      </button>
-
-      <label className="text-[10px] font-medium text-slate-500">
-        Seturi
-        <Input
-          type="number"
-          min={1}
-          max={99}
-          value={sets}
-          onChange={(event) => onDoseChange(exercise.id, "sets", event.target.value)}
-          className="mt-0.5 h-8 px-2 text-center text-xs"
-        />
-      </label>
-      <label className="text-[10px] font-medium text-slate-500">
-        Repetări
-        <Input
-          type="number"
-          min={1}
-          max={99}
-          value={reps}
-          onChange={(event) => onDoseChange(exercise.id, "reps", event.target.value)}
-          className="mt-0.5 h-8 px-2 text-center text-xs"
-        />
-      </label>
+          Seturi
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={99}
+            value={sets}
+            onClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(event) => onDoseChange(exercise.id, "sets", event.target.value)}
+            className="mt-0.5 h-11 min-h-11 px-2 text-center text-base md:h-9 md:min-h-9 md:text-sm"
+          />
+        </label>
+        <label
+          className="text-xs font-medium text-slate-500"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          Repetări
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={99}
+            value={reps}
+            onClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(event) => onDoseChange(exercise.id, "reps", event.target.value)}
+            className="mt-0.5 h-11 min-h-11 px-2 text-center text-base md:h-9 md:min-h-9 md:text-sm"
+          />
+        </label>
+      </div>
     </li>
   )
 })

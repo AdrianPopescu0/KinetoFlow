@@ -23,8 +23,8 @@ test("trimiterea efectivă e mereu SMS", () => {
   assert.equal(resolveNotifyChannel(undefined), "sms")
 })
 
-test("etichetele arată SMS după migrare", () => {
-  assert.equal(notifyChannelLabel("whatsapp"), "SMS")
+test("etichetele deosebesc canalul ales la invitație", () => {
+  assert.equal(notifyChannelLabel("whatsapp"), "WhatsApp")
   assert.equal(notifyChannelLabel("sms"), "SMS")
   assert.equal(notifyChannelLabel(null), "Nesetat")
 })

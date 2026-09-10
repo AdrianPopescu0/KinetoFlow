@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { toast } from "@/components/ui/toaster"
 import { notifyChannelLabel, type PatientNotifyChannel } from "@/lib/patients/notify-channel"
 import { openPatientSms, patientSmsHref } from "@/lib/patients/phone"
+import { openExternalWhatsApp } from "@/lib/patients/whatsapp"
 import { cn } from "@/lib/utils"
 
 type NotifyChannelActionsProps = {
@@ -31,24 +32,24 @@ export function NotifyChannelActions({
   const sendActionClassName =
     "h-12 w-full min-w-0 shrink justify-center whitespace-normal px-3 text-center rounded-xl"
 
-  async function remember() {
+  async function remember(next: PatientNotifyChannel) {
+    setChannel(next)
     try {
       const response = await fetch("/api/patients/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ patientId, channel: "sms" }),
+        body: JSON.stringify({ patientId, channel: next, rememberOnly: true }),
       })
       const data = (await response.json()) as { saved?: boolean; missingColumn?: boolean }
-      setChannel("sms")
       if (data.saved) {
-        toast("Canal salvat: SMS. Reminder-ele vor folosi SMS.")
+        toast(`Canal salvat: ${notifyChannelLabel(next)}.`)
         return
       }
       if (data.missingColumn) {
         toast("Rulează sql/022_patient_notify_channel.sql în Supabase ca să salvăm canalul.")
       }
     } catch {
-      setChannel("sms")
+      // Canalul rămâne setat local; trimiterea e click-to-chat, nu API.
     }
   }
 
@@ -57,15 +58,17 @@ export function NotifyChannelActions({
       <p className="text-sm text-slate-600">
         Trimite invitația pe WhatsApp sau prin SMS. Aplicația reține canalul ales (
         <span className="font-medium text-slate-800">{notifyChannelLabel(channel)}</span>
-        ) și îl folosește la reminder-ele de check-in.
+        ). Reminder-ele de check-in rămân pe notificări push.
       </p>
       {whatsappHref ? (
         <a
           href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => {
-            void remember()
+          referrerPolicy="no-referrer"
+          onClick={(event) => {
+            openExternalWhatsApp(event, whatsappHref)
+            void remember("whatsapp")
           }}
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -74,7 +77,7 @@ export function NotifyChannelActions({
           )}
         >
           <MessageCircle className="size-4 shrink-0" />
-          Deschide în Aplicație
+          Deschide WhatsApp
         </a>
       ) : null}
       {whatsappWebHref ? (
@@ -82,13 +85,15 @@ export function NotifyChannelActions({
           href={whatsappWebHref}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => {
-            void remember()
+          referrerPolicy="no-referrer"
+          onClick={(event) => {
+            openExternalWhatsApp(event, whatsappWebHref)
+            void remember("whatsapp")
           }}
           className={cn(
             buttonVariants({ variant: "outline" }),
             sendActionClassName,
-            "border-slate-300 text-slate-800 hover:bg-slate-50",
+            "hidden border-slate-300 text-slate-800 hover:bg-slate-50 md:inline-flex",
           )}
         >
           <MessageCircle className="size-4 shrink-0" />
@@ -99,7 +104,7 @@ export function NotifyChannelActions({
         <a
           href={smsHref}
           onClick={(event) => {
-            void remember()
+            void remember("sms")
             openPatientSms(event, phone, message)
           }}
           className={cn(

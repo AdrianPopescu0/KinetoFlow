@@ -21,6 +21,7 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
   const patientsActive = pathname === "/dashboard" || pathname.startsWith("/dashboard/patients")
   const exercisesActive = pathname.startsWith("/dashboard/exercises")
   const teamActive = pathname.startsWith("/dashboard/echipa")
+  const settingsActive = pathname.startsWith("/dashboard/setari")
   const label = clinicName ? `${displayName} · ${clinicName}` : displayName
 
   return (
@@ -43,6 +44,9 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
                 Echipă
               </NavLink>
             ) : null}
+            <NavLink href="/dashboard/setari" active={settingsActive}>
+              Setări
+            </NavLink>
           </nav>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -61,7 +65,7 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
           </form>
         </div>
       </div>
-      <nav className="flex gap-1 border-t border-white/10 px-4 py-2 sm:hidden">
+      <nav className="flex flex-wrap gap-1 border-t border-white/10 px-4 py-2 sm:hidden">
         <NavLink href="/dashboard" active={patientsActive}>
           Pacienți
         </NavLink>
@@ -73,6 +77,9 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
             Echipă
           </NavLink>
         ) : null}
+        <NavLink href="/dashboard/setari" active={settingsActive}>
+          Setări
+        </NavLink>
       </nav>
     </header>
   )

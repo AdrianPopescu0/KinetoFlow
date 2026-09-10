@@ -36,18 +36,22 @@ function Overlay({
   children: ReactNode
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <button type="button" className="absolute inset-0 bg-slate-900/40" aria-label="Închide" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="library-dialog-title"
-        className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-lg sm:p-6"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        className="relative z-10 flex h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-lg sm:h-auto sm:max-h-[90vh] sm:rounded-2xl"
       >
-        <h2 id="library-dialog-title" className="text-lg font-semibold text-slate-900">
+        <h2 id="library-dialog-title" className="shrink-0 px-5 pt-5 text-lg font-semibold text-slate-900 sm:px-6 sm:pt-6">
           {title}
         </h2>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-6">
+          {children}
+        </div>
       </div>
     </div>
   )
