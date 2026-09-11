@@ -298,6 +298,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
 export type SaveClinicalNotesPayload = {
   patientId?: string | null
   patient_id?: string | null
+  id?: string | null
   notes: string
   expectedUpdatedAt?: string | null
   forceOverwrite?: boolean

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, usePathname } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
 import { saveClinicalNotes } from "@/app/dashboard/patients/actions"
@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
 import type { PatientFileSnapshot } from "@/lib/patients/optimistic"
-import { readPatientRecordId } from "@/lib/patients/patient-id"
+import { readPatientIdFromRouteOrProps } from "@/lib/patients/patient-id"
 import {
   clearClinicalNotesDraft,
   initialClinicalNotes,
@@ -24,13 +24,22 @@ const AUTOSAVE_MS = 5000
 
 export function ClinicalNotesEditor({
   patientId,
+  patient_id,
   serverNotes,
 }: {
-  patientId: string
+  patientId?: string | null
+  patient_id?: string | null
   serverNotes: string | null
 }) {
-  const params = useParams<{ id?: string }>()
-  const resolvedPatientId = readPatientRecordId(patientId, params?.id)
+  const params = useParams()
+  const pathname = usePathname()
+  const resolvedPatientId = readPatientIdFromRouteOrProps({
+    patientId,
+    patient_id,
+    paramsId: params?.id,
+    params,
+    pathname,
+  })
   const serverValue = serverNotes ?? ""
   const [notes, setNotes] = useState(serverValue)
   const [draftAt, setDraftAt] = useState<number | null>(null)
@@ -42,8 +51,6 @@ export function ClinicalNotesEditor({
   const notesRef = useRef(notes)
   notesRef.current = notes
   const lastWrittenRef = useRef(serverValue)
-  const patientIdRef = useRef(resolvedPatientId)
-  patientIdRef.current = resolvedPatientId
 
   useEffect(() => {
     if (!resolvedPatientId) {
@@ -95,7 +102,14 @@ export function ClinicalNotesEditor({
 
   async function saveFinal(forceOverwrite = false) {
     setSaveError(null)
-    const patientKey = readPatientRecordId(patientIdRef.current, patientId, params?.id)
+    const routeParamId = params?.id
+    const patientKey = readPatientIdFromRouteOrProps({
+      patientId,
+      patient_id,
+      paramsId: routeParamId,
+      params,
+      pathname,
+    })
     if (!patientKey) {
       setSaveError("Pacientul nu a fost găsit.")
       return
@@ -107,8 +121,9 @@ export function ClinicalNotesEditor({
 
     try {
       const result = await saveClinicalNotes({
-        patientId: patientKey,
         patient_id: patientKey,
+        patientId: patientKey,
+        id: patientKey,
         notes: notesRef.current,
         expectedUpdatedAt,
         forceOverwrite,
@@ -146,7 +161,7 @@ export function ClinicalNotesEditor({
     }
   }
 
-  const loginHref = `/login?redirectTo=${encodeURIComponent(`/dashboard/patients/${resolvedPatientId ?? patientId}`)}`
+  const loginHref = `/login?redirectTo=${encodeURIComponent(`/dashboard/patients/${resolvedPatientId ?? patientId ?? patient_id ?? ""}`)}`
 
   return (
     <div className="flex flex-col gap-3">
@@ -203,7 +218,12 @@ export function ClinicalNotesEditor({
             ? `Draft salvat local la ${new Date(draftAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}.`
             : "Draft-ul se salvează automat la fiecare 5 secunde pe acest dispozitiv."}
         </p>
-        <Button type="button" onClick={() => void saveFinal(false)} disabled={isSaving} className="h-11 rounded-xl">
+        <Button
+          type="button"
+          onClick={() => void saveFinal(false)}
+          disabled={isSaving || !resolvedPatientId}
+          className="h-11 rounded-xl"
+        >
           {isSaving ? (
             <>
               <Loader2 className="size-4 animate-spin" />

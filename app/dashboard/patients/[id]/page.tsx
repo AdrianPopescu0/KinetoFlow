@@ -92,7 +92,11 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
             Fișa de tratament se salvează automat în draft local la fiecare 5 secunde, apoi pe server când ești gata.
           </p>
           <div className="mt-4">
-            <ClinicalNotesEditor patientId={patient.id || id} serverNotes={patient.clinical_notes} />
+            <ClinicalNotesEditor
+              patientId={patient.id || id}
+              patient_id={patient.id || id}
+              serverNotes={patient.clinical_notes}
+            />
           </div>
         </section>
         </PatientFileStampProvider>
