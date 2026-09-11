@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import { useParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
+import { saveClinicalNotes } from "@/app/dashboard/patients/actions"
 import { PatientSaveConflictNotice } from "@/app/dashboard/patients/patient-save-conflict"
 import { usePatientFileStamp } from "@/app/dashboard/patients/patient-file-stamp"
 import { Button } from "@/components/ui/button"
@@ -11,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
 import type { PatientFileSnapshot } from "@/lib/patients/optimistic"
+import { readPatientRecordId } from "@/lib/patients/patient-id"
 import {
   clearClinicalNotesDraft,
   initialClinicalNotes,
@@ -26,6 +29,8 @@ export function ClinicalNotesEditor({
   patientId: string
   serverNotes: string | null
 }) {
+  const params = useParams<{ id?: string }>()
+  const resolvedPatientId = readPatientRecordId(patientId, params?.id)
   const serverValue = serverNotes ?? ""
   const [notes, setNotes] = useState(serverValue)
   const [draftAt, setDraftAt] = useState<number | null>(null)
@@ -37,34 +42,46 @@ export function ClinicalNotesEditor({
   const notesRef = useRef(notes)
   notesRef.current = notes
   const lastWrittenRef = useRef(serverValue)
+  const patientIdRef = useRef(resolvedPatientId)
+  patientIdRef.current = resolvedPatientId
 
   useEffect(() => {
-    const restored = initialClinicalNotes(patientId, serverValue)
+    if (!resolvedPatientId) {
+      return
+    }
+    const restored = initialClinicalNotes(resolvedPatientId, serverValue)
     setNotes(restored)
     notesRef.current = restored
     lastWrittenRef.current = restored
     if (restored !== serverValue) {
       setDraftAt(Date.now())
     }
-  }, [patientId, serverValue])
+  }, [resolvedPatientId, serverValue])
 
   useEffect(() => {
+    const id = resolvedPatientId
+    if (!id) {
+      return
+    }
     const timer = window.setInterval(() => {
       const current = notesRef.current
       if (current === lastWrittenRef.current) {
         return
       }
-      const draft = writeClinicalNotesDraft(patientId, current)
+      const draft = writeClinicalNotesDraft(id, current)
       lastWrittenRef.current = current
       setDraftAt(draft.updatedAt)
     }, AUTOSAVE_MS)
 
     function persistNow() {
+      if (!id) {
+        return
+      }
       const current = notesRef.current
       if (current === lastWrittenRef.current) {
         return
       }
-      writeClinicalNotesDraft(patientId, current)
+      writeClinicalNotesDraft(id, current)
       lastWrittenRef.current = current
     }
 
@@ -74,56 +91,52 @@ export function ClinicalNotesEditor({
       window.removeEventListener("beforeunload", persistNow)
       persistNow()
     }
-  }, [patientId])
+  }, [resolvedPatientId])
 
   async function saveFinal(forceOverwrite = false) {
     setSaveError(null)
+    const patientKey = readPatientRecordId(patientIdRef.current, patientId, params?.id)
+    if (!patientKey) {
+      setSaveError("Pacientul nu a fost găsit.")
+      return
+    }
+
     setIsSaving(true)
-    writeClinicalNotesDraft(patientId, notesRef.current)
+    writeClinicalNotesDraft(patientKey, notesRef.current)
     lastWrittenRef.current = notesRef.current
 
     try {
-      const response = await fetch(`/api/patients/${patientId}/clinical-notes`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          notes: notesRef.current,
-          expectedUpdatedAt,
-          forceOverwrite,
-        }),
+      const result = await saveClinicalNotes({
+        patientId: patientKey,
+        patient_id: patientKey,
+        notes: notesRef.current,
+        expectedUpdatedAt,
+        forceOverwrite,
       })
 
-      if (response.status === 401 || response.redirected) {
+      if (result.unauthorized || result.error?.toLowerCase().includes("expirat")) {
         setSessionExpired(true)
         toast("Sesiunea a expirat. Textul rămâne pe ecran — autentifică-te din nou, apoi salvează.", 8000)
         return
       }
 
-      if (response.status === 409) {
-        const payload = (await response.json().catch(() => null)) as
-          | { current?: PatientFileSnapshot }
-          | null
-        if (payload?.current) {
-          setConflict(payload.current)
-        }
+      if (result.conflict && result.current) {
+        setConflict(result.current)
         return
       }
 
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null
-        setSaveError(payload?.error ?? "Nu am putut salva notițele.")
+      if (result.error) {
+        setSaveError(result.error)
         return
       }
 
-      const saved = (await response.json().catch(() => null)) as { updated_at?: string | null } | null
-      if (typeof saved?.updated_at === "string") {
-        setExpectedUpdatedAt(saved.updated_at)
+      if (typeof result.updated_at === "string") {
+        setExpectedUpdatedAt(result.updated_at)
       }
 
       setSessionExpired(false)
       setConflict(null)
-      clearClinicalNotesDraft(patientId)
+      clearClinicalNotesDraft(patientKey)
       setDraftAt(null)
       toast("Notițele clinice au fost salvate.")
     } catch {
@@ -133,7 +146,7 @@ export function ClinicalNotesEditor({
     }
   }
 
-  const loginHref = `/login?redirectTo=${encodeURIComponent(`/dashboard/patients/${patientId}`)}`
+  const loginHref = `/login?redirectTo=${encodeURIComponent(`/dashboard/patients/${resolvedPatientId ?? patientId}`)}`
 
   return (
     <div className="flex flex-col gap-3">
@@ -145,7 +158,9 @@ export function ClinicalNotesEditor({
             setNotes(next)
             notesRef.current = next
             lastWrittenRef.current = next
-            writeClinicalNotesDraft(patientId, next)
+            if (resolvedPatientId) {
+              writeClinicalNotesDraft(resolvedPatientId, next)
+            }
             setExpectedUpdatedAt(conflict.updated_at)
             setConflict(null)
             toast("Am încărcat notițele salvate în baza de date.")

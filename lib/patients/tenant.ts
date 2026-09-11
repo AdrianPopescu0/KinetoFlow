@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { listClinicMemberUserIds, privilegedClinicClient } from "@/lib/clinics/members"
 
+import { readPatientRecordId } from "@/lib/patients/patient-id"
+
 function isMissingColumn(error: { message?: string; code?: string } | null, column: string): boolean {
   if (!error) {
     return false
@@ -55,6 +57,11 @@ export async function getOwnPatientRow(
   patientId: string,
   columns: string,
 ): Promise<{ data: Record<string, unknown> | null; error: { message: string; code?: string } | null }> {
+  const resolvedId = readPatientRecordId(patientId)
+  if (!resolvedId) {
+    return { data: null, error: { message: "Pacientul nu a fost găsit." } }
+  }
+
   const memberIds = await listClinicMemberUserIds(supabase, userId)
   const client = await privilegedClinicClient(supabase)
 
@@ -62,7 +69,7 @@ export async function getOwnPatientRow(
   const byTherapist = await client
     .from("patients")
     .select(columns)
-    .eq("id", patientId)
+    .eq("id", resolvedId)
     .or(`therapist_id.in.(${idList}),assigned_therapist_id.in.(${idList})`)
     .maybeSingle()
 
@@ -74,7 +81,7 @@ export async function getOwnPatientRow(
     const legacy = await client
       .from("patients")
       .select(columns)
-      .eq("id", patientId)
+      .eq("id", resolvedId)
       .in("therapist_id", memberIds)
       .maybeSingle()
     if (!legacy.error) {

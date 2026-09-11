@@ -35,6 +35,8 @@ import {
   isWriteConflict,
   type PatientFileSnapshot,
 } from "@/lib/patients/optimistic"
+import { persistClinicalNotesForTherapist } from "@/lib/patients/persist-clinical-notes"
+import { readPatientIdFromSavePayload, readPatientRecordId } from "@/lib/patients/patient-id"
 
 export type MutationState = {
   error: string | null
@@ -213,7 +215,12 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
   const expectedUpdatedAt = readOptional(formData, "expected_updated_at")
   const forceOverwrite = String(formData.get("force_overwrite") ?? "") === "1"
 
-  const snapshot = await fetchPatientFileSnapshot(supabase, user.id, patientId)
+  const resolvedPatientId = readPatientRecordId(patientId, formData.get("patient_id"), formData.get("patientId"))
+  if (!resolvedPatientId) {
+    return { error: "Pacientul nu a fost găsit.", token: null }
+  }
+
+  const snapshot = await fetchPatientFileSnapshot(supabase, user.id, resolvedPatientId)
   if (!snapshot) {
     return { error: "Pacientul nu a fost găsit.", token: null }
   }
@@ -241,7 +248,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
   const memberIds = await listClinicMemberUserIds(supabase, user.id)
   const client = await privilegedClinicClient(supabase)
 
-  let update = client.from("patients").update(payload).eq("id", patientId).in("therapist_id", memberIds)
+  let update = client.from("patients").update(payload).eq("id", resolvedPatientId).in("therapist_id", memberIds)
   if (!forceOverwrite && expectedUpdatedAt && snapshot.updated_at) {
     update = update.eq("updated_at", snapshot.updated_at)
   }
@@ -250,7 +257,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
 
   if (error || !data || data.length === 0) {
     if (!forceOverwrite && snapshot.updated_at && expectedUpdatedAt) {
-      const latest = await fetchPatientFileSnapshot(supabase, user.id, patientId)
+      const latest = await fetchPatientFileSnapshot(supabase, user.id, resolvedPatientId)
       if (latest && isWriteConflict(expectedUpdatedAt, latest.updated_at)) {
         return { error: null, token: null, conflict: true, current: latest }
       }
@@ -264,7 +271,7 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
         phone: payload.phone,
         diagnosis: payload.diagnosis,
       })
-      .eq("id", patientId)
+      .eq("id", resolvedPatientId)
       .in("therapist_id", memberIds)
       .select("id, updated_at")
 
@@ -276,16 +283,69 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
     }
 
     revalidatePath("/dashboard")
-    revalidatePath(`/dashboard/patients/${patientId}`)
+    revalidatePath(`/dashboard/patients/${resolvedPatientId}`)
     const stamp =
       typeof fallback.data[0]?.updated_at === "string" ? fallback.data[0].updated_at : null
     return { error: null, token: null, updatedAt: stamp }
   }
 
   revalidatePath("/dashboard")
-  revalidatePath(`/dashboard/patients/${patientId}`)
+  revalidatePath(`/dashboard/patients/${resolvedPatientId}`)
   const stamp = typeof data[0]?.updated_at === "string" ? data[0].updated_at : null
   return { error: null, token: null, updatedAt: stamp }
+}
+
+export type SaveClinicalNotesPayload = {
+  patientId?: string | null
+  patient_id?: string | null
+  notes: string
+  expectedUpdatedAt?: string | null
+  forceOverwrite?: boolean
+}
+
+export type SaveClinicalNotesResult = {
+  error: string | null
+  updated_at?: string | null
+  conflict?: boolean
+  current?: PatientFileSnapshot | null
+  unauthorized?: boolean
+}
+
+export async function saveClinicalNotes(payload: SaveClinicalNotesPayload): Promise<SaveClinicalNotesResult> {
+  const patientId = readPatientIdFromSavePayload(payload)
+  if (!patientId) {
+    return { error: "Pacientul nu a fost găsit." }
+  }
+
+  if (typeof payload.notes !== "string") {
+    return { error: "Notițele trebuie să fie text." }
+  }
+
+  const { supabase, user } = await requireUser()
+  if (!user) {
+    return { error: "Sesiunea a expirat. Autentifică-te din nou.", unauthorized: true }
+  }
+
+  const result = await persistClinicalNotesForTherapist({
+    supabase,
+    userId: user.id,
+    patientId,
+    patient_id: patientId,
+    notes: payload.notes,
+    expectedUpdatedAt: payload.expectedUpdatedAt ?? null,
+    forceOverwrite: payload.forceOverwrite === true,
+  })
+
+  if (!result.ok) {
+    return {
+      error: result.conflict ? null : result.error,
+      conflict: result.conflict,
+      current: result.current ?? null,
+      unauthorized: result.unauthorized,
+    }
+  }
+
+  return { error: null, updated_at: result.updated_at }
 }
 
 export async function assignPatientTherapist(

@@ -48,6 +48,8 @@ export function PatientFileActions({ patient }: { patient: PatientRecord }) {
 
   function save(formData: FormData, forceOverwrite = false) {
     setError(null)
+    formData.set("patientId", patient.id)
+    formData.set("patient_id", patient.id)
     formData.set("expected_updated_at", expectedUpdatedAt ?? "")
     if (forceOverwrite) {
       formData.set("force_overwrite", "1")
@@ -124,6 +126,8 @@ export function PatientFileActions({ patient }: { patient: PatientRecord }) {
             className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-lg"
           >
             <h2 className="text-lg font-semibold text-slate-800">Editează pacientul</h2>
+            <input type="hidden" name="patientId" value={patient.id} />
+            <input type="hidden" name="patient_id" value={patient.id} />
             <div className="mt-4 flex flex-col gap-4">
               {conflict ? (
                 <PatientSaveConflictNotice

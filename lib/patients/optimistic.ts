@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { getOwnPatientRow } from "@/lib/patients/tenant"
+import { readPatientRecordId } from "@/lib/patients/patient-id"
 
 export type PatientFileSnapshot = {
   full_name: string
@@ -54,18 +55,22 @@ export async function fetchPatientFileSnapshot(
   userId: string,
   patientId: string,
 ): Promise<PatientFileSnapshot | null> {
-  const stamped = await getOwnPatientRow(supabase, userId, patientId, SNAPSHOT_COLUMNS)
+  const resolvedId = readPatientRecordId(patientId)
+  if (!resolvedId) {
+    return null
+  }
+  const stamped = await getOwnPatientRow(supabase, userId, resolvedId, SNAPSHOT_COLUMNS)
   if (!stamped.error && stamped.data) {
     return snapshotFromRow(stamped.data)
   }
   if (stamped.error && looksLikeMissingUpdatedAt(stamped.error)) {
-    const legacy = await getOwnPatientRow(supabase, userId, patientId, SNAPSHOT_COLUMNS_LEGACY)
+    const legacy = await getOwnPatientRow(supabase, userId, resolvedId, SNAPSHOT_COLUMNS_LEGACY)
     if (!legacy.error && legacy.data) {
       return snapshotFromRow(legacy.data)
     }
   }
   if (!stamped.data) {
-    const legacy = await getOwnPatientRow(supabase, userId, patientId, SNAPSHOT_COLUMNS_LEGACY)
+    const legacy = await getOwnPatientRow(supabase, userId, resolvedId, SNAPSHOT_COLUMNS_LEGACY)
     if (!legacy.error && legacy.data) {
       return snapshotFromRow(legacy.data)
     }
