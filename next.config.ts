@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FIREBASE_MESSAGING_VAPID_KEY: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_VAPID_KEY,
     NEXT_PUBLIC_FIREBASE_WEB_PUSH_CERTIFICATE: process.env.NEXT_PUBLIC_FIREBASE_WEB_PUSH_CERTIFICATE,
   },
+  async redirects() {
+    return [
+      { source: "/early-access", destination: "/login", permanent: true },
+      { source: "/early-access/:path*", destination: "/login", permanent: true },
+    ]
+  },
   async headers() {
     return [
       {

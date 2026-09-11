@@ -14,7 +14,7 @@ export function RecoverSessionRedirect() {
   const pathname = usePathname()
 
   useEffect(() => {
-    if (pathname !== "/" && pathname !== "/early-access") {
+    if (pathname !== "/") {
       return
     }
 

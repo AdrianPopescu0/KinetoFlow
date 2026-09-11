@@ -22,7 +22,6 @@ cp .env.example .env.local
 - `SUPABASE_SERVICE_ROLE_KEY` — cheia secretă / service role, doar pe server (**fără** `NEXT_PUBLIC_`)
 - `NEXT_PUBLIC_SITE_URL` — originea publică **opțională**. Loginul, OAuth și callback-ul folosesc originea request-ului (`x-forwarded-host` / `window.location.origin`). URL-urile `*.vercel.app` sunt ignorate; în producție fallback-ul e `https://kinetoflow.ro`. Nu pune aici un host Vercel.
 - `CRON_SECRET` — secret pentru cron-uri (`Authorization: Bearer …` pe `/api/cron/reset-daily-progress`, `/api/cron/reminders` și `/api/cron/daily-update`); pe Vercel, dacă e setat, header-ul e trimis automat
-- `EARLY_ACCESS_CODE` — **exact 12 caractere**. Codul secret pentru butonul Early Access. Dacă lipsește sau nu are 12 caractere, local se folosește `KINETO-EARLY`. După un cod valid, aplicația setează `early_access_verified=1` (`path: /`, 90 de zile). Middleware-ul lasă request-ul să treacă doar dacă acest cookie există.
 - Pentru **emailuri OTP** (doar înregistrarea unei clinici noi) și suport: `RESEND_API_KEY` — **obligatoriu în producție**. Codul de 6 cifre NU trece prin `signInWithOtp` / `auth.resend` / mailer-ul de test Supabase; e mintuit cu `generateLink` și trimis de Resend de pe `no-reply@kinetoflow.ro` (`RESEND_AUTH_FROM`). Invitațiile de terapeut **nu** trimit OTP. Fără cheie, local codul e doar logat. Mailer-ul built-in din Authentication → Emails are rate limit mic și nu livrează aceste OTP-uri; pentru recovery Auth pune SMTP propriu (Resend/SendGrid/Gmail).
 - Pentru reminder-e și notificări de check-in (**doar Web Push / FCM**): cheile `NEXT_PUBLIC_FIREBASE_*` (inclusiv `NEXT_PUBLIC_FIREBASE_VAPID_KEY`) plus pe server **`FIREBASE_SERVICE_ACCOUNT`** (JSON-ul complet al contului de serviciu, `JSON.parse`). Fără token FCM salvat, reminder-ul se sare — nu există fallback SMS sau WhatsApp. Local, fără Firebase Admin, trimiterea push e simulată în loguri.
 
@@ -46,15 +45,13 @@ npm install
 npm run dev -- --port 43123 --hostname 127.0.0.1
 ```
 
-Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) (Early Access), apoi după cod [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) pentru autentificarea clasică, sau programul pacient [http://127.0.0.1:43123/patient/demo](http://127.0.0.1:43123/patient/demo).
+Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) pentru landing, [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) pentru autentificare, sau programul pacient [http://127.0.0.1:43123/patient/demo](http://127.0.0.1:43123/patient/demo).
 
 ## Autentificare
 
 | Rută | Rol |
 | --- | --- |
-| `/` | Landing de prezentare: un singur buton **Early Access** deschide formularul de cod (12 caractere). Fără cumpărare abonament. |
-| `/early-access` | Pagină dedicată pentru același cod; middleware trimite aici `/login`, `/register`, `/recuperare-parola` și `/early-access/cont` dacă lipsește cookie-ul valid. Portalul pacient (`/acces`) rămâne public. |
-| `/early-access/cont` | Redirect către `/login` (păstrat pentru bookmark-uri vechi). |
+| `/` | Landing de prezentare. Butoane către `/login` (autentificare) și înregistrare clinică. Fără cumpărare abonament. |
 | `/login` | Interfața clasică: **Google**, apoi email + parolă. Tab-uri **Intră în cont** / **Înregistrează clinică nouă**. La **înregistrare**, aplicația trimite un **cod de 6 cifre** și deschide `/auth/email-cod`. La **Sign In**, un cont deja confirmat merge direct în dashboard/onboarding, fără OTP. La signup e obligatoriu consimțământul la Termeni. |
 | `/auth/email-cod` | Ecran de confirmare **doar pentru înregistrare**: utilizatorul tastează manual codul de 6 cifre. Validarea e `verifyOtp` pe dispozitivul de pe care a început înregistrarea; linkurile din email nu mai autentifică automat. Accesul cu `purpose=login` redirecționează la Sign In. |
 | `/termeni` | Termeni și Condiții (inclusiv disclaimer medical) |
@@ -99,7 +96,7 @@ Reguli de securitate aplicate:
 - La înregistrare, parola trebuie: 8+ caractere, o majusculă, o cifră, un caracter special
 - Contul email+parolă rămâne fără acces la `/dashboard` și `/onboarding` până la confirmarea adresei (`email_confirmed_at`)
 - Mesaj generic la eșec: „Email sau parolă incorectă” (fără enumerarea utilizatorilor)
-- Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori, și (înainte de sesiune) cere cookie-ul `early_access_verified`. Fără el, request-ul merge la pagina de cod. Conturile cu clinică merg direct în `/dashboard`.
+- Middleware care reîmprospătează sesiunea și blochează `/dashboard/*` pentru vizitatori. Conturile cu clinică merg direct în `/dashboard`.
 - Verificare `getUser()` (nu `getSession()`) pentru autorizare
 - RLS pe `patients`: vizibil dacă `therapist_id` / `assigned_therapist_id` e al tău sau al unui coleg cu același `clinic_name` (`013_patients_no_clinic_id.sql`)
 - RLS pe `exercise_library`: citire pentru oricine; scriere (INSERT/UPDATE/DELETE) doar `kinetic01flow@gmail.com` și `admin@kinetoflow.ro` (email exact). Scripturile sunt în `sql/`, nu se aplică automat pe Vercel. Tabela `exercises` (programul pacientului) rămâne editabilă de terapeuții cabinetului.

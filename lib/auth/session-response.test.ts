@@ -16,7 +16,6 @@ test("taburile de autentificare și înregistrare au rute distincte", () => {
 
 test("landing-ul public e pagina de marketing, nu dashboard-ul", () => {
   assert.equal(isPublicMarketingPath("/"), true)
-  assert.equal(isPublicMarketingPath("/early-access"), true)
   assert.equal(isPublicMarketingPath("/login"), false)
   assert.equal(isPublicMarketingPath("/dashboard"), false)
   assert.equal(isPublicMarketingPath("/acces"), false)
@@ -80,5 +79,5 @@ test("callback-ul Google poate reveni pe pagina care citește invitația din loc
 test("recunoaște cookie-urile de sesiune Supabase", () => {
   assert.equal(isSupabaseAuthCookieName("sb-xxxx-auth-token"), true)
   assert.equal(isSupabaseAuthCookieName("sb-xxxx-auth-token.0"), true)
-  assert.equal(isSupabaseAuthCookieName("early_access_verified"), false)
+  assert.equal(isSupabaseAuthCookieName("theme"), false)
 })

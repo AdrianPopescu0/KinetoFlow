@@ -1,8 +1,9 @@
 import Link from "next/link"
 
-import { EarlyAccessButton } from "@/components/landing/early-access-dialog"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
-export function LandingHero({ unlockOpen = false }: { unlockOpen?: boolean }) {
+export function LandingHero() {
   return (
     <section className="relative overflow-hidden px-4 pt-12 pb-16 sm:px-6 sm:pt-20 sm:pb-24">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[28rem]">
@@ -20,11 +21,30 @@ export function LandingHero({ unlockOpen = false }: { unlockOpen?: boolean }) {
         </p>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-pretty text-slate-600 sm:text-lg">
           KinetoFlow aduce pacienții, programele de exerciții și echipa clinicii în același flux de
-          lucru. Platforma este în Early Access: intrați cu un cod de 12 caractere primit de la
-          noi, apoi cu email și parolă. Codul de 6 cifre pe email se cere doar la crearea contului.
+          lucru. Intră în cont sau înregistrează cabinetul, apoi gestionezi recuperarea fără hârtii
+          și fără un al doilea sistem.
         </p>
         <div className="mt-8 flex w-full max-w-sm flex-col items-stretch gap-3 sm:max-w-none sm:flex-row sm:justify-center">
-          <EarlyAccessButton initialOpen={unlockOpen} />
+          <Link
+            href="/login"
+            prefetch
+            className={cn(
+              buttonVariants(),
+              "h-12 min-h-[48px] rounded-xl px-6 text-base",
+            )}
+          >
+            Intră în cont
+          </Link>
+          <Link
+            href="/login?mode=signup"
+            prefetch
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "h-12 min-h-[48px] rounded-xl px-6 text-base",
+            )}
+          >
+            Înregistrează clinică
+          </Link>
         </div>
         <p className="mt-4 text-sm text-slate-500">
           Ești pacient?{" "}

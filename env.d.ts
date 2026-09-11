@@ -31,7 +31,6 @@ declare namespace NodeJS {
     RESEND_FROM?: string
     RESEND_AUTH_FROM?: string
     AUTH_OTP_PEPPER?: string
-    EARLY_ACCESS_CODE?: string
     SUPPORT_NOTIFY_EMAIL?: string
   }
 }

@@ -33,7 +33,7 @@ export function shouldStayOnTherapistLogin(search: string | URLSearchParams | nu
 }
 
 export function isPublicMarketingPath(pathname: string): boolean {
-  return pathname === "/" || pathname === "/early-access"
+  return pathname === "/"
 }
 
 export function therapistAppPath(clinicReady: boolean): "/dashboard" | "/onboarding" {

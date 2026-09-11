@@ -42,14 +42,9 @@ function isTherapistAuthPage(pathname: string): boolean {
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/recuperare-parola" ||
-    pathname === "/early-access/cont" ||
     pathname === "/auth/email-cod" ||
     pathname.startsWith("/auth/email-cod/")
   )
-}
-
-function isEarlyAccessPath(pathname: string): boolean {
-  return pathname === "/early-access" || pathname.startsWith("/early-access/")
 }
 
 function isOnboardingPath(pathname: string): boolean {
@@ -236,7 +231,7 @@ export async function updateSession(request: NextRequest) {
         ? THERAPIST_INVITE_FINALIZE_PATH
         : THERAPIST_INVITE_CONTINUE_PATH
 
-    if (!stayOnLogin && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname) || isEarlyAccessPath(pathname))) {
+    if (!stayOnLogin && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname))) {
       return redirectWithAuthCookies(request, supabaseResponse, appPath)
     }
 
