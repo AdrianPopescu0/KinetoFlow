@@ -1,6 +1,6 @@
 "use server"
 
-import { cookies, headers } from "next/headers"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
 import {
@@ -9,7 +9,7 @@ import {
   isEmailConfirmedUser,
   isEmailNotConfirmedAuthError,
 } from "@/lib/auth/email-confirmed"
-import { isValidEarlyAccessCode, stampEarlyAccessCookie } from "@/lib/auth/early-access"
+import { isValidEarlyAccessCode } from "@/lib/auth/early-access"
 import { EMAIL_OTP_TTL_MS, readVerifiedEmailCookie, signVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
@@ -51,10 +51,10 @@ export async function unlockEarlyAccess(
   }
 
   const cookieStore = await cookies()
-  stampEarlyAccessCookie(
-    (name, value, options) => cookieStore.set(name, value, options),
-    (await headers()).get("x-forwarded-proto"),
-  )
+  cookieStore.set("early_access_verified", "1", {
+    path: "/",
+    maxAge: 90 * 24 * 60 * 60,
+  })
 
   redirect("/login")
 }

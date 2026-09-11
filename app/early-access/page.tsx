@@ -1,4 +1,3 @@
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { KeyRound } from "lucide-react"
 
@@ -7,7 +6,6 @@ import { RecoverSessionRedirect } from "@/components/auth/recover-session-redire
 import { EarlyAccessForm } from "@/components/landing/early-access-form"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
-import { EARLY_ACCESS_COOKIE } from "@/lib/auth/early-access-constants"
 import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
 import { getCachedUser } from "@/lib/auth/session"
 
@@ -26,11 +24,6 @@ export default async function EarlyAccessPage() {
   }
   if (confirmedUser) {
     redirect(await resolveTherapistAppPath())
-  }
-
-  const jar = await cookies()
-  if (jar.get(EARLY_ACCESS_COOKIE)?.value) {
-    redirect("/login")
   }
 
   return (

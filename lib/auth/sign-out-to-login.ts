@@ -1,10 +1,9 @@
 "use server"
 
-import { cookies, headers } from "next/headers"
+import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
-import { stampEarlyAccessCookie } from "@/lib/auth/early-access"
 import { isSupabaseAuthCookieName, SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { LOGIN_SIGNED_OUT_HREF } from "@/lib/auth/paths"
 import { createClient } from "@/utils/supabase/server"
@@ -19,10 +18,6 @@ export async function signOutToLogin() {
       jar.set(cookie.name, "", { path: "/", maxAge: 0 })
     }
   }
-  stampEarlyAccessCookie(
-    (name, value, options) => jar.set(name, value, options),
-    (await headers()).get("x-forwarded-proto"),
-  )
   jar.set(SIGNED_OUT_GATE_COOKIE, "1", {
     httpOnly: false,
     sameSite: "lax",

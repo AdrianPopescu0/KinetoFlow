@@ -1,6 +1,2 @@
 export const EARLY_ACCESS_CODE_LENGTH = 12
-export const EARLY_ACCESS_COOKIE = "early_access_verified"
-export const EARLY_ACCESS_COOKIE_VALUE = "1"
-export const EARLY_ACCESS_TTL_DAYS = 90
-export const EARLY_ACCESS_MAX_AGE_SECONDS = EARLY_ACCESS_TTL_DAYS * 24 * 60 * 60
 export const DEFAULT_EARLY_ACCESS_CODE = "KINETO-EARLY"

@@ -2,8 +2,6 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import type { EmailOtpType } from "@supabase/supabase-js"
 
-import { applyEarlyAccessCookie } from "@/lib/auth/early-access"
-import { EARLY_ACCESS_COOKIE } from "@/lib/auth/early-access-constants"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { requestAppOrigin } from "@/lib/auth/site-origin"
 import { SET_PASSWORD_PATH, safeAuthNextPath } from "@/lib/auth/paths"
@@ -53,12 +51,8 @@ function callbackAbsoluteUrl(request: NextRequest, path: string) {
 function redirectWithCookies(request: NextRequest, path: string, cookiesToSet: SessionCookie[]) {
   const response = NextResponse.redirect(callbackAbsoluteUrl(request, path), 303)
   for (const { name, value, options } of cookiesToSet) {
-    if (name === EARLY_ACCESS_COOKIE) {
-      continue
-    }
     response.cookies.set(name, value, { ...options, path: "/" })
   }
-  applyEarlyAccessCookie(request, (name, value, options) => response.cookies.set(name, value, options))
   return response
 }
 
