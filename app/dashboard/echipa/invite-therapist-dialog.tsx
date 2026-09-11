@@ -171,7 +171,7 @@ export function InviteTherapistDialog({
                       required
                       autoComplete="off"
                       className="h-11"
-                      placeholder="terapeut@clinica.ro"
+                      placeholder="nume@gmail.com"
                     />
                     <p className="text-xs leading-relaxed text-slate-500">
                       Apare precompletat pe pagina de invitație. Terapeutul își alege doar parola —
