@@ -3,7 +3,9 @@ import {
   EARLY_ACCESS_CODE_LENGTH,
   EARLY_ACCESS_COOKIE,
   EARLY_ACCESS_FALLBACK_PEPPER,
+  EARLY_ACCESS_MAX_AGE_SECONDS,
   EARLY_ACCESS_TTL_MS,
+  LEGACY_EARLY_ACCESS_COOKIE,
 } from "./early-access-constants.ts"
 
 export {
@@ -11,8 +13,10 @@ export {
   EARLY_ACCESS_CODE_LENGTH,
   EARLY_ACCESS_COOKIE,
   EARLY_ACCESS_FALLBACK_PEPPER,
+  EARLY_ACCESS_MAX_AGE_SECONDS,
   EARLY_ACCESS_TTL_DAYS,
   EARLY_ACCESS_TTL_MS,
+  LEGACY_EARLY_ACCESS_COOKIE,
 } from "./early-access-constants.ts"
 
 export type EarlyAccessCookieOptions = {
@@ -38,35 +42,51 @@ function uniqueNonEmpty(values: Array<string | undefined>): string[] {
   return result
 }
 
-/** Pepper disponibil și în Edge (middleware), fără SERVICE_ROLE_KEY. */
+/** Pepper compilat în bundle — același pe Server Action și pe Edge middleware. */
 export function earlyAccessSigningPepper(): string {
-  return (
-    process.env.EARLY_ACCESS_PEPPER?.trim() ||
-    process.env.AUTH_OTP_PEPPER?.trim() ||
-    EARLY_ACCESS_FALLBACK_PEPPER
-  )
+  return EARLY_ACCESS_FALLBACK_PEPPER
 }
 
-/** Verifică și cookie-urile vechi semnate cu service role, dacă cheia e prezentă. */
 export function earlyAccessVerifyPeppers(): string[] {
   return uniqueNonEmpty([
+    EARLY_ACCESS_FALLBACK_PEPPER,
     process.env.EARLY_ACCESS_PEPPER,
     process.env.AUTH_OTP_PEPPER,
-    EARLY_ACCESS_FALLBACK_PEPPER,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     process.env.SUPABASE_SECRET_KEY,
   ])
 }
 
-export function earlyAccessCookieOptions(expiresAtMs: number): EarlyAccessCookieOptions {
+/** `Secure` doar pe HTTPS, ca browserul să accepte cookie-ul și pe preview HTTP. */
+export function earlyAccessCookieSecure(forwardedProto?: string | null): boolean {
+  const proto = forwardedProto?.split(",")[0]?.trim().toLowerCase()
+  if (proto === "https") {
+    return true
+  }
+  if (proto === "http") {
+    return false
+  }
+  return process.env.NODE_ENV === "production"
+}
+
+export function earlyAccessCookieOptions(
+  expiresAtMs = Date.now() + EARLY_ACCESS_TTL_MS,
+  secure = earlyAccessCookieSecure(),
+): EarlyAccessCookieOptions {
   return {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     path: "/",
-    maxAge: Math.max(1, Math.floor((expiresAtMs - Date.now()) / 1000)),
+    maxAge: EARLY_ACCESS_MAX_AGE_SECONDS,
     expires: new Date(expiresAtMs),
   }
+}
+
+export function earlyAccessCookieValueFrom(
+  getCookie: (name: string) => { value: string } | undefined,
+): string | undefined {
+  return getCookie(EARLY_ACCESS_COOKIE)?.value ?? getCookie(LEGACY_EARLY_ACCESS_COOKIE)?.value
 }
 
 export function configuredEarlyAccessCode(): string {
@@ -180,8 +200,20 @@ export async function hasValidEarlyAccessCookie(
 export async function writeEarlyAccessCookie(
   setCookie: (name: string, value: string, options: EarlyAccessCookieOptions) => void,
   nowMs = Date.now(),
+  forwardedProto?: string | null,
 ): Promise<number> {
   const expiresAtMs = nowMs + EARLY_ACCESS_TTL_MS
-  setCookie(EARLY_ACCESS_COOKIE, await signEarlyAccessCookie(expiresAtMs), earlyAccessCookieOptions(expiresAtMs))
+  setCookie(
+    EARLY_ACCESS_COOKIE,
+    await signEarlyAccessCookie(expiresAtMs),
+    earlyAccessCookieOptions(expiresAtMs, earlyAccessCookieSecure(forwardedProto)),
+  )
   return expiresAtMs
+}
+
+/** Citește `early_access_verified` (sau cookie-ul vechi) de pe request. */
+export async function requestHasValidEarlyAccessCookie(request: {
+  cookies: { get: (name: string) => { value: string } | undefined }
+}): Promise<boolean> {
+  return hasValidEarlyAccessCookie(earlyAccessCookieValueFrom((name) => request.cookies.get(name)))
 }

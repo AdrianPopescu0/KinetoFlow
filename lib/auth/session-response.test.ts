@@ -80,5 +80,6 @@ test("callback-ul Google poate reveni pe pagina care citește invitația din loc
 test("recunoaște cookie-urile de sesiune Supabase", () => {
   assert.equal(isSupabaseAuthCookieName("sb-xxxx-auth-token"), true)
   assert.equal(isSupabaseAuthCookieName("sb-xxxx-auth-token.0"), true)
+  assert.equal(isSupabaseAuthCookieName("early_access_verified"), false)
   assert.equal(isSupabaseAuthCookieName("kf_early_access"), false)
 })

@@ -1,6 +1,6 @@
 "use server"
 
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { confirmAuthUserEmailById } from "@/lib/auth/verified-password-session"
@@ -30,7 +30,11 @@ export type TherapistAppPath = "/dashboard" | "/onboarding"
 export async function resolveTherapistAppPath(): Promise<TherapistAppPath> {
   const jar = await cookies()
   jar.delete(SIGNED_OUT_GATE_COOKIE)
-  await writeEarlyAccessCookie((name, value, options) => jar.set(name, value, options))
+  await writeEarlyAccessCookie(
+    (name, value, options) => jar.set(name, value, options),
+    Date.now(),
+    (await headers()).get("x-forwarded-proto"),
+  )
 
   const supabase = await createClient()
   const {

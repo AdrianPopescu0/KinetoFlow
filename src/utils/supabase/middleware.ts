@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-import { EARLY_ACCESS_COOKIE, hasValidEarlyAccessCookie, writeEarlyAccessCookie } from "@/lib/auth/early-access"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { isPublicMarketingPath, shouldStayOnTherapistLogin } from "@/lib/auth/paths"
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
@@ -83,10 +82,6 @@ function storedPatientToken(request: NextRequest): string | null {
   return null
 }
 
-async function isEarlyAccessUnlocked(request: NextRequest): Promise<boolean> {
-  return hasValidEarlyAccessCookie(request.cookies.get(EARLY_ACCESS_COOKIE)?.value)
-}
-
 function redirectToEarlyAccess(request: NextRequest, source?: NextResponse): NextResponse {
   if (source) {
     return redirectWithAuthCookies(request, source, "/early-access")
@@ -119,10 +114,14 @@ function pendingInviteToken(request: NextRequest, pathname: string): string | nu
   )
 }
 
-export async function updateSession(request: NextRequest) {
+export async function updateSession(
+  request: NextRequest,
+  options?: { earlyAccessUnlocked?: boolean },
+) {
   const pathname = request.nextUrl.pathname
   const urlTokenRaw = patientTokenFromPath(pathname)
   const urlToken = urlTokenRaw && looksLikePatientToken(urlTokenRaw) ? urlTokenRaw : null
+  const earlyAccessUnlocked = options?.earlyAccessUnlocked === true
 
   if (isPatientBarePath(pathname)) {
     const stored = storedPatientToken(request)
@@ -152,7 +151,7 @@ export async function updateSession(request: NextRequest) {
   const { url, anonKey } = getSupabasePublicEnv()
 
   if (isUnconfiguredSupabaseUrl(url)) {
-    if (isTherapistAuthPage(pathname) && !(await isEarlyAccessUnlocked(request))) {
+    if (isTherapistAuthPage(pathname) && !earlyAccessUnlocked) {
       return redirectToEarlyAccess(request)
     }
 
@@ -213,16 +212,7 @@ export async function updateSession(request: NextRequest) {
   const authenticatedUser = userError ? null : user
   const emailConfirmed = isEmailConfirmedUser(authenticatedUser)
   const stayOnLogin = isTherapistAuthPage(pathname) && shouldStayOnTherapistLogin(request.nextUrl.searchParams)
-  const earlyAccessUnlocked = await isEarlyAccessUnlocked(request)
 
-  if (authenticatedUser && emailConfirmed && !earlyAccessUnlocked) {
-    await writeEarlyAccessCookie((name, value, options) =>
-      supabaseResponse.cookies.set(name, value, options),
-    )
-  }
-
-  // Contul activ sare peste poarta de 12 caractere. Cookie-ul de 90 de zile
-  // e scris mai sus, ca după logout să nu ceară din nou codul.
   if (!authenticatedUser && isTherapistAuthPage(pathname) && !earlyAccessUnlocked) {
     return redirectToEarlyAccess(request, supabaseResponse)
   }

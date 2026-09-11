@@ -1,12 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { requestHasValidEarlyAccessCookie } from "@/lib/auth/early-access"
 import { updateSession } from "@/utils/supabase/middleware"
 
 export async function middleware(request: NextRequest) {
+  const earlyAccessUnlocked = await requestHasValidEarlyAccessCookie(request)
+
   if (request.nextUrl.pathname.startsWith("/api/cron")) {
     return NextResponse.next()
   }
-  return updateSession(request)
+
+  return updateSession(request, { earlyAccessUnlocked })
 }
 
 export const config = {

@@ -8,7 +8,7 @@ import { EarlyAccessForm } from "@/components/landing/early-access-form"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import {
-  EARLY_ACCESS_COOKIE,
+  earlyAccessCookieValueFrom,
   hasValidEarlyAccessCookie,
 } from "@/lib/auth/early-access"
 import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
@@ -32,7 +32,7 @@ export default async function EarlyAccessPage() {
   }
 
   const jar = await cookies()
-  if (await hasValidEarlyAccessCookie(jar.get(EARLY_ACCESS_COOKIE)?.value)) {
+  if (await hasValidEarlyAccessCookie(earlyAccessCookieValueFrom((name) => jar.get(name)))) {
     redirect("/login")
   }
 

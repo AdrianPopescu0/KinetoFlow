@@ -1,13 +1,15 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useActionState, useState } from "react"
 import { Loader2 } from "lucide-react"
 
-import { unlockEarlyAccess } from "@/app/early-access/actions"
+import { unlockEarlyAccess, type EarlyAccessState } from "@/app/early-access/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { EARLY_ACCESS_CODE_LENGTH } from "@/lib/auth/early-access-constants"
+
+const initialState: EarlyAccessState = {}
 
 export function EarlyAccessForm({
   autoFocus = true,
@@ -17,25 +19,10 @@ export function EarlyAccessForm({
   submitLabel?: string
 }) {
   const [code, setCode] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
-
-  function handleSubmit(formData: FormData) {
-    setError(null)
-    startTransition(async () => {
-      const result = await unlockEarlyAccess(formData)
-      if (result?.error) {
-        setError(result.error)
-        return
-      }
-      if (result?.next) {
-        window.location.assign(result.next)
-      }
-    })
-  }
+  const [state, formAction, isPending] = useActionState(unlockEarlyAccess, initialState)
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="early-access-code">Cod de acces (12 caractere)</Label>
         <Input
@@ -58,9 +45,9 @@ export function EarlyAccessForm({
           terapeuților rămân blocate.
         </p>
       </div>
-      {error ? (
+      {state?.error ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-          {error}
+          {state.error}
         </p>
       ) : null}
       <Button

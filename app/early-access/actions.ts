@@ -1,6 +1,7 @@
 "use server"
 
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
+import { redirect } from "next/navigation"
 
 import {
   EMAIL_CONFIRM_REQUIRED,
@@ -9,8 +10,12 @@ import {
   isEmailNotConfirmedAuthError,
 } from "@/lib/auth/email-confirmed"
 import {
+  EARLY_ACCESS_COOKIE,
+  EARLY_ACCESS_TTL_MS,
+  earlyAccessCookieOptions,
+  earlyAccessCookieSecure,
   isValidEarlyAccessCode,
-  writeEarlyAccessCookie,
+  signEarlyAccessCookie,
 } from "@/lib/auth/early-access"
 import { EMAIL_OTP_TTL_MS, readVerifiedEmailCookie, signVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
@@ -31,7 +36,6 @@ import { createClient } from "@/utils/supabase/server"
 
 export type EarlyAccessState = {
   error?: string
-  next?: "/login"
 }
 
 export type EarlyAccessEmailState = {
@@ -44,15 +48,27 @@ export type EarlyAccessEmailState = {
   next?: "/dashboard" | "/onboarding"
 } | null
 
-export async function unlockEarlyAccess(formData: FormData): Promise<EarlyAccessState> {
+export async function unlockEarlyAccess(
+  _prevState: EarlyAccessState,
+  formData: FormData,
+): Promise<EarlyAccessState> {
   const code = formData.get("code")
   if (!isValidEarlyAccessCode(code)) {
     return { error: "Codul nu este valid. Introdu cele 12 caractere primite pentru Early Access." }
   }
 
-  const jar = await cookies()
-  await writeEarlyAccessCookie((name, value, options) => jar.set(name, value, options))
-  return { next: "/login" }
+  const expiresAtMs = Date.now() + EARLY_ACCESS_TTL_MS
+  const cookieStore = await cookies()
+  cookieStore.set(
+    EARLY_ACCESS_COOKIE,
+    await signEarlyAccessCookie(expiresAtMs),
+    earlyAccessCookieOptions(
+      expiresAtMs,
+      earlyAccessCookieSecure((await headers()).get("x-forwarded-proto")),
+    ),
+  )
+
+  redirect("/login")
 }
 
 export async function requestEarlyAccessEmailOtp(formData: FormData): Promise<EarlyAccessEmailState> {
