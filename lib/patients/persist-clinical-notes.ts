@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { privilegedClinicClient } from "@/lib/clinics/members"
-import { fetchPatientFileSnapshot, isWriteConflict, type PatientFileSnapshot } from "@/lib/patients/optimistic"
+import { fetchPatientFileSnapshot, type PatientFileSnapshot } from "@/lib/patients/optimistic"
 import { readPatientIdFromSavePayload } from "@/lib/patients/patient-id"
+import { upsertPatientNotes } from "@/lib/patients/patient-notes"
 import { getOwnPatientRow } from "@/lib/patients/tenant"
 
 export type PersistClinicalNotesResult =
@@ -31,57 +32,40 @@ export async function persistClinicalNotesForTherapist(input: {
     return { ok: false, error: "Pacientul nu a fost găsit." }
   }
 
-  const snapshot = await fetchPatientFileSnapshot(input.supabase, input.userId, patientId)
-
-  const expected = input.expectedUpdatedAt ?? null
-  if (snapshot && !input.forceOverwrite && isWriteConflict(expected, snapshot.updated_at)) {
-    return { ok: false, error: "", conflict: true, current: snapshot }
-  }
-
-  const trimmed = input.notes.trim().length > 0 ? input.notes : null
   const client = await privilegedClinicClient(input.supabase)
+  const trimmed = input.notes.trim().length > 0 ? input.notes : null
+  const result = await upsertPatientNotes(client, patientId, trimmed, {
+    expectedUpdatedAt: input.expectedUpdatedAt ?? null,
+    forceOverwrite: input.forceOverwrite === true,
+  })
 
-  let update = client.from("patients").update({ clinical_notes: trimmed }).eq("id", patientId)
-
-  if (!input.forceOverwrite && expected && snapshot?.updated_at) {
-    update = update.eq("updated_at", snapshot.updated_at)
-  }
-
-  const { data, error } = await update.select("id, updated_at")
-
-  if (error || !data || data.length === 0) {
-    if (!input.forceOverwrite && expected) {
-      const latest = await fetchPatientFileSnapshot(input.supabase, input.userId, patientId)
-      if (latest && isWriteConflict(expected, latest.updated_at)) {
-        return { ok: false, error: "", conflict: true, current: latest }
+  if (!result.ok) {
+    if (result.conflict) {
+      const current = await fetchPatientFileSnapshot(input.supabase, input.userId, patientId)
+      return {
+        ok: false,
+        error: "",
+        conflict: true,
+        current: current
+          ? {
+              ...current,
+              clinical_notes: result.currentNotes ?? current.clinical_notes,
+              updated_at: result.currentUpdatedAt ?? current.updated_at,
+            }
+          : {
+              full_name: "",
+              email: null,
+              phone: null,
+              diagnosis: null,
+              clinical_notes: result.currentNotes ?? null,
+              updated_at: result.currentUpdatedAt ?? null,
+            },
       }
     }
-
-    const fallback = await client
-      .from("patients")
-      .update({ clinical_notes: trimmed })
-      .eq("id", patientId)
-      .select("id, updated_at")
-
-    if (fallback.error) {
-      return { ok: false, error: fallback.error.message }
-    }
-    if (!fallback.data || fallback.data.length === 0) {
-      return { ok: false, error: "Nu am putut salva notițele." }
-    }
-
-    revalidatePath("/dashboard")
-    revalidatePath(`/dashboard/patients/${patientId}`)
-    return {
-      ok: true,
-      updated_at: typeof fallback.data[0]?.updated_at === "string" ? fallback.data[0].updated_at : null,
-    }
+    return { ok: false, error: result.error }
   }
 
   revalidatePath("/dashboard")
   revalidatePath(`/dashboard/patients/${patientId}`)
-  return {
-    ok: true,
-    updated_at: typeof data[0]?.updated_at === "string" ? data[0].updated_at : null,
-  }
+  return { ok: true, updated_at: result.updated_at }
 }

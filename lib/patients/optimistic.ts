@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
+import { privilegedClinicClient } from "@/lib/clinics/members"
 import { getOwnPatientRow } from "@/lib/patients/tenant"
 import { readPatientRecordId } from "@/lib/patients/patient-id"
+import { fetchPatientNotes } from "@/lib/patients/patient-notes"
 
 export type PatientFileSnapshot = {
   full_name: string
@@ -12,9 +14,7 @@ export type PatientFileSnapshot = {
   updated_at: string | null
 }
 
-const SNAPSHOT_COLUMNS =
-  "id, full_name, email, phone, diagnosis, clinical_notes, updated_at"
-const SNAPSHOT_COLUMNS_LEGACY = "id, full_name, email, phone, diagnosis, clinical_notes"
+const SNAPSHOT_COLUMNS = "id, full_name, email, phone, diagnosis, updated_at"
 const SNAPSHOT_COLUMNS_MINIMAL = "id, full_name, email, phone, diagnosis"
 
 export function isWriteConflict(
@@ -53,15 +53,26 @@ export async function fetchPatientFileSnapshot(
     return null
   }
 
-  const attempts = [SNAPSHOT_COLUMNS, SNAPSHOT_COLUMNS_LEGACY, SNAPSHOT_COLUMNS_MINIMAL]
+  const attempts = [SNAPSHOT_COLUMNS, SNAPSHOT_COLUMNS_MINIMAL]
+  let snapshot: PatientFileSnapshot | null = null
   for (const columns of attempts) {
     const result = await getOwnPatientRow(supabase, userId, resolvedId, columns)
-    if (!result.error && result.data) {
-      return snapshotFromRow(result.data)
-    }
     if (result.data) {
-      return snapshotFromRow(result.data)
+      snapshot = snapshotFromRow(result.data)
+      break
     }
   }
-  return null
+  if (!snapshot) {
+    return null
+  }
+
+  const client = await privilegedClinicClient(supabase)
+  const notesRow = await fetchPatientNotes(client, resolvedId)
+  if (notesRow) {
+    snapshot.clinical_notes = notesRow.notes
+    if (notesRow.updated_at) {
+      snapshot.updated_at = notesRow.updated_at
+    }
+  }
+  return snapshot
 }

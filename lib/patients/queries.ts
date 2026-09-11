@@ -8,6 +8,8 @@ import {
 } from "@/lib/patients/compliance"
 import { addBucharestCalendarDays, bucharestDateKey, isBucharestToday } from "@/lib/time/bucharest"
 import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
+import { privilegedClinicClient } from "@/lib/clinics/members"
+import { fetchPatientNotes } from "@/lib/patients/patient-notes"
 import type {
   CheckInRecord,
   DashboardStats,
@@ -23,11 +25,11 @@ const PATIENT_LIST_COLUMNS =
 const PATIENT_LIST_COLUMNS_PLAIN =
   "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS_STAMPED =
-  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, updated_at, notify_channel"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, updated_at, notify_channel"
 const PATIENT_COLUMNS =
-  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, notify_channel"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, notify_channel"
 const PATIENT_COLUMNS_STAMPED_NO_CHANNEL =
-  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, clinical_notes, token, access_code, created_at, updated_at"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, updated_at"
 const PATIENT_LIST_COLUMNS_NO_ASSIGN =
   "id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
 const PATIENT_LIST_COLUMNS_PLAIN_NO_ASSIGN =
@@ -320,6 +322,15 @@ async function loadPatientRelations(
   supabase: Awaited<ReturnType<typeof currentTherapist>>["supabase"],
   patient: PatientRecord,
 ) {
+  const notesClient = await privilegedClinicClient(supabase)
+  const notesRow = await fetchPatientNotes(notesClient, patient.id)
+  if (notesRow) {
+    patient.clinical_notes = notesRow.notes
+    if (notesRow.updated_at) {
+      patient.updated_at = notesRow.updated_at
+    }
+  }
+
   const { data: exercises } = await supabase
     .from("exercises")
     .select("id, patient_id, title, video_url, sets, reps, notes")

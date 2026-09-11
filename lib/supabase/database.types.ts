@@ -54,7 +54,6 @@ export type Database = {
           email: string | null
           phone: string | null
           diagnosis: string | null
-          clinical_notes: string | null
           token: string
           access_code: string | null
           created_at: string
@@ -72,7 +71,6 @@ export type Database = {
           email?: string | null
           phone?: string | null
           diagnosis?: string | null
-          clinical_notes?: string | null
           token?: string
           access_code?: string | null
           created_at?: string
@@ -84,6 +82,31 @@ export type Database = {
         }
         Update: Record<string, unknown>
         Relationships: []
+      }
+      patient_notes: {
+        Row: {
+          patient_id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          patient_id: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_notes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       exercises: {
         Row: {

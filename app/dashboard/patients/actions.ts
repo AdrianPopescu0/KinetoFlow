@@ -36,6 +36,7 @@ import {
   type PatientFileSnapshot,
 } from "@/lib/patients/optimistic"
 import { persistClinicalNotesForTherapist } from "@/lib/patients/persist-clinical-notes"
+import { upsertPatientNotes } from "@/lib/patients/patient-notes"
 import { readPatientIdFromSaveArgs, readPatientRecordId } from "@/lib/patients/patient-id"
 
 export type MutationState = {
@@ -103,6 +104,7 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     return { error: "Sesiunea a expirat. Autentifică-te din nou.", token: null }
   }
 
+  const notes = readOptional(formData, "clinical_notes")
   const accessCode = await allocateAccessCode(supabase)
   const basePayload = {
     ...patientTenantPayload(user.id),
@@ -110,7 +112,6 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     email,
     phone,
     diagnosis: readOptional(formData, "diagnosis"),
-    clinical_notes: readOptional(formData, "clinical_notes"),
     access_code: accessCode,
   }
 
@@ -158,6 +159,10 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
 
   const token = String(row.token)
   const code = typeof row.access_code === "string" ? row.access_code : accessCode
+  if (notes) {
+    const notesClient = await privilegedClinicClient(supabase)
+    await upsertPatientNotes(notesClient, String(row.id), notes)
+  }
   const clinicName = (await clinicNameForUser(supabase, user.id)) || "KinetoFlow"
   const message = patientWhatsAppMessage({ fullName, clinicName, accessCode: code })
 
@@ -234,15 +239,11 @@ export async function updatePatient(patientId: string, formData: FormData): Prom
     email: string | null
     phone: string
     diagnosis: string | null
-    clinical_notes?: string | null
   } = {
     full_name: fullName,
     email,
     phone,
     diagnosis: readOptional(formData, "diagnosis"),
-  }
-  if (formData.has("clinical_notes")) {
-    payload.clinical_notes = readOptional(formData, "clinical_notes")
   }
 
   const memberIds = await listClinicMemberUserIds(supabase, user.id)
