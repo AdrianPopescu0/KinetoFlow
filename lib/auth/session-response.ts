@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { EARLY_ACCESS_COOKIE } from "@/lib/auth/early-access-constants"
+
 export function copyCookies(from: NextResponse, to: NextResponse): NextResponse {
   const copied = new Set<string>()
   const setCookies = from.headers.getSetCookie()
@@ -12,7 +14,7 @@ export function copyCookies(from: NextResponse, to: NextResponse): NextResponse 
   }
 
   from.cookies.getAll().forEach((cookie) => {
-    if (copied.has(cookie.name)) {
+    if (copied.has(cookie.name) || cookie.name === EARLY_ACCESS_COOKIE) {
       return
     }
     to.cookies.set(cookie.name, cookie.value, { path: "/" })

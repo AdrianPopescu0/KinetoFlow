@@ -15,7 +15,7 @@ import {
   earlyAccessCookieValueFrom,
   hasValidEarlyAccessCookie,
   isValidEarlyAccessCode,
-  requestHasValidEarlyAccessCookie,
+  requestHasEarlyAccessCookie,
   signEarlyAccessCookie,
 } from "./early-access.ts"
 
@@ -55,15 +55,18 @@ test("cookie-ul HTTP-only early_access_verified e valabil 90 de zile", async () 
   assert.equal(await hasValidEarlyAccessCookie("nu", issuedAt, EARLY_ACCESS_FALLBACK_PEPPER), false)
 })
 
-test("middleware citește early_access_verified înaintea cookie-ului vechi", async () => {
-  const token = await signEarlyAccessCookie(Date.now() + 60_000)
-  const cookies = new Map<string, string>([[EARLY_ACCESS_COOKIE, token]])
-  assert.equal(earlyAccessCookieValueFrom((name) => {
-    const value = cookies.get(name)
-    return value ? { value } : undefined
-  }), token)
+test("middleware citește exclusiv cookie-ul early_access_verified", () => {
+  assert.equal(EARLY_ACCESS_COOKIE, "early_access_verified")
+  const cookies = new Map<string, string>([[EARLY_ACCESS_COOKIE, "present"]])
   assert.equal(
-    await requestHasValidEarlyAccessCookie({
+    earlyAccessCookieValueFrom((name) => {
+      const value = cookies.get(name)
+      return value ? { value } : undefined
+    }),
+    "present",
+  )
+  assert.equal(
+    requestHasEarlyAccessCookie({
       cookies: {
         get: (name: string) => {
           const value = cookies.get(name)
@@ -74,9 +77,9 @@ test("middleware citește early_access_verified înaintea cookie-ului vechi", as
     true,
   )
 
-  const legacyOnly = new Map<string, string>([[LEGACY_EARLY_ACCESS_COOKIE, token]])
+  const legacyOnly = new Map<string, string>([[LEGACY_EARLY_ACCESS_COOKIE, "present"]])
   assert.equal(
-    await requestHasValidEarlyAccessCookie({
+    requestHasEarlyAccessCookie({
       cookies: {
         get: (name: string) => {
           const value = legacyOnly.get(name)
@@ -84,7 +87,7 @@ test("middleware citește early_access_verified înaintea cookie-ului vechi", as
         },
       },
     }),
-    true,
+    false,
   )
 })
 

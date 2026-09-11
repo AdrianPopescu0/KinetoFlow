@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server"
 
-import { requestHasValidEarlyAccessCookie } from "@/lib/auth/early-access"
+import { EARLY_ACCESS_COOKIE } from "@/lib/auth/early-access-constants"
 import { updateSession } from "@/utils/supabase/middleware"
 
 export async function middleware(request: NextRequest) {
-  const earlyAccessUnlocked = await requestHasValidEarlyAccessCookie(request)
+  const earlyAccessUnlocked = Boolean(request.cookies.get(EARLY_ACCESS_COOKIE)?.value)
 
   if (request.nextUrl.pathname.startsWith("/api/cron")) {
     return NextResponse.next()

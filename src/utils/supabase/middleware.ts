@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
+import { EARLY_ACCESS_COOKIE } from "@/lib/auth/early-access-constants"
 import { isPublicMarketingPath, shouldStayOnTherapistLogin } from "@/lib/auth/paths"
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
 import { clinicReadyFromUser, invitedTherapistFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
@@ -151,6 +152,13 @@ export async function updateSession(
   const { url, anonKey } = getSupabasePublicEnv()
 
   if (isUnconfiguredSupabaseUrl(url)) {
+    if (earlyAccessUnlocked && isEarlyAccessPath(pathname) && !isTherapistAuthPage(pathname)) {
+      const loginUrl = request.nextUrl.clone()
+      loginUrl.pathname = "/login"
+      loginUrl.search = ""
+      return NextResponse.redirect(loginUrl)
+    }
+
     if (isTherapistAuthPage(pathname) && !earlyAccessUnlocked) {
       return redirectToEarlyAccess(request)
     }
@@ -192,6 +200,9 @@ export async function updateSession(
           request,
         })
         sessionCookies.forEach(({ name, value, options }) => {
+          if (name === EARLY_ACCESS_COOKIE) {
+            return
+          }
           supabaseResponse.cookies.set(name, value, { ...options, path: "/" })
         })
         if (urlToken) {
@@ -212,6 +223,10 @@ export async function updateSession(
   const authenticatedUser = userError ? null : user
   const emailConfirmed = isEmailConfirmedUser(authenticatedUser)
   const stayOnLogin = isTherapistAuthPage(pathname) && shouldStayOnTherapistLogin(request.nextUrl.searchParams)
+
+  if (earlyAccessUnlocked && !authenticatedUser && isEarlyAccessPath(pathname) && !isTherapistAuthPage(pathname)) {
+    return redirectWithAuthCookies(request, supabaseResponse, "/login")
+  }
 
   if (!authenticatedUser && isTherapistAuthPage(pathname) && !earlyAccessUnlocked) {
     return redirectToEarlyAccess(request, supabaseResponse)

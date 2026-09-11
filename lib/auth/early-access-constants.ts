@@ -1,6 +1,6 @@
 export const EARLY_ACCESS_CODE_LENGTH = 12
 export const EARLY_ACCESS_COOKIE = "early_access_verified"
-/** Cookie vechi; citit în continuare, nu mai e scris. */
+/** Nume vechi — nu se mai citește și nu se mai scrie. */
 export const LEGACY_EARLY_ACCESS_COOKIE = "kf_early_access"
 export const EARLY_ACCESS_TTL_DAYS = 90
 export const EARLY_ACCESS_MAX_AGE_SECONDS = EARLY_ACCESS_TTL_DAYS * 24 * 60 * 60

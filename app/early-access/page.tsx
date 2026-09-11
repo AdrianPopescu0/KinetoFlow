@@ -7,10 +7,7 @@ import { RecoverSessionRedirect } from "@/components/auth/recover-session-redire
 import { EarlyAccessForm } from "@/components/landing/early-access-form"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
-import {
-  earlyAccessCookieValueFrom,
-  hasValidEarlyAccessCookie,
-} from "@/lib/auth/early-access"
+import { EARLY_ACCESS_COOKIE } from "@/lib/auth/early-access-constants"
 import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
 import { getCachedUser } from "@/lib/auth/session"
 
@@ -32,7 +29,7 @@ export default async function EarlyAccessPage() {
   }
 
   const jar = await cookies()
-  if (await hasValidEarlyAccessCookie(earlyAccessCookieValueFrom((name) => jar.get(name)))) {
+  if (jar.get(EARLY_ACCESS_COOKIE)?.value) {
     redirect("/login")
   }
 

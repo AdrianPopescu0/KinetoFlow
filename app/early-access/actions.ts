@@ -9,9 +9,8 @@ import {
   isEmailConfirmedUser,
   isEmailNotConfirmedAuthError,
 } from "@/lib/auth/email-confirmed"
+import { EARLY_ACCESS_COOKIE, EARLY_ACCESS_TTL_MS } from "@/lib/auth/early-access-constants"
 import {
-  EARLY_ACCESS_COOKIE,
-  EARLY_ACCESS_TTL_MS,
   earlyAccessCookieOptions,
   earlyAccessCookieSecure,
   isValidEarlyAccessCode,

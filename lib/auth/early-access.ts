@@ -5,7 +5,6 @@ import {
   EARLY_ACCESS_FALLBACK_PEPPER,
   EARLY_ACCESS_MAX_AGE_SECONDS,
   EARLY_ACCESS_TTL_MS,
-  LEGACY_EARLY_ACCESS_COOKIE,
 } from "./early-access-constants.ts"
 
 export {
@@ -86,7 +85,7 @@ export function earlyAccessCookieOptions(
 export function earlyAccessCookieValueFrom(
   getCookie: (name: string) => { value: string } | undefined,
 ): string | undefined {
-  return getCookie(EARLY_ACCESS_COOKIE)?.value ?? getCookie(LEGACY_EARLY_ACCESS_COOKIE)?.value
+  return getCookie(EARLY_ACCESS_COOKIE)?.value
 }
 
 export function configuredEarlyAccessCode(): string {
@@ -211,9 +210,9 @@ export async function writeEarlyAccessCookie(
   return expiresAtMs
 }
 
-/** Citește `early_access_verified` (sau cookie-ul vechi) de pe request. */
-export async function requestHasValidEarlyAccessCookie(request: {
+/** Prezența cookie-ului `early_access_verified` pe request — același nume ca la `cookies().set`. */
+export function requestHasEarlyAccessCookie(request: {
   cookies: { get: (name: string) => { value: string } | undefined }
-}): Promise<boolean> {
-  return hasValidEarlyAccessCookie(earlyAccessCookieValueFrom((name) => request.cookies.get(name)))
+}): boolean {
+  return Boolean(request.cookies.get(EARLY_ACCESS_COOKIE)?.value)
 }
