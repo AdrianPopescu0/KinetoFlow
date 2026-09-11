@@ -9,7 +9,7 @@ import {
   isEmailConfirmedUser,
   isEmailNotConfirmedAuthError,
 } from "@/lib/auth/email-confirmed"
-import { isValidEarlyAccessCode } from "@/lib/auth/early-access"
+import { isValidEarlyAccessCode, stampEarlyAccessCookie } from "@/lib/auth/early-access"
 import { EMAIL_OTP_TTL_MS, readVerifiedEmailCookie, signVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
@@ -45,16 +45,14 @@ export async function unlockEarlyAccess(
   _prevState: EarlyAccessState,
   formData: FormData,
 ): Promise<EarlyAccessState> {
-  const code = formData.get("code")
+  const payload = formData instanceof FormData ? formData : null
+  const code = payload?.get("code")
   if (!isValidEarlyAccessCode(code)) {
     return { error: "Codul nu este valid. Introdu cele 12 caractere primite pentru Early Access." }
   }
 
   const cookieStore = await cookies()
-  cookieStore.set("early_access_verified", "1", {
-    path: "/",
-    maxAge: 90 * 24 * 60 * 60,
-  })
+  stampEarlyAccessCookie((name, value, options) => cookieStore.set(name, value, options))
 
   redirect("/login")
 }

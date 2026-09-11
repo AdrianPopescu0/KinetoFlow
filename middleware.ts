@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { EARLY_ACCESS_COOKIE } from "@/lib/auth/early-access-constants"
 import { updateSession } from "@/utils/supabase/middleware"
 
-const EARLY_ACCESS_COOKIE = "early_access_verified"
 const EARLY_ACCESS_PAGE = "/early-access"
 
 export async function middleware(request: NextRequest) {
