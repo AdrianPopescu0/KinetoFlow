@@ -1,7 +1,6 @@
 "use server"
 
 import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
 
 import {
   EMAIL_CONFIRM_REQUIRED,
@@ -10,10 +9,8 @@ import {
   isEmailNotConfirmedAuthError,
 } from "@/lib/auth/email-confirmed"
 import {
-  EARLY_ACCESS_COOKIE,
-  EARLY_ACCESS_TTL_MS,
   isValidEarlyAccessCode,
-  signEarlyAccessCookie,
+  writeEarlyAccessCookie,
 } from "@/lib/auth/early-access"
 import { EMAIL_OTP_TTL_MS, readVerifiedEmailCookie, signVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
@@ -34,6 +31,7 @@ import { createClient } from "@/utils/supabase/server"
 
 export type EarlyAccessState = {
   error?: string
+  next?: "/login"
 }
 
 export type EarlyAccessEmailState = {
@@ -53,15 +51,8 @@ export async function unlockEarlyAccess(formData: FormData): Promise<EarlyAccess
   }
 
   const jar = await cookies()
-  jar.set(EARLY_ACCESS_COOKIE, await signEarlyAccessCookie(Date.now() + EARLY_ACCESS_TTL_MS), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: Math.floor(EARLY_ACCESS_TTL_MS / 1000),
-  })
-
-  redirect("/login")
+  await writeEarlyAccessCookie((name, value, options) => jar.set(name, value, options))
+  return { next: "/login" }
 }
 
 export async function requestEarlyAccessEmailOtp(formData: FormData): Promise<EarlyAccessEmailState> {

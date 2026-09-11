@@ -26,6 +26,10 @@ export function EarlyAccessForm({
       const result = await unlockEarlyAccess(formData)
       if (result?.error) {
         setError(result.error)
+        return
+      }
+      if (result?.next) {
+        window.location.assign(result.next)
       }
     })
   }

@@ -3,6 +3,7 @@
 import { useLayoutEffect, useState, type ReactNode } from "react"
 
 import { claimPendingTherapistInvite } from "@/app/onboarding/actions"
+import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
 import { clinicReadyFromUser, invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 import {
   clearStoredTherapistInviteToken,
@@ -59,8 +60,13 @@ export function InvitedTherapistOnboardingGate({ children }: { children: ReactNo
       const supabase = createClient()
       void supabase.auth
         .getUser()
-        .then(({ data: { user } }) => {
+        .then(async ({ data: { user } }) => {
           if (user && (clinicReadyFromUser(user) || invitedTherapistFromUser(user))) {
+            window.location.replace("/dashboard")
+            return
+          }
+          const destination = await resolveTherapistAppPath()
+          if (destination === "/dashboard") {
             window.location.replace("/dashboard")
             return
           }
@@ -93,7 +99,7 @@ export function ResumeTherapistInviteAfterAuth() {
           return
         }
         const supabase = createClient()
-        void supabase.auth.getUser().then(({ data: { user } }) => {
+        void supabase.auth.getUser().then(async ({ data: { user } }) => {
           if (!user) {
             window.location.replace("/login")
             return
@@ -102,7 +108,8 @@ export function ResumeTherapistInviteAfterAuth() {
             window.location.replace("/dashboard")
             return
           }
-          window.location.replace("/onboarding")
+          const destination = await resolveTherapistAppPath()
+          window.location.replace(destination)
         })
       })
       return

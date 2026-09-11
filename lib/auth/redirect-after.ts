@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 
 import { confirmAuthUserEmailById } from "@/lib/auth/verified-password-session"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
+import { writeEarlyAccessCookie } from "@/lib/auth/early-access"
 import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { therapistAppPath } from "@/lib/auth/paths"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
@@ -29,6 +30,7 @@ export type TherapistAppPath = "/dashboard" | "/onboarding"
 export async function resolveTherapistAppPath(): Promise<TherapistAppPath> {
   const jar = await cookies()
   jar.delete(SIGNED_OUT_GATE_COOKIE)
+  await writeEarlyAccessCookie((name, value, options) => jar.set(name, value, options))
 
   const supabase = await createClient()
   const {

@@ -1,22 +1,72 @@
 import {
   DEFAULT_EARLY_ACCESS_CODE,
   EARLY_ACCESS_CODE_LENGTH,
+  EARLY_ACCESS_COOKIE,
+  EARLY_ACCESS_FALLBACK_PEPPER,
+  EARLY_ACCESS_TTL_MS,
 } from "./early-access-constants.ts"
 
 export {
   DEFAULT_EARLY_ACCESS_CODE,
   EARLY_ACCESS_CODE_LENGTH,
   EARLY_ACCESS_COOKIE,
+  EARLY_ACCESS_FALLBACK_PEPPER,
+  EARLY_ACCESS_TTL_DAYS,
   EARLY_ACCESS_TTL_MS,
 } from "./early-access-constants.ts"
 
-function pepper(): string {
+export type EarlyAccessCookieOptions = {
+  httpOnly: true
+  sameSite: "lax"
+  secure: boolean
+  path: "/"
+  maxAge: number
+  expires: Date
+}
+
+function uniqueNonEmpty(values: Array<string | undefined>): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const value of values) {
+    const trimmed = value?.trim()
+    if (!trimmed || seen.has(trimmed)) {
+      continue
+    }
+    seen.add(trimmed)
+    result.push(trimmed)
+  }
+  return result
+}
+
+/** Pepper disponibil și în Edge (middleware), fără SERVICE_ROLE_KEY. */
+export function earlyAccessSigningPepper(): string {
   return (
     process.env.EARLY_ACCESS_PEPPER?.trim() ||
     process.env.AUTH_OTP_PEPPER?.trim() ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-    "kinetoflow-early-access"
+    EARLY_ACCESS_FALLBACK_PEPPER
   )
+}
+
+/** Verifică și cookie-urile vechi semnate cu service role, dacă cheia e prezentă. */
+export function earlyAccessVerifyPeppers(): string[] {
+  return uniqueNonEmpty([
+    process.env.EARLY_ACCESS_PEPPER,
+    process.env.AUTH_OTP_PEPPER,
+    EARLY_ACCESS_FALLBACK_PEPPER,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    process.env.SUPABASE_SECRET_KEY,
+  ])
+}
+
+export function earlyAccessCookieOptions(expiresAtMs: number): EarlyAccessCookieOptions {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: Math.max(1, Math.floor((expiresAtMs - Date.now()) / 1000)),
+    expires: new Date(expiresAtMs),
+  }
 }
 
 export function configuredEarlyAccessCode(): string {
@@ -90,7 +140,7 @@ async function hmacSha256(secret: string, payload: string): Promise<Uint8Array> 
 
 export async function signEarlyAccessCookie(
   expiresAtMs: number,
-  secret = pepper(),
+  secret = earlyAccessSigningPepper(),
 ): Promise<string> {
   const signature = await hmacSha256(secret, `early.${expiresAtMs}`)
   return `${expiresAtMs}.${toBase64Url(signature)}`
@@ -99,7 +149,7 @@ export async function signEarlyAccessCookie(
 export async function hasValidEarlyAccessCookie(
   value: string | null | undefined,
   nowMs = Date.now(),
-  secret = pepper(),
+  secret?: string | string[],
 ): Promise<boolean> {
   if (!value) {
     return false
@@ -113,7 +163,25 @@ export async function hasValidEarlyAccessCookie(
   if (!signature || !Number.isFinite(expiresAtMs) || expiresAtMs < nowMs) {
     return false
   }
-  const expected = await hmacSha256(secret, `early.${expiresAtMs}`)
   const received = fromBase64Url(signature)
-  return received !== null && timingSafeEqualBytes(received, expected)
+  if (!received) {
+    return false
+  }
+  const secrets = secret == null ? earlyAccessVerifyPeppers() : Array.isArray(secret) ? secret : [secret]
+  for (const candidate of secrets) {
+    const expected = await hmacSha256(candidate, `early.${expiresAtMs}`)
+    if (timingSafeEqualBytes(received, expected)) {
+      return true
+    }
+  }
+  return false
+}
+
+export async function writeEarlyAccessCookie(
+  setCookie: (name: string, value: string, options: EarlyAccessCookieOptions) => void,
+  nowMs = Date.now(),
+): Promise<number> {
+  const expiresAtMs = nowMs + EARLY_ACCESS_TTL_MS
+  setCookie(EARLY_ACCESS_COOKIE, await signEarlyAccessCookie(expiresAtMs), earlyAccessCookieOptions(expiresAtMs))
+  return expiresAtMs
 }

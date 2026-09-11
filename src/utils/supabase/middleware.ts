@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-import { EARLY_ACCESS_COOKIE, hasValidEarlyAccessCookie } from "@/lib/auth/early-access"
+import { EARLY_ACCESS_COOKIE, hasValidEarlyAccessCookie, writeEarlyAccessCookie } from "@/lib/auth/early-access"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { isPublicMarketingPath, shouldStayOnTherapistLogin } from "@/lib/auth/paths"
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
@@ -47,6 +47,10 @@ function isTherapistAuthPage(pathname: string): boolean {
     pathname === "/auth/email-cod" ||
     pathname.startsWith("/auth/email-cod/")
   )
+}
+
+function isEarlyAccessPath(pathname: string): boolean {
+  return pathname === "/early-access" || pathname.startsWith("/early-access/")
 }
 
 function isOnboardingPath(pathname: string): boolean {
@@ -209,8 +213,17 @@ export async function updateSession(request: NextRequest) {
   const authenticatedUser = userError ? null : user
   const emailConfirmed = isEmailConfirmedUser(authenticatedUser)
   const stayOnLogin = isTherapistAuthPage(pathname) && shouldStayOnTherapistLogin(request.nextUrl.searchParams)
+  const earlyAccessUnlocked = await isEarlyAccessUnlocked(request)
 
-  if (!authenticatedUser && isTherapistAuthPage(pathname) && !(await isEarlyAccessUnlocked(request))) {
+  if (authenticatedUser && emailConfirmed && !earlyAccessUnlocked) {
+    await writeEarlyAccessCookie((name, value, options) =>
+      supabaseResponse.cookies.set(name, value, options),
+    )
+  }
+
+  // Contul activ sare peste poarta de 12 caractere. Cookie-ul de 90 de zile
+  // e scris mai sus, ca după logout să nu ceară din nou codul.
+  if (!authenticatedUser && isTherapistAuthPage(pathname) && !earlyAccessUnlocked) {
     return redirectToEarlyAccess(request, supabaseResponse)
   }
 
@@ -255,7 +268,7 @@ export async function updateSession(request: NextRequest) {
         ? THERAPIST_INVITE_FINALIZE_PATH
         : THERAPIST_INVITE_CONTINUE_PATH
 
-    if (!stayOnLogin && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname))) {
+    if (!stayOnLogin && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname) || isEarlyAccessPath(pathname))) {
       return redirectWithAuthCookies(request, supabaseResponse, appPath)
     }
 

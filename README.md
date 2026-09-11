@@ -99,7 +99,7 @@ Reguli de securitate aplicate:
 - La înregistrare, parola trebuie: 8+ caractere, o majusculă, o cifră, un caracter special
 - Contul email+parolă rămâne fără acces la `/dashboard` și `/onboarding` până la confirmarea adresei (`email_confirmed_at`)
 - Mesaj generic la eșec: „Email sau parolă incorectă” (fără enumerarea utilizatorilor)
-- Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori, cere cookie Early Access pentru `/login` / `/register` / `/recuperare-parola` și trimite la `/onboarding` dacă lipsește `clinic_profiles`
+- Middleware care reîmprospătează sesiunea, blochează `/dashboard/*` pentru vizitatori, cere cookie Early Access (**90 de zile**) pentru `/login` / `/register` / `/recuperare-parola` dacă nu există sesiune, și duce conturile cu clinică direct în `/dashboard` (nu Early Access, nu `/onboarding`)
 - Verificare `getUser()` (nu `getSession()`) pentru autorizare
 - RLS pe `patients`: vizibil dacă `therapist_id` / `assigned_therapist_id` e al tău sau al unui coleg cu același `clinic_name` (`013_patients_no_clinic_id.sql`)
 - RLS pe `exercise_library`: citire pentru oricine; scriere (INSERT/UPDATE/DELETE) doar `kinetic01flow@gmail.com` și `admin@kinetoflow.ro` (email exact). Scripturile sunt în `sql/`, nu se aplică automat pe Vercel. Tabela `exercises` (programul pacientului) rămâne editabilă de terapeuții cabinetului.

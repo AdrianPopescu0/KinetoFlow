@@ -11,7 +11,13 @@ test("clinicReadyFromUser recunoaște cabinetul din clinic_name", () => {
     }),
     true,
   )
-  assert.equal(clinicReadyFromUser({ user_metadata: {}, app_metadata: {} }), false)
+  assert.equal(
+    clinicReadyFromUser({
+      user_metadata: {},
+      app_metadata: { clinic_name: "KinetoCare" },
+    }),
+    true,
+  )
 })
 
 test("terapeutul invitat e recunoscut din rol, token sau invited_by", () => {
@@ -37,11 +43,18 @@ test("terapeutul invitat e recunoscut din rol, token sau invited_by", () => {
   assert.equal(invitedTherapistFromUser({ user_metadata: {}, app_metadata: { role: "admin" } }), false)
 })
 
-test("JWT-ul vechi fără clinic_name tot e clinic-ready dacă terapeutul invitat are clinic_id", () => {
+test("JWT-ul vechi fără clinic_name tot e clinic-ready dacă are clinic_id", () => {
   assert.equal(
     clinicReadyFromUser({
       user_metadata: { role: "therapist" },
       app_metadata: { clinic_id: "owner-id", role: "therapist" },
+    }),
+    true,
+  )
+  assert.equal(
+    clinicReadyFromUser({
+      user_metadata: { clinic_id: "owner-id" },
+      app_metadata: {},
     }),
     true,
   )

@@ -6,10 +6,13 @@ import { AppShell } from "@/components/brand/app-atmosphere"
 import { RecoverSessionRedirect } from "@/components/auth/recover-session-redirect"
 import { EarlyAccessForm } from "@/components/landing/early-access-form"
 import { LandingHeader } from "@/components/landing/landing-header"
+import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import {
   EARLY_ACCESS_COOKIE,
   hasValidEarlyAccessCookie,
 } from "@/lib/auth/early-access"
+import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
+import { getCachedUser } from "@/lib/auth/session"
 
 export const metadata = {
   title: "Early Access — KinetoFlow",
@@ -17,6 +20,17 @@ export const metadata = {
 }
 
 export default async function EarlyAccessPage() {
+  let confirmedUser = false
+  try {
+    const { user } = await getCachedUser()
+    confirmedUser = Boolean(user && isEmailConfirmedUser(user))
+  } catch {
+    confirmedUser = false
+  }
+  if (confirmedUser) {
+    redirect(await resolveTherapistAppPath())
+  }
+
   const jar = await cookies()
   if (await hasValidEarlyAccessCookie(jar.get(EARLY_ACCESS_COOKIE)?.value)) {
     redirect("/login")

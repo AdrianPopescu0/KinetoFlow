@@ -42,12 +42,14 @@ export function invitedTherapistFromUser(user: AuthUserLike): boolean {
 }
 
 /**
- * Clinica e gata dacă JWT-ul are numele cabinetului, sau dacă terapeutul invitat
- * are deja clinic_id (chiar când clinic_name lipsește din sesiunea veche).
+ * Clinica e gata dacă JWT-ul are numele cabinetului sau clinic_id
+ * (cont existent asociat, inclusiv sesiuni vechi fără clinic_name).
  */
 export function clinicReadyFromUser(user: AuthUserLike): boolean {
-  if (metadataString(metadataRecord(user.user_metadata), "clinic_name")) {
+  const userMeta = metadataRecord(user.user_metadata)
+  const appMeta = metadataRecord(user.app_metadata)
+  if (metadataString(userMeta, "clinic_name") || metadataString(appMeta, "clinic_name")) {
     return true
   }
-  return invitedTherapistFromUser(user) && Boolean(clinicIdFromMetadata(user))
+  return Boolean(clinicIdFromMetadata(user))
 }
