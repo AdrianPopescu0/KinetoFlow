@@ -6,7 +6,7 @@ import { PersistTherapistInviteToken } from "@/components/auth/pending-therapist
 import { AppShell, surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Logo } from "@/components/Logo"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
-import { therapistInviteReasonMessage } from "@/lib/clinics/invite-attach"
+import { therapistInviteActivationError } from "@/lib/clinics/invite-attach"
 import { therapistInvitePersistScript } from "@/lib/clinics/invite-session"
 import {
   isMissingTherapistInvitesTable,
@@ -95,7 +95,7 @@ export default async function TherapistInvitePage({ params, searchParams }: Invi
               <AcceptTherapistInviteForm
                 token={token}
                 inviteEmail={inviteEmail}
-                initialError={therapistInviteReasonMessage(reason)}
+                initialError={therapistInviteActivationError(reason)}
               />
             </>
           ) : (

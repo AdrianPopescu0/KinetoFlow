@@ -80,6 +80,17 @@ export function therapistInviteReasonMessage(reason: string | undefined): string
   return null
 }
 
+/** Pe /auth/invitatie/[token] nu afișăm erori de Google OAuth — pagina are doar parola. */
+export function therapistInviteActivationError(reason: string | undefined): string | null {
+  if (reason === "oauth" || reason === "no_email" || reason === "failed") {
+    return null
+  }
+  if (reason === "other_clinic") {
+    return "Acest email aparține deja altei clinici. Cere ajutorul administratorului."
+  }
+  return therapistInviteReasonMessage(reason)
+}
+
 export type TherapistInviteCandidate = {
   token?: string | null
   email?: string | null

@@ -36,7 +36,7 @@ export type AcceptTherapistInviteState = {
 } | null
 
 const EXISTING_ACCOUNT_MESSAGE =
-  "Există deja un cont cu acest email. Intră cu aceeași parolă sau continuă cu Google."
+  "Există deja un cont cu acest email. Alege o parolă aici sau cere un link nou de la clinică."
 
 const MISSING_INVITE_EMAIL =
   "Invitația nu include un email. Cere administratorului un link nou, cu adresa ta."

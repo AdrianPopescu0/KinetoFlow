@@ -9,6 +9,7 @@ import {
   INVITE_OTHER_CLINIC_ERROR,
   pickTherapistInviteCandidate,
   readTherapistInviteToken,
+  therapistInviteActivationError,
   therapistInvitePagePath,
   therapistInviteReasonMessage,
   oauthInviteCallbackUrl,
@@ -189,4 +190,13 @@ test("mesajele de pe pagina de invitație acoperă eșecul Google", () => {
   )
   assert.match(therapistInviteReasonMessage("oauth") ?? "", /Google/)
   assert.equal(therapistInviteReasonMessage("no_email"), INVITE_NO_EMAIL_ERROR)
+})
+
+test("pagina de activare nu arată mesaje de Google OAuth", () => {
+  assert.equal(therapistInviteActivationError("oauth"), null)
+  assert.equal(therapistInviteActivationError("no_email"), null)
+  assert.equal(therapistInviteActivationError("failed"), null)
+  assert.equal(therapistInviteActivationError("expired"), INVITE_EXPIRED_ERROR)
+  assert.match(therapistInviteActivationError("other_clinic") ?? "", /altei clinici/)
+  assert.equal((therapistInviteActivationError("other_clinic") ?? "").includes("Google"), false)
 })

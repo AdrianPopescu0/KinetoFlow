@@ -4,23 +4,16 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2 } from "lucide-react"
 
-import { acceptTherapistInvite, prepareTherapistInviteOAuth } from "@/app/auth/invitatie/actions"
-import { GoogleMark } from "@/components/auth/google-mark"
+import { acceptTherapistInvite } from "@/app/auth/invitatie/actions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { inviteAcceptGoesToDashboard } from "@/lib/auth/accept-invite"
-import { oauthBrowserRedirectTo } from "@/lib/auth/oauth-redirect"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
-import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
-import {
-  INVITE_TOKEN_FIELD,
-  persistTherapistInviteToken,
-  THERAPIST_INVITE_PATH,
-} from "@/lib/clinics/invite-session"
+import { LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
+import { INVITE_TOKEN_FIELD, persistTherapistInviteToken } from "@/lib/clinics/invite-session"
 import { cn } from "@/lib/utils"
-import { createClient } from "@/utils/supabase/client"
 
 export function AcceptTherapistInviteForm({
   token,
@@ -36,9 +29,7 @@ export function AcceptTherapistInviteForm({
   const [showPassword, setShowPassword] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [googlePending, setGooglePending] = useState(false)
   const passwordChecks = evaluateRegisterPassword(password)
-  const busy = isPending || googlePending
   const canActivate = Boolean(inviteEmail) && passwordChecks.isValid && acceptedTerms
   persistTherapistInviteToken(token)
 
@@ -79,55 +70,6 @@ export function AcceptTherapistInviteForm({
     })
   }
 
-  async function handleGoogleLogin() {
-    if (!acceptedTerms) {
-      setError(LEGAL_ACCEPT_ERROR)
-      return
-    }
-
-    setError(null)
-    setGooglePending(true)
-    persistTherapistInviteToken(token)
-    const prepared = await prepareTherapistInviteOAuth(token)
-    if (prepared?.error) {
-      setError(prepared.error)
-      setGooglePending(false)
-      return
-    }
-
-    try {
-      const supabase = createClient()
-      try {
-        await supabase.auth.signOut()
-      } catch {
-        // Continuăm cu Google chiar dacă deconectarea locală eșuează.
-      }
-      persistTherapistInviteToken(token)
-      const restamped = await prepareTherapistInviteOAuth(token)
-      if (restamped?.error) {
-        setError(restamped.error)
-        setGooglePending(false)
-        return
-      }
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: oauthBrowserRedirectTo(window.location.origin, {
-            next: `${THERAPIST_INVITE_PATH}/${token}`,
-            invite: token,
-          }),
-        },
-      })
-      if (oauthError) {
-        setError("Nu am putut porni autentificarea cu Google. Încearcă din nou.")
-        setGooglePending(false)
-      }
-    } catch {
-      setError("Nu am putut porni autentificarea cu Google. Încearcă din nou.")
-      setGooglePending(false)
-    }
-  }
-
   return (
     <div className="flex flex-col gap-5">
       {error ? (
@@ -143,74 +85,55 @@ export function AcceptTherapistInviteForm({
           <AlertCircle />
           <AlertTitle>Lipsește emailul de pe invitație</AlertTitle>
           <AlertDescription>
-            Cere administratorului un link nou, cu adresa ta. Poți continua cu Google dacă folosești
-            același email.
+            Cere administratorului un link nou, cu adresa ta, ca să poți alege parola și să activezi
+            contul.
           </AlertDescription>
         </Alert>
       ) : null}
 
-      <label
-        htmlFor={LEGAL_ACCEPT_FIELD}
-        className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed text-slate-700"
-      >
-        <input
-          id={LEGAL_ACCEPT_FIELD}
-          name={LEGAL_ACCEPT_FIELD}
-          type="checkbox"
-          required
-          checked={acceptedTerms}
-          onChange={(event) => setAcceptedTerms(event.target.checked)}
-          disabled={busy}
-          className="mt-1 size-4 shrink-0 rounded border-slate-300 accent-[#042f2e]"
-        />
-        <span>
-          Sunt de acord cu{" "}
-          <Link
-            href="/termeni"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-[#042f2e] underline underline-offset-4"
-            onClick={(event) => event.stopPropagation()}
-          >
-            Termenii și Condițiile
-          </Link>{" "}
-          și{" "}
-          <Link
-            href="/confidentialitate"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-[#042f2e] underline underline-offset-4"
-            onClick={(event) => event.stopPropagation()}
-          >
-            Politica de Confidențialitate
-          </Link>
-          .
-        </span>
-      </label>
-
-      <Button
-        type="button"
-        variant="outline"
-        disabled={busy}
-        aria-label="Sign in with Google"
-        onClick={() => {
-          void handleGoogleLogin()
-        }}
-        className="h-12 min-h-[48px] w-full rounded-xl border-slate-300 bg-white text-sm font-semibold text-slate-800"
-      >
-        {googlePending ? <Loader2 className="size-4 animate-spin" /> : <GoogleMark className="size-5" />}
-        Continuă cu Google
-      </Button>
-
-      <div className="flex items-center gap-3" role="separator" aria-label="sau">
-        <span className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">sau alege o parolă</span>
-        <span className="h-px flex-1 bg-slate-200" />
-      </div>
-
       <form action={handleActivate} className="flex flex-col gap-5" noValidate>
         <input type="hidden" name={INVITE_TOKEN_FIELD} value={token} />
         <input type="hidden" name={LEGAL_ACCEPT_FIELD} value={acceptedTerms ? "on" : ""} />
+
+        <label
+          htmlFor={LEGAL_ACCEPT_FIELD}
+          className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed text-slate-700"
+        >
+          <input
+            id={LEGAL_ACCEPT_FIELD}
+            name={LEGAL_ACCEPT_FIELD}
+            type="checkbox"
+            required
+            checked={acceptedTerms}
+            onChange={(event) => setAcceptedTerms(event.target.checked)}
+            disabled={isPending}
+            className="mt-1 size-4 shrink-0 rounded border-slate-300 accent-[#042f2e]"
+          />
+          <span>
+            Sunt de acord cu{" "}
+            <Link
+              href="/termeni"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#042f2e] underline underline-offset-4"
+              onClick={(event) => event.stopPropagation()}
+            >
+              Termenii și Condițiile
+            </Link>{" "}
+            și{" "}
+            <Link
+              href="/confidentialitate"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#042f2e] underline underline-offset-4"
+              onClick={(event) => event.stopPropagation()}
+            >
+              Politica de Confidențialitate
+            </Link>
+            .
+          </span>
+        </label>
+
         <div className="flex flex-col gap-2">
           <Label htmlFor="invite-email" className="text-slate-900">
             Email
@@ -244,14 +167,14 @@ export function AcceptTherapistInviteForm({
               minLength={8}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              disabled={busy || !inviteEmail}
+              disabled={isPending || !inviteEmail}
               placeholder="Alege o parolă puternică"
               className="h-12 min-h-12 border-slate-300 px-3 pr-12"
             />
             <button
               type="button"
               onClick={() => setShowPassword((visible) => !visible)}
-              disabled={busy || !inviteEmail}
+              disabled={isPending || !inviteEmail}
               className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500 hover:text-slate-900 disabled:opacity-50"
               aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
               aria-pressed={showPassword}
@@ -278,7 +201,7 @@ export function AcceptTherapistInviteForm({
 
         <Button
           type="submit"
-          disabled={busy || !canActivate}
+          disabled={isPending || !canActivate}
           className="h-12 min-h-[48px] w-full rounded-xl font-semibold"
         >
           {isPending ? (
