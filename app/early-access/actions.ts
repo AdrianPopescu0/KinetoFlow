@@ -9,13 +9,7 @@ import {
   isEmailConfirmedUser,
   isEmailNotConfirmedAuthError,
 } from "@/lib/auth/email-confirmed"
-import { EARLY_ACCESS_COOKIE, EARLY_ACCESS_TTL_MS } from "@/lib/auth/early-access-constants"
-import {
-  earlyAccessCookieOptions,
-  earlyAccessCookieSecure,
-  isValidEarlyAccessCode,
-  signEarlyAccessCookie,
-} from "@/lib/auth/early-access"
+import { isValidEarlyAccessCode, stampEarlyAccessCookie } from "@/lib/auth/early-access"
 import { EMAIL_OTP_TTL_MS, readVerifiedEmailCookie, signVerifiedEmailCookie } from "@/lib/auth/email-otp"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import { appOrigin, oauthCallbackUrl } from "@/lib/auth/origin"
@@ -56,15 +50,10 @@ export async function unlockEarlyAccess(
     return { error: "Codul nu este valid. Introdu cele 12 caractere primite pentru Early Access." }
   }
 
-  const expiresAtMs = Date.now() + EARLY_ACCESS_TTL_MS
   const cookieStore = await cookies()
-  cookieStore.set(
-    EARLY_ACCESS_COOKIE,
-    await signEarlyAccessCookie(expiresAtMs),
-    earlyAccessCookieOptions(
-      expiresAtMs,
-      earlyAccessCookieSecure((await headers()).get("x-forwarded-proto")),
-    ),
+  stampEarlyAccessCookie(
+    (name, value, options) => cookieStore.set(name, value, options),
+    (await headers()).get("x-forwarded-proto"),
   )
 
   redirect("/login")
