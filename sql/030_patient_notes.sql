@@ -1,6 +1,7 @@
 -- Notițe clinice: tabel dedicat, nu coloană pe `patients`.
 -- Rulează în Supabase → SQL Editor. Nu se aplică automat la build-ul Vercel.
--- Rezolvă: Could not find the 'clinical_notes' column of 'patients' in the schema cache.
+-- Ownership: patients.therapist_id (și assigned_therapist_id dacă există).
+-- Nu folosește patients.user_id — coloana lipsește pe unele proiecte.
 
 create table if not exists public.patient_notes (
   patient_id uuid primary key references public.patients (id) on delete cascade,
@@ -14,25 +15,43 @@ create index if not exists patient_notes_updated_at_idx
 comment on table public.patient_notes is
   'Notițe clinice ale fișei. Un rând per pacient (patient_id = FK).';
 
--- Dacă există încă coloana veche pe patients, copiază conținutul o dată.
 do $$
+declare
+  has_clinical_notes boolean;
+  has_updated_at boolean;
 begin
-  if exists (
+  select exists (
     select 1
     from information_schema.columns
     where table_schema = 'public'
       and table_name = 'patients'
       and column_name = 'clinical_notes'
-  ) then
-    insert into public.patient_notes (patient_id, notes, updated_at)
-    select
-      p.id,
-      p.clinical_notes,
-      coalesce(p.updated_at, now())
-    from public.patients p
-    where p.clinical_notes is not null
-      and length(trim(p.clinical_notes)) > 0
-    on conflict (patient_id) do nothing;
+  ) into has_clinical_notes;
+
+  select exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'patients'
+      and column_name = 'updated_at'
+  ) into has_updated_at;
+
+  if has_clinical_notes then
+    if has_updated_at then
+      insert into public.patient_notes (patient_id, notes, updated_at)
+      select p.id, p.clinical_notes, coalesce(p.updated_at, now())
+      from public.patients p
+      where p.clinical_notes is not null
+        and length(trim(p.clinical_notes)) > 0
+      on conflict (patient_id) do nothing;
+    else
+      insert into public.patient_notes (patient_id, notes, updated_at)
+      select p.id, p.clinical_notes, now()
+      from public.patients p
+      where p.clinical_notes is not null
+        and length(trim(p.clinical_notes)) > 0
+      on conflict (patient_id) do nothing;
+    end if;
   end if;
 end $$;
 
@@ -50,32 +69,50 @@ create policy patient_notes_service_role
   using (true)
   with check (true);
 
+-- Politica de cabinet: doar coloane care există pe patients.
 drop policy if exists patient_notes_clinic on public.patient_notes;
-create policy patient_notes_clinic
-  on public.patient_notes
-  for all
-  to authenticated
-  using (
-    exists (
-      select 1
-      from public.patients p
-      where p.id = patient_notes.patient_id
-        and (
-          p.therapist_id = auth.uid()
-          or p.assigned_therapist_id = auth.uid()
-          or p.user_id = auth.uid()
+do $$
+declare
+  has_assigned boolean;
+  pred text;
+begin
+  select exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'patients'
+      and column_name = 'assigned_therapist_id'
+  ) into has_assigned;
+
+  pred := 'p.therapist_id = auth.uid()';
+  if has_assigned then
+    pred := pred || ' or p.assigned_therapist_id = auth.uid()';
+  end if;
+
+  execute format(
+    $p$
+      create policy patient_notes_clinic
+        on public.patient_notes
+        for all
+        to authenticated
+        using (
+          exists (
+            select 1
+            from public.patients p
+            where p.id = patient_notes.patient_id
+              and (%s)
+          )
         )
-    )
-  )
-  with check (
-    exists (
-      select 1
-      from public.patients p
-      where p.id = patient_notes.patient_id
-        and (
-          p.therapist_id = auth.uid()
-          or p.assigned_therapist_id = auth.uid()
-          or p.user_id = auth.uid()
-        )
-    )
+        with check (
+          exists (
+            select 1
+            from public.patients p
+            where p.id = patient_notes.patient_id
+              and (%s)
+          )
+        );
+    $p$,
+    pred,
+    pred
   );
+end $$;
