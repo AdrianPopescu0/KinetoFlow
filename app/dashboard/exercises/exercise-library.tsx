@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useState, useTransition, type ChangeEvent } from "react"
 import dynamic from "next/dynamic"
-import { Plus, Search } from "lucide-react"
+import { Search } from "lucide-react"
 
 import { deleteLibraryExercise } from "@/app/dashboard/exercises/actions"
 import { LibraryCard } from "@/app/dashboard/exercises/library-card"
@@ -191,7 +191,6 @@ export function ExerciseLibrary({
           </p>
           {canModifyLibrary ? (
             <Button type="button" onClick={() => setAdding(true)} className="h-11 shrink-0 rounded-xl">
-              <Plus className="size-4" />
               Adaugă exercițiu
             </Button>
           ) : null}

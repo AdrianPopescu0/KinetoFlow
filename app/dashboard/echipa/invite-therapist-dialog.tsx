@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Copy, Loader2, Plus, UserPlus } from "lucide-react"
+import { Check, Copy, Loader2, UserPlus } from "lucide-react"
 
 import { inviteTherapistAction } from "@/app/dashboard/echipa/actions"
 import { ShareInviteActions } from "@/components/invite/share-invite-actions"
@@ -88,7 +88,6 @@ export function InviteTherapistDialog({
   return (
     <>
       <Button type="button" onClick={() => setOpen(true)} className={cn("h-11 rounded-xl", triggerClassName)}>
-        <Plus className="size-4" />
         {triggerLabel}
       </Button>
 

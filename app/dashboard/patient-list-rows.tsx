@@ -2,7 +2,7 @@
 
 import { memo, type MouseEvent, type ReactNode } from "react"
 import Link from "next/link"
-import { AlertTriangle, ChevronDown, FolderOpen, Plus } from "lucide-react"
+import { AlertTriangle, ChevronDown, FolderOpen } from "lucide-react"
 
 import { AssignedTherapistSelect } from "@/app/dashboard/assigned-therapist-select"
 import { VasChart } from "@/app/dashboard/patients/vas-chart"
@@ -174,7 +174,6 @@ export const PatientMobileCard = memo(function PatientMobileCard({
           onClick={() => onOpenExercises(patient.id, patient.full_name)}
           className="h-11 min-h-[44px] w-full min-w-0 rounded-xl"
         >
-          <Plus className="size-3.5 shrink-0" />
           Exerciții
         </Button>
         <Link
@@ -249,7 +248,6 @@ export const PatientTableRow = memo(function PatientTableRow({
               onClick={() => onOpenExercises(patient.id, patient.full_name)}
               className="h-11 min-h-[44px] rounded-xl"
             >
-              <Plus className="size-4" />
               Exerciții
             </Button>
             <Link

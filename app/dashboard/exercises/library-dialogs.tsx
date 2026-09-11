@@ -105,7 +105,7 @@ export function PreviewDialog({
           Închide
         </Button>
         <Button type="button" onClick={onAssign} className="h-11 rounded-xl">
-          + Atribuie la pacient
+          Atribuie la pacient
         </Button>
       </div>
     </Overlay>

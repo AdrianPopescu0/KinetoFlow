@@ -107,7 +107,7 @@ export const LibraryCard = memo(function LibraryCard({
               onClick={() => onAssign(exercise)}
               className={LIBRARY_CARD_BUTTON}
             >
-              + Atribuie
+              Atribuie
             </Button>
           </div>
           {onDelete ? (

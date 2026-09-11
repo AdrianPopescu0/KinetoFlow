@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Copy, Loader2, Plus } from "lucide-react"
+import { Check, Copy, Loader2 } from "lucide-react"
 
 import { createPatient } from "@/app/dashboard/patients/actions"
 import { Button } from "@/components/ui/button"
@@ -94,7 +94,6 @@ export function AddPatientDialog() {
         }}
         className="h-12 min-h-[48px] rounded-xl px-4"
       >
-        <Plus className="size-4" />
         Adaugă Pacient
       </Button>
 

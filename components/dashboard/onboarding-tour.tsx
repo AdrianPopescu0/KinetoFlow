@@ -22,7 +22,7 @@ const STEPS = [
   {
     icon: UserPlus,
     title: "Creează rapid primul pacient",
-    text: "Folosește butonul „+ Adaugă Pacient” din colțul din dreapta sus pentru a introduce diagnosticul și datele de contact.",
+    text: "Folosește butonul „Adaugă Pacient” din colțul din dreapta sus pentru a introduce diagnosticul și datele de contact.",
   },
   {
     icon: Users,

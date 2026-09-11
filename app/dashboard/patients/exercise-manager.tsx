@@ -3,7 +3,7 @@
 import { memo, useCallback, useOptimistic, useState, useTransition } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { Library, Trash2 } from "lucide-react"
+import { Trash2 } from "lucide-react"
 
 import { deleteExercise } from "@/app/dashboard/patients/actions"
 import { VideoPreview } from "@/components/media/video-preview"
@@ -56,8 +56,7 @@ export function ExerciseManager({
     <div className="flex flex-col gap-5 p-5">
       <div className="flex justify-end">
         <Button type="button" onClick={() => setLibraryOpen(true)} className="h-11 w-full min-h-[44px] rounded-xl sm:w-auto">
-          <Library className="size-4" />
-          + Atribuie din Bibliotecă
+          Atribuie din Bibliotecă
         </Button>
       </div>
 
