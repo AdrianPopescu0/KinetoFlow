@@ -5,6 +5,7 @@ import {
   isPatientRecordId,
   readPatientIdFromPathname,
   readPatientIdFromRouteOrProps,
+  readPatientIdFromSaveArgs,
   readPatientIdFromSavePayload,
   readPatientRecordId,
 } from "./patient-id.ts"
@@ -91,4 +92,24 @@ test("click-ul pe Salvează citește patient_id din props, useParams sau pathnam
     }),
     null,
   )
+})
+
+test("Server Action citește patient_id din primul argument, nu dintr-un câmp gol", () => {
+  const fromRoute = "b4e2d3f5-2345-4bcd-9ef0-1234567890bc"
+  const fromProps = "a3f1c2e4-1234-4abc-8def-0123456789ab"
+
+  assert.equal(readPatientIdFromSaveArgs(fromRoute, { notes: "text" }), fromRoute)
+  assert.equal(
+    readPatientIdFromSaveArgs(undefined, { patient_id: fromProps, notes: "text" }),
+    fromProps,
+  )
+  assert.equal(readPatientIdFromSaveArgs({ patient_id: fromProps, notes: "obiective" }), fromProps)
+
+  const form = new FormData()
+  form.set("patient_id", fromRoute)
+  form.set("notes", "text")
+  assert.equal(readPatientIdFromSaveArgs(fromProps, form), fromProps)
+  assert.equal(readPatientIdFromSaveArgs("", form), fromRoute)
+  assert.equal(readPatientIdFromSaveArgs(undefined, { notes: "text" }), null)
+  assert.equal(readPatientIdFromSaveArgs("undefined", {}), null)
 })

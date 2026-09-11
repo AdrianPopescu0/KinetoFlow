@@ -36,7 +36,7 @@ import {
   type PatientFileSnapshot,
 } from "@/lib/patients/optimistic"
 import { persistClinicalNotesForTherapist } from "@/lib/patients/persist-clinical-notes"
-import { readPatientIdFromSavePayload, readPatientRecordId } from "@/lib/patients/patient-id"
+import { readPatientIdFromSaveArgs, readPatientRecordId } from "@/lib/patients/patient-id"
 
 export type MutationState = {
   error: string | null
@@ -312,13 +312,59 @@ export type SaveClinicalNotesResult = {
   unauthorized?: boolean
 }
 
-export async function saveClinicalNotes(payload: SaveClinicalNotesPayload): Promise<SaveClinicalNotesResult> {
-  const patientId = readPatientIdFromSavePayload(payload)
-  if (!patientId) {
+function readClinicalNotesPayload(
+  patient_id: string | SaveClinicalNotesPayload | FormData,
+  payload?: SaveClinicalNotesPayload | FormData,
+): { patient_id: unknown; notes: unknown; expectedUpdatedAt: unknown; forceOverwrite: boolean } {
+  const boundOrObject = patient_id
+  const body = payload
+
+  if (boundOrObject instanceof FormData) {
+    return {
+      patient_id: boundOrObject.get("patient_id") ?? boundOrObject.get("patientId"),
+      notes: boundOrObject.get("notes") ?? boundOrObject.get("clinical_notes"),
+      expectedUpdatedAt: boundOrObject.get("expectedUpdatedAt") ?? boundOrObject.get("expected_updated_at"),
+      forceOverwrite: String(boundOrObject.get("forceOverwrite") ?? boundOrObject.get("force_overwrite") ?? "") === "1",
+    }
+  }
+
+  if (typeof boundOrObject === "object" && boundOrObject) {
+    return {
+      patient_id: readPatientIdFromSaveArgs(boundOrObject, body),
+      notes: boundOrObject.notes,
+      expectedUpdatedAt: boundOrObject.expectedUpdatedAt,
+      forceOverwrite: boundOrObject.forceOverwrite === true,
+    }
+  }
+
+  if (body instanceof FormData) {
+    return {
+      patient_id: readPatientIdFromSaveArgs(boundOrObject, body),
+      notes: body.get("notes") ?? body.get("clinical_notes"),
+      expectedUpdatedAt: body.get("expectedUpdatedAt") ?? body.get("expected_updated_at"),
+      forceOverwrite: String(body.get("forceOverwrite") ?? body.get("force_overwrite") ?? "") === "1",
+    }
+  }
+
+  return {
+    patient_id: readPatientIdFromSaveArgs(boundOrObject, body),
+    notes: body?.notes,
+    expectedUpdatedAt: body?.expectedUpdatedAt,
+    forceOverwrite: body?.forceOverwrite === true,
+  }
+}
+
+export async function saveClinicalNotes(
+  patient_id: string | SaveClinicalNotesPayload | FormData,
+  payload?: SaveClinicalNotesPayload | FormData,
+): Promise<SaveClinicalNotesResult> {
+  const parsed = readClinicalNotesPayload(patient_id, payload)
+  const resolvedPatientId = readPatientIdFromSaveArgs(parsed.patient_id, payload ?? patient_id)
+  if (!resolvedPatientId) {
     return { error: "Pacientul nu a fost găsit." }
   }
 
-  if (typeof payload.notes !== "string") {
+  if (typeof parsed.notes !== "string") {
     return { error: "Notițele trebuie să fie text." }
   }
 
@@ -330,11 +376,11 @@ export async function saveClinicalNotes(payload: SaveClinicalNotesPayload): Prom
   const result = await persistClinicalNotesForTherapist({
     supabase,
     userId: user.id,
-    patientId,
-    patient_id: patientId,
-    notes: payload.notes,
-    expectedUpdatedAt: payload.expectedUpdatedAt ?? null,
-    forceOverwrite: payload.forceOverwrite === true,
+    patientId: resolvedPatientId,
+    patient_id: resolvedPatientId,
+    notes: parsed.notes,
+    expectedUpdatedAt: typeof parsed.expectedUpdatedAt === "string" ? parsed.expectedUpdatedAt : null,
+    forceOverwrite: parsed.forceOverwrite,
   })
 
   if (!result.ok) {

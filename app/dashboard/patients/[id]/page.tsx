@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 
+import { saveClinicalNotes } from "@/app/dashboard/patients/actions"
 import { ClinicalNotesEditor } from "@/app/dashboard/patients/clinical-notes-editor"
 import { ExerciseManager } from "@/app/dashboard/patients/exercise-manager"
 import { NotifyChannelActions } from "@/app/dashboard/patients/notify-channel-actions"
@@ -95,6 +96,7 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
             <ClinicalNotesEditor
               patientId={patient.id || id}
               patient_id={patient.id || id}
+              saveAction={saveClinicalNotes.bind(null, patient.id || id)}
               serverNotes={patient.clinical_notes}
             />
           </div>

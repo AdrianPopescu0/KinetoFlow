@@ -15,6 +15,7 @@ export type PatientFileSnapshot = {
 const SNAPSHOT_COLUMNS =
   "id, full_name, email, phone, diagnosis, clinical_notes, updated_at"
 const SNAPSHOT_COLUMNS_LEGACY = "id, full_name, email, phone, diagnosis, clinical_notes"
+const SNAPSHOT_COLUMNS_MINIMAL = "id, full_name, email, phone, diagnosis"
 
 export function isWriteConflict(
   expectedUpdatedAt: string | null | undefined,
@@ -42,14 +43,6 @@ export function snapshotFromRow(row: Record<string, unknown>): PatientFileSnapsh
   }
 }
 
-function looksLikeMissingUpdatedAt(error: { message?: string; code?: string } | null): boolean {
-  if (!error?.message) {
-    return false
-  }
-  const message = error.message.toLowerCase()
-  return message.includes("updated_at")
-}
-
 export async function fetchPatientFileSnapshot(
   supabase: SupabaseClient,
   userId: string,
@@ -59,20 +52,15 @@ export async function fetchPatientFileSnapshot(
   if (!resolvedId) {
     return null
   }
-  const stamped = await getOwnPatientRow(supabase, userId, resolvedId, SNAPSHOT_COLUMNS)
-  if (!stamped.error && stamped.data) {
-    return snapshotFromRow(stamped.data)
-  }
-  if (stamped.error && looksLikeMissingUpdatedAt(stamped.error)) {
-    const legacy = await getOwnPatientRow(supabase, userId, resolvedId, SNAPSHOT_COLUMNS_LEGACY)
-    if (!legacy.error && legacy.data) {
-      return snapshotFromRow(legacy.data)
+
+  const attempts = [SNAPSHOT_COLUMNS, SNAPSHOT_COLUMNS_LEGACY, SNAPSHOT_COLUMNS_MINIMAL]
+  for (const columns of attempts) {
+    const result = await getOwnPatientRow(supabase, userId, resolvedId, columns)
+    if (!result.error && result.data) {
+      return snapshotFromRow(result.data)
     }
-  }
-  if (!stamped.data) {
-    const legacy = await getOwnPatientRow(supabase, userId, resolvedId, SNAPSHOT_COLUMNS_LEGACY)
-    if (!legacy.error && legacy.data) {
-      return snapshotFromRow(legacy.data)
+    if (result.data) {
+      return snapshotFromRow(result.data)
     }
   }
   return null

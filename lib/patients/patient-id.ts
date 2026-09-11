@@ -91,3 +91,19 @@ export function readPatientIdFromSavePayload(payload: {
 }): string | null {
   return readPatientRecordId(payload.patient_id, payload.patientId, payload.id)
 }
+
+/**
+ * Primul argument al Server Action (string legat pe server sau din click)
+ * plus payload/FormData. Nu acceptă gol / undefined.
+ */
+export function readPatientIdFromSaveArgs(patient_id: unknown, payload?: unknown): string | null {
+  if (payload instanceof FormData) {
+    return readPatientRecordId(
+      patient_id,
+      payload.get("patient_id"),
+      payload.get("patientId"),
+      payload.get("id"),
+    )
+  }
+  return readPatientRecordId(patient_id, payload)
+}

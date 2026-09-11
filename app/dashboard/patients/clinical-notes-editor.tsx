@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
-import { saveClinicalNotes } from "@/app/dashboard/patients/actions"
+import { saveClinicalNotes, type SaveClinicalNotesPayload, type SaveClinicalNotesResult } from "@/app/dashboard/patients/actions"
 import { PatientSaveConflictNotice } from "@/app/dashboard/patients/patient-save-conflict"
 import { usePatientFileStamp } from "@/app/dashboard/patients/patient-file-stamp"
 import { Button } from "@/components/ui/button"
@@ -26,10 +26,12 @@ export function ClinicalNotesEditor({
   patientId,
   patient_id,
   serverNotes,
+  saveAction,
 }: {
   patientId?: string | null
   patient_id?: string | null
   serverNotes: string | null
+  saveAction?: (payload: SaveClinicalNotesPayload) => Promise<SaveClinicalNotesResult>
 }) {
   const params = useParams()
   const pathname = usePathname()
@@ -110,24 +112,30 @@ export function ClinicalNotesEditor({
       params,
       pathname,
     })
-    if (!patientKey) {
+    if (!patientKey && !saveAction) {
       setSaveError("Pacientul nu a fost găsit.")
       return
     }
 
     setIsSaving(true)
-    writeClinicalNotesDraft(patientKey, notesRef.current)
-    lastWrittenRef.current = notesRef.current
+    if (patientKey) {
+      writeClinicalNotesDraft(patientKey, notesRef.current)
+      lastWrittenRef.current = notesRef.current
+    }
+
+    const payload: SaveClinicalNotesPayload = {
+      patient_id: patientKey,
+      patientId: patientKey,
+      id: patientKey,
+      notes: notesRef.current,
+      expectedUpdatedAt,
+      forceOverwrite,
+    }
 
     try {
-      const result = await saveClinicalNotes({
-        patient_id: patientKey,
-        patientId: patientKey,
-        id: patientKey,
-        notes: notesRef.current,
-        expectedUpdatedAt,
-        forceOverwrite,
-      })
+      const result = saveAction
+        ? await saveAction(payload)
+        : await saveClinicalNotes(patientKey as string, payload)
 
       if (result.unauthorized || result.error?.toLowerCase().includes("expirat")) {
         setSessionExpired(true)
@@ -151,7 +159,9 @@ export function ClinicalNotesEditor({
 
       setSessionExpired(false)
       setConflict(null)
-      clearClinicalNotesDraft(patientKey)
+      if (patientKey) {
+        clearClinicalNotesDraft(patientKey)
+      }
       setDraftAt(null)
       toast("Notițele clinice au fost salvate.")
     } catch {
@@ -164,7 +174,15 @@ export function ClinicalNotesEditor({
   const loginHref = `/login?redirectTo=${encodeURIComponent(`/dashboard/patients/${resolvedPatientId ?? patientId ?? patient_id ?? ""}`)}`
 
   return (
-    <div className="flex flex-col gap-3">
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(event) => {
+        event.preventDefault()
+        void saveFinal(false)
+      }}
+    >
+      <input type="hidden" name="patient_id" value={resolvedPatientId ?? patient_id ?? patientId ?? ""} />
+      <input type="hidden" name="patientId" value={resolvedPatientId ?? patientId ?? patient_id ?? ""} />
       {conflict ? (
         <PatientSaveConflictNotice
           pending={isSaving}
@@ -218,12 +236,7 @@ export function ClinicalNotesEditor({
             ? `Draft salvat local la ${new Date(draftAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}.`
             : "Draft-ul se salvează automat la fiecare 5 secunde pe acest dispozitiv."}
         </p>
-        <Button
-          type="button"
-          onClick={() => void saveFinal(false)}
-          disabled={isSaving || !resolvedPatientId}
-          className="h-11 rounded-xl"
-        >
+        <Button type="submit" disabled={isSaving} className="h-11 rounded-xl">
           {isSaving ? (
             <>
               <Loader2 className="size-4 animate-spin" />
@@ -239,6 +252,6 @@ export function ClinicalNotesEditor({
           {saveError}
         </p>
       ) : null}
-    </div>
+    </form>
   )
 }

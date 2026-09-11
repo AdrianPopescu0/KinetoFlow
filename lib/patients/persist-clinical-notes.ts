@@ -3,9 +3,10 @@ import "server-only"
 import { revalidatePath } from "next/cache"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-import { listClinicMemberUserIds, privilegedClinicClient } from "@/lib/clinics/members"
+import { privilegedClinicClient } from "@/lib/clinics/members"
 import { fetchPatientFileSnapshot, isWriteConflict, type PatientFileSnapshot } from "@/lib/patients/optimistic"
 import { readPatientIdFromSavePayload } from "@/lib/patients/patient-id"
+import { getOwnPatientRow } from "@/lib/patients/tenant"
 
 export type PersistClinicalNotesResult =
   | { ok: true; updated_at: string | null }
@@ -25,27 +26,24 @@ export async function persistClinicalNotesForTherapist(input: {
     return { ok: false, error: "Pacientul nu a fost găsit." }
   }
 
-  const snapshot = await fetchPatientFileSnapshot(input.supabase, input.userId, patientId)
-  if (!snapshot) {
+  const owned = await getOwnPatientRow(input.supabase, input.userId, patientId, "id")
+  if (!owned.data) {
     return { ok: false, error: "Pacientul nu a fost găsit." }
   }
 
+  const snapshot = await fetchPatientFileSnapshot(input.supabase, input.userId, patientId)
+
   const expected = input.expectedUpdatedAt ?? null
-  if (!input.forceOverwrite && isWriteConflict(expected, snapshot.updated_at)) {
+  if (snapshot && !input.forceOverwrite && isWriteConflict(expected, snapshot.updated_at)) {
     return { ok: false, error: "", conflict: true, current: snapshot }
   }
 
   const trimmed = input.notes.trim().length > 0 ? input.notes : null
-  const memberIds = await listClinicMemberUserIds(input.supabase, input.userId)
   const client = await privilegedClinicClient(input.supabase)
 
-  let update = client
-    .from("patients")
-    .update({ clinical_notes: trimmed })
-    .eq("id", patientId)
-    .in("therapist_id", memberIds)
+  let update = client.from("patients").update({ clinical_notes: trimmed }).eq("id", patientId)
 
-  if (!input.forceOverwrite && expected && snapshot.updated_at) {
+  if (!input.forceOverwrite && expected && snapshot?.updated_at) {
     update = update.eq("updated_at", snapshot.updated_at)
   }
 
@@ -63,7 +61,6 @@ export async function persistClinicalNotesForTherapist(input: {
       .from("patients")
       .update({ clinical_notes: trimmed })
       .eq("id", patientId)
-      .in("therapist_id", memberIds)
       .select("id, updated_at")
 
     if (fallback.error) {
