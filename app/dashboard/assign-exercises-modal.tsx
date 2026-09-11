@@ -4,10 +4,15 @@ import { memo, useCallback, useEffect, useMemo, useState, useTransition } from "
 import { Check, Loader2, Search, X } from "lucide-react"
 
 import { loadStoredLibraryExercises } from "@/app/dashboard/exercises/actions"
-import { assignExercisesBatch } from "@/app/dashboard/patients/actions"
+import { assignExercisesBatch, listAssignedExercisesForPatient } from "@/app/dashboard/patients/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/toaster"
+import {
+  librarySelectionForAssignedInterval,
+  preferredTreatmentInterval,
+  type AssignedProgramExercise,
+} from "@/lib/exercises/assigned-selection"
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
 import { loadCustomExercises } from "@/lib/exercises/extras"
 import { formatTreatmentInterval } from "@/lib/exercises/schedule"
@@ -37,12 +42,14 @@ export function AssignExercisesModal({
   open,
   onClose,
   onSaved,
+  initialAssigned,
 }: {
   patientId: string
   patientName: string
   open: boolean
   onClose: () => void
   onSaved?: () => void
+  initialAssigned?: AssignedProgramExercise[]
 }) {
   if (!open) {
     return null
@@ -55,6 +62,7 @@ export function AssignExercisesModal({
       patientName={patientName}
       onClose={onClose}
       onSaved={onSaved}
+      initialAssigned={initialAssigned}
     />
   )
 }
@@ -64,26 +72,40 @@ function AssignExercisesModalContent({
   patientName,
   onClose,
   onSaved,
+  initialAssigned = [],
 }: {
   patientId: string
   patientName: string
   onClose: () => void
   onSaved?: () => void
+  initialAssigned?: AssignedProgramExercise[]
 }) {
-  const initialInterval = intervalFromToday(7)
-  const [query, setQuery] = useState("")
-  const [startDate, setStartDate] = useState(initialInterval.startDate)
-  const [endDate, setEndDate] = useState(initialInterval.endDate)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [catalog, setCatalog] = useState<LibraryExercise[]>(() => [...loadCustomExercises(), ...LIBRARY_EXERCISES])
-  const [doses, setDoses] = useState<Record<string, Dose>>(() =>
-    Object.fromEntries(
-      [...loadCustomExercises(), ...LIBRARY_EXERCISES].map((exercise) => [
-        exercise.id,
-        { sets: exercise.sets, reps: exercise.reps },
-      ]),
-    ),
+  const fallbackInterval = intervalFromToday(7)
+  const openingInterval = preferredTreatmentInterval(
+    initialAssigned,
+    fallbackInterval,
+    localDateKey(new Date()),
   )
+  const openingCatalog = [...loadCustomExercises(), ...LIBRARY_EXERCISES]
+  const openingSelection = librarySelectionForAssignedInterval(
+    openingCatalog,
+    initialAssigned,
+    openingInterval,
+  )
+  const [query, setQuery] = useState("")
+  const [startDate, setStartDate] = useState(openingInterval.startDate)
+  const [endDate, setEndDate] = useState(openingInterval.endDate)
+  const [datesTouched, setDatesTouched] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>(openingSelection.selectedIds)
+  const [assigned, setAssigned] = useState<AssignedProgramExercise[]>(initialAssigned)
+  const [assignedLoading, setAssignedLoading] = useState(true)
+  const [catalog, setCatalog] = useState<LibraryExercise[]>(openingCatalog)
+  const [doses, setDoses] = useState<Record<string, Dose>>(() => ({
+    ...Object.fromEntries(
+      openingCatalog.map((exercise) => [exercise.id, { sets: exercise.sets, reps: exercise.reps }]),
+    ),
+    ...openingSelection.doses,
+  }))
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
@@ -104,6 +126,43 @@ function AssignExercisesModalContent({
       })
     })
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void listAssignedExercisesForPatient(patientId).then((result) => {
+      if (cancelled) {
+        return
+      }
+      if (result.error) {
+        toast(result.error)
+        setAssignedLoading(false)
+        return
+      }
+      setAssigned(result.exercises)
+      setAssignedLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [patientId])
+
+  useEffect(() => {
+    if (!datesTouched) {
+      const preferred = preferredTreatmentInterval(
+        assigned,
+        intervalFromToday(7),
+        localDateKey(new Date()),
+      )
+      if (preferred.startDate !== startDate || preferred.endDate !== endDate) {
+        setStartDate(preferred.startDate)
+        setEndDate(preferred.endDate)
+        return
+      }
+    }
+    const selection = librarySelectionForAssignedInterval(catalog, assigned, { startDate, endDate })
+    setSelectedIds(selection.selectedIds)
+    setDoses((current) => ({ ...current, ...selection.doses }))
+  }, [assigned, catalog, datesTouched, endDate, startDate])
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("ro-RO")
@@ -162,8 +221,8 @@ function AssignExercisesModalContent({
       }
       toast(
         result.inserted === 1
-          ? `1 exercițiu a fost adăugat în planul lui ${patientName}.`
-          : `${result.inserted} exerciții au fost adăugate în planul lui ${patientName}.`,
+          ? `Planul lui ${patientName} a fost actualizat (1 exercițiu).`
+          : `Planul lui ${patientName} a fost actualizat (${result.inserted} exerciții).`,
       )
       onClose()
       onSaved?.()
@@ -211,7 +270,10 @@ function AssignExercisesModalContent({
                 <Input
                   type="date"
                   value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
+                  onChange={(event) => {
+                    setDatesTouched(true)
+                    setStartDate(event.target.value)
+                  }}
                   className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
                 />
               </label>
@@ -221,7 +283,10 @@ function AssignExercisesModalContent({
                   type="date"
                   min={startDate}
                   value={endDate}
-                  onChange={(event) => setEndDate(event.target.value)}
+                  onChange={(event) => {
+                    setDatesTouched(true)
+                    setEndDate(event.target.value)
+                  }}
                   className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
                 />
               </label>
@@ -240,6 +305,12 @@ function AssignExercisesModalContent({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
+          {assignedLoading ? (
+            <p className="mb-3 flex items-center gap-2 text-sm text-slate-500">
+              <Loader2 className="size-4 animate-spin" />
+              Se încarcă exercițiile deja din program…
+            </p>
+          ) : null}
           <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
             {filtered.length === 0 ? (
               <li className="px-4 py-8 text-center text-sm text-slate-500">Niciun exercițiu găsit.</li>

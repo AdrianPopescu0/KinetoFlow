@@ -81,6 +81,7 @@ export function ExerciseManager({
         open={libraryOpen}
         patientId={patientId}
         patientName={patientName}
+        initialAssigned={exercises}
         onClose={closeLibrary}
         onSaved={refreshAfterSave}
       />

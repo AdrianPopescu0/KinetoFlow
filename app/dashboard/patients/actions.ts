@@ -14,6 +14,10 @@ import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
 import { isEnergyLevel, isSleepQuality, type DailyCheckin } from "@/lib/patients/types"
 import { composeIntervalExerciseNotes, isDateKey } from "@/lib/exercises/schedule"
 import {
+  assignedExerciseMatchesInterval,
+  normalizeExerciseTitle,
+} from "@/lib/exercises/assigned-selection"
+import {
   dailyCheckinFromRow,
   fetchTodaysCheckInRow,
   isUniqueCheckinConstraintError,
@@ -440,14 +444,101 @@ export async function assignExercisesBatch(
     return { error: "Niciun exercițiu valid de salvat.", inserted: 0 }
   }
 
-  const { data, error } = await client.from("exercises").insert(rows).select("id")
-  if (error) {
-    return { error: error.message, inserted: 0 }
+  const { data: existingRows, error: existingError } = await client
+    .from("exercises")
+    .select("id, title, notes")
+    .eq("patient_id", patientId)
+
+  if (existingError) {
+    return { error: existingError.message, inserted: 0 }
+  }
+
+  const existingForInterval = ((existingRows ?? []) as Array<{ id: string; title: string; notes: string | null }>).filter(
+    (row) => assignedExerciseMatchesInterval(row.notes, { startDate, endDate }),
+  )
+  const claimedIds = new Set<string>()
+  const toInsert: typeof rows = []
+  const toUpdate: Array<{ id: string; video_url: string | null; sets: number | null; reps: number | null; notes: string | null }> =
+    []
+
+  for (const row of rows) {
+    const titleKey = normalizeExerciseTitle(row.title)
+    const match = existingForInterval.find(
+      (existing) => !claimedIds.has(existing.id) && normalizeExerciseTitle(existing.title) === titleKey,
+    )
+    if (match) {
+      claimedIds.add(match.id)
+      toUpdate.push({
+        id: match.id,
+        video_url: row.video_url,
+        sets: row.sets,
+        reps: row.reps,
+        notes: row.notes,
+      })
+    } else {
+      toInsert.push(row)
+    }
+  }
+
+  let saved = 0
+  if (toInsert.length > 0) {
+    const { data, error } = await client.from("exercises").insert(toInsert).select("id")
+    if (error) {
+      return { error: error.message, inserted: 0 }
+    }
+    saved += data?.length ?? toInsert.length
+  }
+
+  for (const row of toUpdate) {
+    const { error } = await client
+      .from("exercises")
+      .update({
+        video_url: row.video_url,
+        sets: row.sets,
+        reps: row.reps,
+        notes: row.notes,
+      })
+      .eq("id", row.id)
+      .eq("patient_id", patientId)
+    if (error) {
+      return { error: error.message, inserted: saved }
+    }
+    saved += 1
   }
 
   revalidatePath("/dashboard")
   revalidatePath(`/dashboard/patients/${patientId}`)
-  return { error: null, inserted: data?.length ?? rows.length }
+  return { error: null, inserted: saved }
+}
+
+export async function listAssignedExercisesForPatient(
+  patientId: string,
+): Promise<{ error: string | null; exercises: ExerciseRecord[] }> {
+  if (!patientId) {
+    return { error: "Pacientul lipsește.", exercises: [] }
+  }
+
+  const { supabase, user } = await requireUser()
+  if (!user) {
+    return { error: "Sesiunea a expirat.", exercises: [] }
+  }
+
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id")
+  if (!owned.data) {
+    return { error: "Pacientul nu aparține acestui cabinet.", exercises: [] }
+  }
+
+  const { data, error } = await supabase
+    .from("exercises")
+    .select("id, patient_id, title, video_url, sets, reps, notes")
+    .eq("patient_id", patientId)
+    .order("title", { ascending: true })
+
+  if (error) {
+    return { error: error.message, exercises: [] }
+  }
+
+  return { error: null, exercises: (data ?? []) as ExerciseRecord[] }
 }
 
 export async function deleteExercise(patientId: string, exerciseId: string): Promise<void> {
