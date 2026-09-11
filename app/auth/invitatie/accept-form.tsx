@@ -51,13 +51,30 @@ export function AcceptTherapistInviteForm({
     }
 
     startTransition(async () => {
-      const result = await acceptTherapistInvite(token, formData)
-      if (result?.error) {
-        setError(result.error)
-        return
-      }
-      if (inviteAcceptGoesToDashboard(result)) {
-        window.location.assign("/dashboard")
+      try {
+        const result = await acceptTherapistInvite(token, formData)
+        if (result?.error) {
+          console.error("[invite-activate]", result.error)
+          setError(result.error)
+          return
+        }
+        if (inviteAcceptGoesToDashboard(result)) {
+          window.location.assign("/dashboard")
+          return
+        }
+        console.error("[invite-activate] răspuns neașteptat după activare", result)
+        setError("Nu am putut deschide dashboard-ul clinicii. Reîncearcă sau cere un link nou.")
+      } catch (error) {
+        const digest =
+          typeof error === "object" && error && "digest" in error
+            ? String((error as { digest?: string }).digest ?? "")
+            : ""
+        if (digest.startsWith("NEXT_REDIRECT")) {
+          throw error
+        }
+        const message = error instanceof Error ? error.message : "Nu am putut activa invitația."
+        console.error("[invite-activate]", error)
+        setError(message)
       }
     })
   }

@@ -1,18 +1,14 @@
 "use server"
 
 import { cookies, headers } from "next/headers"
-import { redirect } from "next/navigation"
 
-import { parseInviteActivation } from "@/lib/auth/accept-invite"
-import {
-  isEmailAlreadyRegisteredError,
-  isEmailConfirmedUser,
-} from "@/lib/auth/email-confirmed"
+import { isExistingAuthUserError, parseInviteActivation } from "@/lib/auth/accept-invite"
+import { isEmailAlreadyRegisteredError } from "@/lib/auth/email-confirmed"
 import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
 import { VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
 import {
+  confirmAuthUserEmailById,
   findAuthUserIdByEmail,
-  signInAfterEmailVerified,
 } from "@/lib/auth/verified-password-session"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
 import {
@@ -122,19 +118,43 @@ async function resolveInviteTokenFromSubmit(tokenFromUrl: string, formData: Form
   )
 }
 
-async function userHasClinicProfile(
-  admin: ReturnType<typeof createServiceRoleClient>,
+function logInviteActivate(step: string, detail?: unknown) {
+  if (detail == null) {
+    console.info("[invite-activate]", step)
+    return
+  }
+  if (typeof detail === "object" && ("message" in detail || "code" in detail || "details" in detail || "hint" in detail)) {
+    const formatted = formatSupabaseError(
+      detail as { message?: string; code?: string; details?: string; hint?: string },
+    )
+    console.error("[invite-activate]", step, formatted, detail)
+    return
+  }
+  console.info("[invite-activate]", step, detail)
+}
+
+async function applyInvitedAuthCredentials(
   userId: string,
-): Promise<boolean> {
-  const { data } = await admin.from("clinic_profiles").select("user_id").eq("user_id", userId).maybeSingle()
-  return Boolean(data && typeof data.user_id === "string")
+  input: { password: string; metadata: Record<string, unknown> },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient()
+  const { error } = await admin.auth.admin.updateUserById(userId, {
+    password: input.password,
+    email_confirm: true,
+    user_metadata: input.metadata,
+  })
+  if (error) {
+    logInviteActivate("updateUserById", error)
+    return { ok: false, error: formatSupabaseError(error) }
+  }
+  return { ok: true }
 }
 
 /**
- * Creează contul Auth (email deja confirmat) sau reia un signup incomplet.
- * Nu trimite OTP și nu trece prin signUp/signInWithOtp.
+ * Creează contul Auth sau, dacă emailul există deja, setează parola și confirmă adresa.
+ * Nu trimite OTP.
  */
-async function createOrReuseInvitedAuthUser(input: {
+async function upsertInvitedAuthUser(input: {
   email: string
   password: string
   token: string
@@ -150,6 +170,16 @@ async function createOrReuseInvitedAuthUser(input: {
     role: "therapist",
   }
 
+  const existingId = await findAuthUserIdByEmail(input.email)
+  if (existingId) {
+    logInviteActivate(`auth.user.existent ${existingId}`)
+    const updated = await applyInvitedAuthCredentials(existingId, { password: input.password, metadata })
+    if (!updated.ok) {
+      return updated
+    }
+    return { ok: true, userId: existingId }
+  }
+
   const created = await admin.auth.admin.createUser({
     email: input.email,
     password: input.password,
@@ -158,31 +188,109 @@ async function createOrReuseInvitedAuthUser(input: {
   })
 
   if (!created.error && created.data.user?.id) {
+    logInviteActivate(`auth.user.creat ${created.data.user.id}`)
     return { ok: true, userId: created.data.user.id }
   }
 
-  if (created.error && !isEmailAlreadyRegisteredError(created.error)) {
+  logInviteActivate("createUser", created.error)
+
+  if (created.error && !isExistingAuthUserError(created.error) && !isEmailAlreadyRegisteredError(created.error)) {
     return { ok: false, error: formatSupabaseError(created.error) }
   }
 
-  const existingId = await findAuthUserIdByEmail(input.email)
-  if (!existingId) {
-    return { ok: false, error: EXISTING_ACCOUNT_MESSAGE }
+  const retryId = await findAuthUserIdByEmail(input.email)
+  if (!retryId) {
+    return { ok: false, error: created.error ? formatSupabaseError(created.error) : EXISTING_ACCOUNT_MESSAGE }
   }
 
-  const hasClinic = await userHasClinicProfile(admin, existingId)
-  if (!hasClinic) {
-    const { error: updateError } = await admin.auth.admin.updateUserById(existingId, {
-      password: input.password,
-      email_confirm: true,
-      user_metadata: metadata,
+  const updated = await applyInvitedAuthCredentials(retryId, { password: input.password, metadata })
+  if (!updated.ok) {
+    return updated
+  }
+  return { ok: true, userId: retryId }
+}
+
+type InviteSessionUser = { id: string; email?: string | null }
+
+function sessionUserFromAuthResult(result: { data?: unknown }): InviteSessionUser | null {
+  const data = result.data
+  if (!data || typeof data !== "object") {
+    return null
+  }
+  const record = data as {
+    user?: InviteSessionUser | null
+    session?: { user?: InviteSessionUser | null } | null
+  }
+  const user = record.user ?? record.session?.user ?? null
+  return user?.id ? user : null
+}
+
+async function openInvitePasswordSession(input: {
+  supabase: Awaited<ReturnType<typeof createClient>>
+  email: string
+  password: string
+  userId: string
+}): Promise<{ ok: true; user: InviteSessionUser } | { ok: false; error: string }> {
+  const { supabase } = input
+
+  const first = await supabase.auth.signInWithPassword({ email: input.email, password: input.password })
+  const firstUser = sessionUserFromAuthResult(first)
+  if (!first.error && firstUser) {
+    return { ok: true, user: firstUser }
+  }
+  logInviteActivate("signInWithPassword", first.error)
+
+  const confirmed = await confirmAuthUserEmailById(input.userId)
+  if (!confirmed.ok && confirmed.kind === "confirm_failed") {
+    logInviteActivate("email_confirm", { message: confirmed.message })
+  }
+
+  const second = await supabase.auth.signInWithPassword({ email: input.email, password: input.password })
+  const secondUser = sessionUserFromAuthResult(second)
+  if (!second.error && secondUser) {
+    return { ok: true, user: secondUser }
+  }
+  logInviteActivate("signInWithPassword.retry", second.error)
+
+  try {
+    const admin = createServiceRoleClient()
+    const link = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email: input.email,
     })
-    if (updateError) {
-      return { ok: false, error: updateError.message }
+    const tokenHash = link.data.properties?.hashed_token
+    if (link.error || !tokenHash) {
+      logInviteActivate("generateLink", link.error)
+      return {
+        ok: false,
+        error: link.error
+          ? formatSupabaseError(link.error)
+          : second.error
+            ? formatSupabaseError(second.error)
+            : "Nu am putut deschide sesiunea după setarea parolei.",
+      }
     }
-  }
 
-  return { ok: true, userId: existingId }
+    const verified = await supabase.auth.verifyOtp({
+      type: "email",
+      token_hash: tokenHash,
+    })
+    const verifiedUser = sessionUserFromAuthResult(verified)
+    if (verified.error || !verifiedUser) {
+      logInviteActivate("verifyOtp.magiclink", verified.error)
+      return {
+        ok: false,
+        error: verified.error
+          ? formatSupabaseError(verified.error)
+          : "Nu am putut deschide sesiunea. Verifică parola și încearcă din nou.",
+      }
+    }
+    return { ok: true, user: verifiedUser }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Nu am putut deschide sesiunea."
+    logInviteActivate("openSession.exceptie", { message })
+    return { ok: false, error: message }
+  }
 }
 
 export async function prepareTherapistInviteOAuth(token: string): Promise<AcceptTherapistInviteState> {
@@ -216,6 +324,7 @@ export async function acceptTherapistInvite(
 
   const invite = await loadOpenInvite(token)
   if ("error" in invite) {
+    logInviteActivate("load-invite", { message: invite.error })
     return { error: invite.error }
   }
   if (!invite.email) {
@@ -223,62 +332,56 @@ export async function acceptTherapistInvite(
   }
 
   const supabase = await createClient()
-  await supabase.auth.signOut()
 
-  let created: { ok: true; userId: string } | { ok: false; error: string }
   try {
-    created = await createOrReuseInvitedAuthUser({
+    const created = await upsertInvitedAuthUser({
       email: invite.email,
       password: parsed.password,
       token,
       therapistName: invite.therapistName,
       clinicName: invite.clinicName,
     })
+    if (!created.ok) {
+      logInviteActivate("upsert-auth", { message: created.error })
+      return { error: created.error }
+    }
+
+    const attached = await attachTherapistInviteToUser({
+      token,
+      user: { id: created.userId, email: invite.email },
+    })
+    if (!attached.ok) {
+      logInviteActivate("attach-invite", { message: attached.error, code: attached.reason })
+      return { error: attached.error }
+    }
+    logInviteActivate(`invite.atașată user=${created.userId}`)
+
+    // Nu facem signOut înainte de signIn: ambele scriu Set-Cookie pe același
+    // răspuns, iar cookie-ul gol de la signOut poate anula sesiunea nouă.
+    const session = await openInvitePasswordSession({
+      supabase,
+      email: invite.email,
+      password: parsed.password,
+      userId: created.userId,
+    })
+    if (!session.ok) {
+      logInviteActivate("open-session", { message: session.error })
+      return { error: session.error }
+    }
+
+    const jar = await cookies()
+    jar.delete(SIGNED_OUT_GATE_COOKIE)
+    jar.delete(VERIFIED_OTP_COOKIE)
+    clearTherapistInviteCookies((name, value, options) => jar.set(name, value, options))
+
+    logInviteActivate(`activat user=${created.userId} → /dashboard`)
+    return { next: "/dashboard" }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Nu am putut crea contul."
+    const message = error instanceof Error ? error.message : "Nu am putut activa invitația."
+    logInviteActivate("activate-exception", error)
     if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
       return { error: "Lipsește cheia de serviciu. Adaugă SUPABASE_SERVICE_ROLE_KEY în .env.local." }
     }
     return { error: message }
   }
-
-  if (!created.ok) {
-    return { error: created.error }
-  }
-
-  const signedIn = await signInAfterEmailVerified({
-    email: invite.email,
-    password: parsed.password,
-    userId: created.userId,
-    emailJustVerified: true,
-  })
-  if (!signedIn.ok) {
-    await supabase.auth.signOut()
-    return { error: EXISTING_ACCOUNT_MESSAGE }
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user?.id || !isEmailConfirmedUser(user)) {
-    await supabase.auth.signOut()
-    return { error: "Nu am putut deschide sesiunea. Încearcă din nou." }
-  }
-
-  const attached = await attachTherapistInviteToUser({
-    token,
-    user: { id: user.id, email: invite.email },
-  })
-  if (!attached.ok) {
-    await supabase.auth.signOut()
-    return { error: attached.error }
-  }
-
-  await supabase.auth.refreshSession()
-  const jar = await cookies()
-  jar.delete(SIGNED_OUT_GATE_COOKIE)
-  jar.delete(VERIFIED_OTP_COOKIE)
-  clearTherapistInviteCookies((name, value, options) => jar.set(name, value, options))
-
-  redirect("/dashboard")
 }

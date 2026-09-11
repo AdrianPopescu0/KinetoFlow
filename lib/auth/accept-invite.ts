@@ -28,3 +28,25 @@ export function inviteAcceptGoesToDashboard(
 ): boolean {
   return Boolean(result && result.next === "/dashboard" && !result.error)
 }
+
+export function isExistingAuthUserError(error: {
+  code?: string
+  message?: string
+  status?: number
+} | null | undefined): boolean {
+  if (!error) {
+    return false
+  }
+  const code = (error.code ?? "").toLowerCase()
+  const message = (error.message ?? "").toLowerCase()
+  return (
+    code.includes("email_exists") ||
+    code.includes("user_already_exists") ||
+    code === "23505" ||
+    error.status === 422 ||
+    message.includes("already been registered") ||
+    message.includes("already registered") ||
+    message.includes("user already exists") ||
+    (message.includes("already") && message.includes("email"))
+  )
+}

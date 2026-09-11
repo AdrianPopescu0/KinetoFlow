@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { INVITE_LEGAL_ACCEPT_ERROR, inviteAcceptGoesToDashboard, parseInviteActivation } from "./accept-invite.ts"
+import { INVITE_LEGAL_ACCEPT_ERROR, inviteAcceptGoesToDashboard, isExistingAuthUserError, parseInviteActivation } from "./accept-invite.ts"
 
 function inviteForm(input: { password?: string; email?: string; legal?: boolean }) {
   const formData = new FormData()
@@ -38,4 +38,12 @@ test("după activare, destinația e doar /dashboard, niciodată onboarding", () 
   assert.equal(inviteAcceptGoesToDashboard({ next: "/dashboard", error: "Eșec" }), false)
   assert.equal(inviteAcceptGoesToDashboard({ error: "Cod invalid" }), false)
   assert.equal(inviteAcceptGoesToDashboard(null), false)
+})
+
+test("emailul deja prezent în Auth nu e tratat ca eșec de signup", () => {
+  assert.equal(isExistingAuthUserError({ code: "email_exists" }), true)
+  assert.equal(isExistingAuthUserError({ code: "user_already_exists" }), true)
+  assert.equal(isExistingAuthUserError({ message: "A user with this email address has already been registered" }), true)
+  assert.equal(isExistingAuthUserError({ status: 422, message: "User already registered" }), true)
+  assert.equal(isExistingAuthUserError({ message: "Invalid login credentials" }), false)
 })

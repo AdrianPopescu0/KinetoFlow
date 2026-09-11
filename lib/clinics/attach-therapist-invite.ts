@@ -274,6 +274,7 @@ export async function attachTherapistInviteToUser(input: {
       userId: input.user.id,
     })
     if (loaded.error) {
+      console.error("[invite-activate] load-pending-invite", loaded.error)
       return { ok: false, error: loaded.error, reason: "failed" }
     }
 
@@ -333,6 +334,7 @@ export async function attachTherapistInviteToUser(input: {
           existingUserId: existingProfile?.user_id ?? null,
         })
         if (upserted.error) {
+          console.error("[invite-activate] clinic_profiles.upsert", upserted.error)
           return { ok: false, error: upserted.error, reason: "failed" }
         }
       }
@@ -357,7 +359,8 @@ export async function attachTherapistInviteToUser(input: {
       },
     })
     if (updateError) {
-      return { ok: false, error: updateError.message, reason: "failed" }
+      console.error("[invite-activate] auth.updateUserById", formatSupabaseError(updateError), updateError)
+      return { ok: false, error: formatSupabaseError(updateError), reason: "failed" }
     }
 
     const inviteUpdate: Record<string, unknown> = {}
@@ -376,15 +379,25 @@ export async function attachTherapistInviteToUser(input: {
           if (Object.keys(inviteUpdate).length > 0) {
             const retry = await admin.from("therapist_invites").update(inviteUpdate).eq("id", data.id)
             if (retry.error) {
+              console.error("[invite-activate] therapist_invites.update", formatSupabaseError(retry.error), retry.error)
               return { ok: false, error: formatSupabaseError(retry.error), reason: "failed" }
             }
           }
         } else {
+          console.error("[invite-activate] therapist_invites.update", formatSupabaseError(acceptError), acceptError)
           return { ok: false, error: formatSupabaseError(acceptError), reason: "failed" }
         }
       }
     }
 
+    console.info(
+      "[invite-activate] therapist_invites.update ok",
+      JSON.stringify({
+        inviteId: data.id,
+        accepted_user_id: input.user.id,
+        accepted_at: inviteUpdate.accepted_at ?? data.accepted_at,
+      }),
+    )
     return { ok: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Nu am putut activa invitația."
