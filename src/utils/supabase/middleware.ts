@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
+import { stampEarlyAccessCookie } from "@/lib/auth/early-access"
 import { EARLY_ACCESS_COOKIE } from "@/lib/auth/early-access-constants"
 import { isPublicMarketingPath, shouldStayOnTherapistLogin } from "@/lib/auth/paths"
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
@@ -123,6 +124,17 @@ export async function updateSession(
   const urlTokenRaw = patientTokenFromPath(pathname)
   const urlToken = urlTokenRaw && looksLikePatientToken(urlTokenRaw) ? urlTokenRaw : null
   const earlyAccessUnlocked = options?.earlyAccessUnlocked === true
+  const proto =
+    request.headers.get("x-forwarded-proto") ?? (request.nextUrl.protocol === "https:" ? "https" : "http")
+
+  function send(response: NextResponse) {
+    if (earlyAccessUnlocked) {
+      stampEarlyAccessCookie((name, value, cookieOptions) => {
+        response.cookies.set(name, value, cookieOptions)
+      }, proto)
+    }
+    return response
+  }
 
   if (isPatientBarePath(pathname)) {
     const stored = storedPatientToken(request)
@@ -132,7 +144,7 @@ export async function updateSession(
       redirectUrl.search = ""
       const redirect = NextResponse.redirect(redirectUrl)
       stampPatientCookies(redirect, stored)
-      return redirect
+      return send(redirect)
     }
   }
 
@@ -156,21 +168,21 @@ export async function updateSession(
       const loginUrl = request.nextUrl.clone()
       loginUrl.pathname = "/login"
       loginUrl.search = ""
-      return NextResponse.redirect(loginUrl)
+      return send(NextResponse.redirect(loginUrl))
     }
 
     if (isTherapistAuthPage(pathname) && !earlyAccessUnlocked) {
-      return redirectToEarlyAccess(request)
+      return send(redirectToEarlyAccess(request))
     }
 
     if (isProtectedPath(pathname) || isOnboardingPath(pathname)) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/login"
       redirectUrl.searchParams.set("redirectTo", pathname)
-      return NextResponse.redirect(redirectUrl)
+      return send(NextResponse.redirect(redirectUrl))
     }
 
-    return supabaseResponse
+    return send(supabaseResponse)
   }
 
   const sessionCookies: Array<{ name: string; value: string; options?: Parameters<NextResponse["cookies"]["set"]>[2] }> =
@@ -211,6 +223,11 @@ export async function updateSession(
         if (inviteToken) {
           stampInviteCookie(supabaseResponse, inviteToken)
         }
+        if (earlyAccessUnlocked) {
+          stampEarlyAccessCookie((name, value, cookieOptions) => {
+            supabaseResponse.cookies.set(name, value, cookieOptions)
+          }, proto)
+        }
       },
     },
   })
@@ -225,11 +242,11 @@ export async function updateSession(
   const stayOnLogin = isTherapistAuthPage(pathname) && shouldStayOnTherapistLogin(request.nextUrl.searchParams)
 
   if (earlyAccessUnlocked && !authenticatedUser && isEarlyAccessPath(pathname) && !isTherapistAuthPage(pathname)) {
-    return redirectWithAuthCookies(request, supabaseResponse, "/login")
+    return send(redirectWithAuthCookies(request, supabaseResponse, "/login"))
   }
 
   if (!authenticatedUser && isTherapistAuthPage(pathname) && !earlyAccessUnlocked) {
-    return redirectToEarlyAccess(request, supabaseResponse)
+    return send(redirectToEarlyAccess(request, supabaseResponse))
   }
 
   if (
@@ -239,16 +256,16 @@ export async function updateSession(
     (isProtectedPath(pathname) || isOnboardingPath(pathname))
   ) {
     await supabase.auth.signOut()
-    return redirectWithAuthCookies(request, supabaseResponse, "/login", "reason=confirm_email")
+    return send(redirectWithAuthCookies(request, supabaseResponse, "/login", "reason=confirm_email"))
   }
 
   if (!authenticatedUser && (isProtectedPath(pathname) || isOnboardingPath(pathname))) {
-    return redirectWithAuthCookies(
+    return send(redirectWithAuthCookies(
       request,
       supabaseResponse,
       "/login",
       `redirectTo=${encodeURIComponent(pathname)}`,
-    )
+    ))
   }
 
   if (authenticatedUser && emailConfirmed) {
@@ -274,36 +291,36 @@ export async function updateSession(
         : THERAPIST_INVITE_CONTINUE_PATH
 
     if (!stayOnLogin && (isTherapistAuthPage(pathname) || isPublicMarketingPath(pathname) || isEarlyAccessPath(pathname))) {
-      return redirectWithAuthCookies(request, supabaseResponse, appPath)
+      return send(redirectWithAuthCookies(request, supabaseResponse, appPath))
     }
 
     if (isOnboardingPath(pathname)) {
       if (clinicReady || invitedTherapist) {
-        return redirectWithAuthCookies(request, supabaseResponse, "/dashboard")
+        return send(redirectWithAuthCookies(request, supabaseResponse, "/dashboard"))
       }
       if (activeInviteToken) {
-        return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
+        return send(redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH))
       }
       const inviteAlreadyChecked = request.cookies.get(THERAPIST_INVITE_CHECKED_COOKIE)?.value === "1"
       if (!inviteAlreadyChecked) {
-        return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_CONTINUE_PATH)
+        return send(redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_CONTINUE_PATH))
       }
     }
 
     if (isProtectedPath(pathname) && !clinicReady) {
       if (invitedTherapist) {
-        return supabaseResponse
+        return send(supabaseResponse)
       }
       if (activeInviteToken && !isInviteFinalizePath(pathname)) {
-        return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
+        return send(redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH))
       }
-      return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_CONTINUE_PATH)
+      return send(redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_CONTINUE_PATH))
     }
 
     if (pathname.startsWith("/auth/invitatie/") && !isInviteFinalizePath(pathname) && activeInviteToken && !clinicReady) {
-      return redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH)
+      return send(redirectWithAuthCookies(request, supabaseResponse, THERAPIST_INVITE_FINALIZE_PATH))
     }
   }
 
-  return supabaseResponse
+  return send(supabaseResponse)
 }

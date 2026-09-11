@@ -33,9 +33,19 @@ test("cookie-ul early_access_verified e un flag simplu, valabil 90 de zile", () 
   assert.equal(options.sameSite, "lax")
   assert.equal(options.path, "/")
   assert.equal(options.maxAge, EARLY_ACCESS_MAX_AGE_SECONDS)
+  assert.equal(options.maxAge, 7_776_000)
   assert.equal(options.secure, false)
+  assert.ok(options.expires instanceof Date)
+  const remainingMs = options.expires.getTime() - Date.now()
+  assert.ok(remainingMs > 89 * 24 * 60 * 60 * 1000)
+  assert.ok(remainingMs <= 90 * 24 * 60 * 60 * 1000)
 
-  const written: Array<{ name: string; value: string }> = []
-  stampEarlyAccessCookie((name, value) => written.push({ name, value }), "http")
-  assert.deepEqual(written, [{ name: EARLY_ACCESS_COOKIE, value: "1" }])
+  let writtenOptions: { maxAge?: number; path?: string; httpOnly?: boolean; sameSite?: string } | undefined
+  stampEarlyAccessCookie((_name, _value, cookieOptions) => {
+    writtenOptions = cookieOptions
+  }, "http")
+  assert.equal(writtenOptions?.maxAge, EARLY_ACCESS_MAX_AGE_SECONDS)
+  assert.equal(writtenOptions?.path, "/")
+  assert.equal(writtenOptions?.httpOnly, true)
+  assert.equal(writtenOptions?.sameSite, "lax")
 })
