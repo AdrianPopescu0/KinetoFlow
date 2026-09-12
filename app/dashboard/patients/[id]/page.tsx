@@ -77,7 +77,7 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
         <section className={surfaceCardClassName("p-5")}>
           <h2 className="text-base font-semibold text-slate-800">Notițe clinice</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Notițele sunt comune pentru toți terapeuții din cabinet. La deschiderea fișei vezi ultima versiune din baza de date. Draft-ul local e doar o copie de rezervă pe acest dispozitiv.
+            Notițele sunt salvate și vizibile pentru toți terapeuții din clinică.
           </p>
           <div className="mt-4">
             <ClinicalNotesEditor

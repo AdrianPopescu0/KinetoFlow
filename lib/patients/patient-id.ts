@@ -65,7 +65,7 @@ export function readPatientIdFromPathname(pathname: unknown): string | null {
 
 /**
  * ID-ul fișei: props (`patientId` / `patient_id`), `useParams().id`, apoi pathname.
- * Folosit la click pe „Salvează pe server”.
+ * Folosit la click pe „Salvează nota”.
  */
 export function readPatientIdFromRouteOrProps(input: {
   patientId?: unknown

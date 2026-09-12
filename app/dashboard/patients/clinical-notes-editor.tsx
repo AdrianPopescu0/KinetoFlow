@@ -232,7 +232,7 @@ export function ClinicalNotesEditor({
         <p className="text-xs text-slate-500">
           {draftAt
             ? `Draft salvat local la ${new Date(draftAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}.`
-            : "La salvare, notița e vizibilă pentru toți terapeuții din clinică. Draft-ul local e doar rezervă pe acest dispozitiv."}
+            : "Notițele sunt salvate și vizibile pentru toți terapeuții din clinică."}
         </p>
         <Button type="submit" disabled={isSaving} className="h-11 rounded-xl">
           {isSaving ? (
@@ -241,7 +241,7 @@ export function ClinicalNotesEditor({
               Se salvează…
             </>
           ) : (
-            "Salvează pe server"
+            "Salvează nota"
           )}
         </Button>
       </div>
