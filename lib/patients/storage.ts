@@ -1,4 +1,7 @@
+import { parseCheckinDraft, type CheckinDraft } from "@/lib/patients/checkin-draft"
 import type { DailyCheckin } from "@/lib/patients/types"
+
+export type { CheckinDraft }
 
 const listeners = new Set<() => void>()
 const checkinCache = new Map<string, DailyCheckin | null>()
@@ -14,6 +17,14 @@ function exercisesKey(token: string, localDate: string): string {
 
 function sessionStartKey(token: string, localDate: string): string {
   return `kinetoflow:session-start:${token}:${localDate}`
+}
+
+function draftKey(token: string, localDate: string): string {
+  return `kinetoflow:checkin-draft:${token}:${localDate}`
+}
+
+function pendingSyncKey(token: string, localDate: string): string {
+  return `kinetoflow:exercises-pending-sync:${token}:${localDate}`
 }
 
 function emitChange() {
@@ -162,6 +173,76 @@ export function markSessionStarted(token: string, localDate: string, at = new Da
     // ignore quota / private mode
   }
   return at
+}
+
+export function loadCheckinDraft(token: string, localDate: string): CheckinDraft | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+  try {
+    const raw = window.localStorage.getItem(draftKey(token, localDate))
+    if (!raw) {
+      return null
+    }
+    return parseCheckinDraft(JSON.parse(raw))
+  } catch {
+    return null
+  }
+}
+
+export function saveCheckinDraft(token: string, localDate: string, draft: CheckinDraft): void {
+  if (typeof window === "undefined") {
+    return
+  }
+  try {
+    window.localStorage.setItem(draftKey(token, localDate), JSON.stringify(draft))
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+export function clearCheckinDraft(token: string, localDate: string): void {
+  if (typeof window === "undefined") {
+    return
+  }
+  try {
+    window.localStorage.removeItem(draftKey(token, localDate))
+  } catch {
+    // ignore
+  }
+}
+
+export function hasExercisesPendingSync(token: string, localDate: string): boolean {
+  if (typeof window === "undefined") {
+    return false
+  }
+  try {
+    return window.localStorage.getItem(pendingSyncKey(token, localDate)) === "1"
+  } catch {
+    return false
+  }
+}
+
+export function markExercisesPendingSync(token: string, localDate: string): void {
+  if (typeof window === "undefined") {
+    return
+  }
+  try {
+    window.localStorage.setItem(pendingSyncKey(token, localDate), "1")
+  } catch {
+    // ignore
+  }
+}
+
+export function clearExercisesPendingSync(token: string, localDate: string): void {
+  if (typeof window === "undefined") {
+    return
+  }
+  try {
+    window.localStorage.removeItem(pendingSyncKey(token, localDate))
+  } catch {
+    // ignore
+  }
 }
 
 export function saveCompletedExercises(token: string, localDate: string, ids: string[]): void {

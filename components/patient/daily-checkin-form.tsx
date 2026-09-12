@@ -16,8 +16,10 @@ type DailyCheckinFormProps = {
   energy: EnergyLevel | null
   notes: string
   error: string | null
+  errorTone?: "error" | "offline"
   pending: boolean
   submitEnabled: boolean
+  offline?: boolean
   exercisesDone: number
   exercisesTotal: number
   onPainChange: (value: number) => void
@@ -33,8 +35,10 @@ export function DailyCheckinForm({
   energy,
   notes,
   error,
+  errorTone = "error",
   pending,
   submitEnabled,
+  offline = false,
   exercisesDone,
   exercisesTotal,
   onPainChange,
@@ -131,7 +135,7 @@ export function DailyCheckinForm({
             disabled={pending || !submitEnabled}
             className="h-12 min-h-[48px] w-full rounded-2xl px-8 text-base font-semibold lg:w-auto lg:min-w-[14rem]"
           >
-            {pending ? "Se trimite…" : "Trimite check-in-ul"}
+            {pending ? "Se trimite…" : offline ? "Trimite când ai internet" : "Trimite check-in-ul"}
           </Button>
           {!submitEnabled && exercisesTotal > 0 ? (
             <p className="text-sm text-slate-600">
@@ -142,7 +146,16 @@ export function DailyCheckinForm({
       </div>
 
       {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
+        <p
+          role="status"
+          className={
+            errorTone === "offline"
+              ? "rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+              : "rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          }
+        >
+          {error}
+        </p>
       ) : null}
     </section>
   )

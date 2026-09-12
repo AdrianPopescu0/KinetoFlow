@@ -66,7 +66,7 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) pentru landing, [http
 | `/auth/activare` | Pagină intermediară pentru invitațiile vechi (recovery Supabase) |
 | `/auth/set-password` | Setare parolă după invitațiile vechi |
 | `/acces` | Login pacient: telefon + cod 8 cifre (opțional, dacă nu ai linkul cu token) |
-| `/patient/[token]` | Programul public al pacientului. Tokenul valid se salvează imediat în `localStorage` și într-un cookie de sesiune; `/p/[token]` rămâne echivalent |
+| `/patient/[token]` | Programul public al pacientului. Tokenul valid se salvează imediat în `localStorage` și într-un cookie de sesiune; `/p/[token]` rămâne echivalent. După toate exercițiile zilei apare o felicitare; fără internet, check-in-ul rămâne pe ecran și poate fi retrimis. |
 | `/patient` | Recuperează tokenul din stocare dacă un webview (WhatsApp/Facebook) a tăiat parametrii din URL |
 
 ## Schema pacienți

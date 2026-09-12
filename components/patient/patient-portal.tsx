@@ -1,12 +1,14 @@
 "use client"
 
-import { useCallback, useEffect, useState, useSyncExternalStore, useTransition } from "react"
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react"
 
 import { submitPatientCheckin } from "@/app/dashboard/patients/actions"
 import { AppShell } from "@/components/brand/app-atmosphere"
 import { CheckinSuccess } from "@/components/patient/checkin-success"
+import { ConnectionBanner } from "@/components/patient/connection-banner"
 import { DailyCheckinForm } from "@/components/patient/daily-checkin-form"
 import { ExerciseCard } from "@/components/patient/exercise-card"
+import { ExercisesCompleteCelebration } from "@/components/patient/exercises-complete-celebration"
 import { ExtraTipsDialog, RecoveryDrawer, RecoveryGuidePanel } from "@/components/patient/recovery-guide-panel"
 import { PatientHeader } from "@/components/patient/patient-header"
 import { PatientOnboardingModal } from "@/components/patient/patient-onboarding-modal"
@@ -23,17 +25,25 @@ import {
   allExercisesCompleted,
   CHECKIN_REQUIRES_EXERCISES_MESSAGE,
 } from "@/lib/patients/checkin-exercises"
+import { isBrowserOnline, isLikelyOfflineError, subscribeOnlineStatus } from "@/lib/patients/connection"
 import {
+  clearCheckinDraft,
+  clearExercisesPendingSync,
+  hasExercisesPendingSync,
+  loadCheckinDraft,
   loadCompletedExercisesSnapshot,
   loadSessionStartedAt,
   loadTodaysCheckin,
+  markExercisesPendingSync,
   markSessionStarted,
+  saveCheckinDraft,
   saveCompletedExercises,
   saveTodaysCheckin,
   subscribePatientStorage,
 } from "@/lib/patients/storage"
 import { computeExerciseDurationSeconds } from "@/lib/patients/session-duration"
 import type { DailyCheckin, EnergyLevel, PatientProgram, SleepQuality } from "@/lib/patients/types"
+import { OFFLINE_CHECKIN_MESSAGE, OFFLINE_EXERCISE_TOAST } from "@/lib/patients/ux-copy"
 import { toast } from "@/components/ui/toaster"
 
 function mergeIds(...lists: Array<string[] | undefined>): string[] {
@@ -70,11 +80,20 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
 
   const [guideOpen, setGuideOpen] = useState(false)
   const [tipsOpen, setTipsOpen] = useState(false)
+  const [errorTone, setErrorTone] = useState<"error" | "offline">("error")
+  const [justReconnected, setJustReconnected] = useState(false)
+  const [celebrateAnimate, setCelebrateAnimate] = useState(false)
+  const [draftReady, setDraftReady] = useState(false)
+  const wasOfflineRef = useRef(false)
+  const prevExercisesComplete = useRef<boolean | null>(null)
+
+  const online = useSyncExternalStore(subscribeOnlineStatus, isBrowserOnline, () => true)
 
   const exerciseIds = program.exercises.map((exercise) => exercise.id)
   const exercisesDone = exerciseIds.filter((id) => completedIds.includes(id)).length
   const exercisesComplete = allExercisesCompleted(exerciseIds, completedIds)
   const submitEnabled = exercisesComplete && pendingExerciseId === null
+  const showCelebration = exercisesComplete && exerciseIds.length > 0
 
   // Hidratează din localStorage + server după mount.
   useEffect(() => {
@@ -95,8 +114,93 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
           merged,
         ),
       })
+    } else {
+      const draft = loadCheckinDraft(program.token, localDate)
+      if (draft) {
+        setPain(draft.pain)
+        setSleep(draft.sleep)
+        setEnergy(draft.energy)
+        setNotes(draft.notes)
+      }
     }
+    setDraftReady(true)
   }, [localDate, program.completedExerciseIdsToday, program.todaysCheckin, program.token])
+
+  useEffect(() => {
+    if (!draftReady || storedCheckin) {
+      return
+    }
+    saveCheckinDraft(program.token, localDate, { pain, sleep, energy, notes })
+  }, [draftReady, energy, localDate, notes, pain, program.token, sleep, storedCheckin])
+
+  useEffect(() => {
+    if (!online) {
+      wasOfflineRef.current = true
+      setJustReconnected(false)
+      return
+    }
+    if (!wasOfflineRef.current) {
+      return
+    }
+    wasOfflineRef.current = false
+    setJustReconnected(true)
+    const timer = window.setTimeout(() => setJustReconnected(false), 4000)
+    return () => window.clearTimeout(timer)
+  }, [online])
+
+  useEffect(() => {
+    if (prevExercisesComplete.current === null) {
+      prevExercisesComplete.current = showCelebration
+      return
+    }
+    if (showCelebration && !prevExercisesComplete.current) {
+      setCelebrateAnimate(true)
+    }
+    prevExercisesComplete.current = showCelebration
+  }, [showCelebration])
+
+  useEffect(() => {
+    if (!online || !canPersistToServer || !hasExercisesPendingSync(program.token, localDate)) {
+      return
+    }
+    let cancelled = false
+    const ids = loadCompletedExercisesSnapshot(program.token, localDate)
+      .split("|")
+      .filter(Boolean)
+
+    void (async () => {
+      for (const exerciseId of ids) {
+        if (cancelled) {
+          return
+        }
+        try {
+          const response = await fetch("/api/patient/exercise-completion", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: program.token,
+              exerciseId,
+              completed: true,
+              localDate,
+              patientId: program.patientId ?? null,
+            }),
+          })
+          if (!response.ok) {
+            return
+          }
+        } catch {
+          return
+        }
+      }
+      if (!cancelled) {
+        clearExercisesPendingSync(program.token, localDate)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [canPersistToServer, localDate, online, program.patientId, program.token])
 
   const beginSession = useCallback(() => {
     markSessionStarted(program.token, localDate)
@@ -119,6 +223,13 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
     if (!canPersistToServer) {
       setPendingExerciseId(null)
       toast("Marcat ca efectuat (demo).")
+      return
+    }
+
+    if (!isBrowserOnline()) {
+      markExercisesPendingSync(program.token, localDate)
+      setPendingExerciseId(null)
+      toast(OFFLINE_EXERCISE_TOAST)
       return
     }
 
@@ -162,6 +273,11 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       toast("Exercițiu marcat ca efectuat.")
     } catch (err) {
       console.error("[Marchează ca Efectuat] network/error", err)
+      if (isLikelyOfflineError(err)) {
+        markExercisesPendingSync(program.token, localDate)
+        toast(OFFLINE_EXERCISE_TOAST)
+        return
+      }
       setCompletedIds(previous)
       saveCompletedExercises(program.token, localDate, previous)
       toast("Nu am putut salva. Verifică conexiunea și încearcă din nou.")
@@ -172,12 +288,19 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
 
   function submitCheckin() {
     setError(null)
+    setErrorTone("error")
     if (!allExercisesCompleted(exerciseIds, completedIds)) {
       setError(CHECKIN_REQUIRES_EXERCISES_MESSAGE)
       return
     }
     if (sleep === null) {
       setError("Alege calitatea somnului ca să trimiți check-in-ul.")
+      return
+    }
+    if (!isBrowserOnline()) {
+      saveCheckinDraft(program.token, localDate, { pain, sleep, energy, notes })
+      setErrorTone("offline")
+      setError(OFFLINE_CHECKIN_MESSAGE)
       return
     }
 
@@ -213,15 +336,30 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       if (sessionStartedAt) {
         formData.set("sessionStartedAt", sessionStartedAt)
       }
-      const result = await submitPatientCheckin(formData)
-      if (result.error) {
-        setError(result.error)
-        return
-      }
+      try {
+        const result = await submitPatientCheckin(formData)
+        if (result.error) {
+          setErrorTone(isLikelyOfflineError(result.error) ? "offline" : "error")
+          setError(
+            isLikelyOfflineError(result.error) ? OFFLINE_CHECKIN_MESSAGE : result.error,
+          )
+          return
+        }
 
-      const stored = result.checkin ?? payload
-      saveTodaysCheckin(program.token, stored)
-      setJustSubmitted(!result.alreadySubmitted)
+        const stored = result.checkin ?? payload
+        saveTodaysCheckin(program.token, stored)
+        clearCheckinDraft(program.token, localDate)
+        setJustSubmitted(!result.alreadySubmitted)
+      } catch (err) {
+        if (isLikelyOfflineError(err)) {
+          saveCheckinDraft(program.token, localDate, { pain, sleep, energy, notes })
+          setErrorTone("offline")
+          setError(OFFLINE_CHECKIN_MESSAGE)
+          return
+        }
+        setErrorTone("error")
+        setError("Nu am putut trimite check-in-ul. Încearcă din nou.")
+      }
     })
   }
 
@@ -231,6 +369,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       <PatientPushOnboarding patientKey={program.token} firstName={program.firstName} />
       <PatientPushListener portalToken={program.token} />
       <PatientHeader firstName={program.firstName} dateLabel={dateLabel} onOpenGuide={() => setGuideOpen(true)} />
+      <ConnectionBanner online={online} justReconnected={justReconnected} />
 
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 overflow-x-hidden px-4 py-6 pb-16 sm:px-6 lg:gap-10 lg:px-8 lg:py-8">
         {/* Check-in full-width */}
@@ -246,8 +385,10 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
               energy={energy}
               notes={notes}
               error={error}
+              errorTone={errorTone}
               pending={pending}
               submitEnabled={submitEnabled}
+              offline={!online}
               exercisesDone={exercisesDone}
               exercisesTotal={exerciseIds.length}
               onPainChange={setPain}
@@ -279,6 +420,8 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
               Urmărește video-ul, apoi bifează exercițiul. Check-in-ul se deblochează când sunt toate efectuate.
             </p>
           </div>
+
+          {showCelebration ? <ExercisesCompleteCelebration animate={celebrateAnimate} /> : null}
 
           {program.exercises.length === 0 ? (
             <p className="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-sm text-slate-600 shadow-sm">
