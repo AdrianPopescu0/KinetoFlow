@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/toaster"
+import { ThemePreferenceSection } from "@/components/theme/dashboard-theme"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 
 export function AccountSettingsForm({
@@ -34,6 +35,7 @@ export function AccountSettingsForm({
         clinicName={clinicName}
         isAdmin={isAdmin}
       />
+      <ThemePreferenceSection />
       <PasswordForm />
     </div>
   )

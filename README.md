@@ -59,7 +59,7 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) pentru landing, [http
 | `/onboarding` | Configurare clinică **doar** pentru administratori fără invitație. Terapeuții invitați (token, email pending sau `invited` în metadata) sunt trimiși la `/dashboard`. Formularul de cabinet nou nu li se afișează. |
 | `/recuperare-parola` | Cerere de resetare a parolei |
 | `/dashboard` | Zonă protejată (doar utilizatori autentificați) |
-| `/dashboard/setari` | Setări cont: date personale, parolă și preferințe de profil |
+| `/dashboard/setari` | Setări cont: date personale, **Aspect** (mod luminos / întuneric / automat), parolă și preferințe de profil (numele clinicii doar pentru admin) |
 | `/dashboard/exercises` | Bibliotecă de exerciții (taxonomie clinică, mock catalog) |
 | `/auth/callback` | Schimb `code` (PKCE) sau `token_hash` (recovery) → sesiune. **Înainte de /onboarding**, asociază invitația (token din query/cookie/sesiune sau email Google). Succes → `/dashboard`. Fără token pe server → `/auth/invitatie/continue` (citește localStorage), **niciodată** formularul de clinică nouă. |
 | `/auth/invitatie/[token]` | Link unic din WhatsApp/SMS. Emailul e precompletat din invitație; terapeutul alege **doar parola** și apasă activarea — **fără Google** și **fără OTP**. Dacă adresa există deja în Supabase Auth, serverul **setează parola** și confirmă emailul (nu eșuează ca la un signUp). Altfel creează contul (`email_confirm: true`). Apoi face **UPDATE** pe `therapist_invites` (`accepted_user_id`, `accepted_at`), asociază terapeutul de clinică și deschide sesiunea pe **același** client — destinația e **doar** `/dashboard`, niciodată `/onboarding`. Erorile Supabase sunt logate cu `[invite-activate]` și afișate în formular. |

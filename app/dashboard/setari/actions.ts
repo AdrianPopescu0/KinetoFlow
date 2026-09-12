@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 
+import { cookies } from "next/headers"
+
 import { getCachedUser } from "@/lib/auth/session"
 import { evaluateRegisterPassword, REGISTER_PASSWORD_HINT } from "@/lib/auth/password"
 import { privilegedClinicClient } from "@/lib/clinics/members"
@@ -9,6 +11,7 @@ import { fetchClinicProfile } from "@/lib/clinics/profile"
 import { isClinicAdmin } from "@/lib/clinics/types"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { formatSupabaseError } from "@/lib/supabase/format-error"
+import { isThemePreference, THEME_COOKIE_NAME, type ThemePreference } from "@/lib/theme/preference"
 import { createClient } from "@/utils/supabase/server"
 
 export type AccountSettingsState = {
@@ -167,4 +170,30 @@ export async function updateAccountPassword(formData: FormData): Promise<Account
   }
 
   return { ok: true, message: "Parola a fost actualizată." }
+}
+
+export async function persistAccountTheme(theme: ThemePreference): Promise<AccountSettingsState> {
+  if (!isThemePreference(theme)) {
+    return { error: "Tema aleasă nu este validă." }
+  }
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: "Sesiunea a expirat. Autentifică-te din nou." }
+  }
+  const { error } = await supabase.auth.updateUser({
+    data: { theme },
+  })
+  if (error) {
+    return { error: formatSupabaseError(error) }
+  }
+  const jar = await cookies()
+  jar.set(THEME_COOKIE_NAME, theme, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  })
+  return { ok: true }
 }

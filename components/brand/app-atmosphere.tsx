@@ -9,12 +9,12 @@ type AppShellProps = {
 
 export function AppShell({ children, className }: AppShellProps) {
   return (
-    <div className={cn("flex min-h-0 max-w-full flex-1 flex-col overflow-x-hidden bg-slate-50 text-slate-800", className)}>
+    <div className={cn("flex min-h-0 max-w-full flex-1 flex-col overflow-x-hidden bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100", className)}>
       {children}
     </div>
   )
 }
 
 export function surfaceCardClassName(extra?: string) {
-  return cn("rounded-2xl border border-slate-200 bg-white shadow-sm", extra)
+  return cn("rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900", extra)
 }

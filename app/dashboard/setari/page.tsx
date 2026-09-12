@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 
 import { AccountSettingsForm } from "@/app/dashboard/setari/account-settings-form"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
+import { ThemePreferenceSection } from "@/components/theme/dashboard-theme"
 import { getCachedUser } from "@/lib/auth/session"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
 import { isClinicAdmin } from "@/lib/clinics/types"
@@ -37,8 +38,8 @@ export default async function AccountSettingsPage() {
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-800">Setări cont</h1>
         <p className="mt-1 text-sm text-slate-600">
           {isAdmin
-            ? "Gestionează datele personale, parola și numele clinicii."
-            : "Gestionează datele personale și parola."}
+            ? "Gestionează datele personale, aspectul panoului, parola și numele clinicii."
+            : "Gestionează datele personale, aspectul panoului și parola."}
         </p>
       </div>
 
@@ -47,10 +48,15 @@ export default async function AccountSettingsPage() {
           {error}
         </section>
       ) : !profile ? (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-6 text-sm text-amber-900">
-          Profilul clinicii nu este configurat. Revino la onboarding ca să salvezi cabinetul, apoi poți edita setările
-          contului.
-        </section>
+        <>
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-6 text-sm text-amber-900">
+            Profilul clinicii nu este configurat. Revino la onboarding ca să salvezi cabinetul, apoi poți edita setările
+            contului.
+          </section>
+          <section className={surfaceCardClassName("p-5 sm:p-6")}>
+            <ThemePreferenceSection standalone />
+          </section>
+        </>
       ) : (
         <section className={surfaceCardClassName("p-5 sm:p-6")}>
           <AccountSettingsForm

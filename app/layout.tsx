@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/toaster";
+import { DASHBOARD_THEME_BOOT_SCRIPT } from "@/lib/theme/preference";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -48,6 +49,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} min-h-screen max-w-full overflow-x-hidden antialiased`}
     >
       <body className="flex min-h-screen max-w-full flex-col justify-between overflow-x-hidden bg-slate-50 text-slate-800">
+        <Script id="dashboard-theme-boot" strategy="beforeInteractive">
+          {DASHBOARD_THEME_BOOT_SCRIPT}
+        </Script>
         <Script id="pwa-install-capture" strategy="beforeInteractive">
           {`(function () {
   window.addEventListener("beforeinstallprompt", function (event) {
