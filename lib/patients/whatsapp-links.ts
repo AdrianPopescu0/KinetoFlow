@@ -13,11 +13,23 @@ const WHATSAPP_HOSTS = new Set([
   "www.whatsapp.com",
 ])
 
+/** Chat WhatsApp doar cu numărul: `https://wa.me/40…` — fără text predefinit. */
+export function patientWhatsAppMeHref(phone: string | null | undefined): string | null {
+  const digits = phone ? toWhatsAppNumber(phone) : null
+  if (!digits) {
+    return null
+  }
+  return `https://wa.me/${digits}`
+}
+
 /** Official click-to-chat (mobile + desktop). Avoids in-app Next.js routing. */
 export function patientWhatsAppHref(phone: string, message: string): string | null {
   const digits = toWhatsAppNumber(phone)
   if (!digits) {
     return null
+  }
+  if (!message.trim()) {
+    return patientWhatsAppMeHref(phone)
   }
   return `https://api.whatsapp.com/send?phone=${digits}&text=${encodedWhatsAppText(message)}`
 }

@@ -48,20 +48,26 @@ export function phonesMatch(stored: string | null, input: string): boolean {
 }
 
 /**
- * Link nativ SMS: `sms:+NUMAR_TELEFON?body=...`
+ * Link nativ SMS: `sms:+NUMAR` sau `sms:+NUMAR?body=...` dacă există text.
  * Numărul vine din obiectul pacientului (normalizat 40xxxxxxxxxx).
  * Pe iOS, `patientSmsHrefForDevice` folosește `&body=` ca să completeze destinatarul.
  */
-export function patientSmsHref(phone: string | null | undefined, body: string): string | null {
+export function patientSmsHref(phone: string | null | undefined, body?: string | null): string | null {
   const digits = phone ? toWhatsAppNumber(phone) : null
-  if (!digits || !body.trim()) {
+  if (!digits) {
     return null
+  }
+  if (!body?.trim()) {
+    return `sms:+${digits}`
   }
 
   return `sms:+${digits}?body=${encodeURIComponent(body)}`
 }
 
-export function patientSmsHrefForDevice(phone: string | null | undefined, body: string): string | null {
+export function patientSmsHrefForDevice(
+  phone: string | null | undefined,
+  body?: string | null,
+): string | null {
   const href = patientSmsHref(phone, body)
   if (!href) {
     return null
@@ -69,13 +75,13 @@ export function patientSmsHrefForDevice(phone: string | null | undefined, body: 
 
   const isIos =
     typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent)
-  return isIos ? href.replace("?body=", "&body=") : href
+  return isIos && href.includes("?body=") ? href.replace("?body=", "&body=") : href
 }
 
 export function openPatientSms(
   event: { preventDefault: () => void },
   phone: string | null | undefined,
-  body: string,
+  body?: string | null,
 ) {
   const href = patientSmsHrefForDevice(phone, body)
   if (!href) {

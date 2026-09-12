@@ -4,6 +4,7 @@ export {
   isExternalWhatsAppUrl,
   openExternalWhatsApp,
   patientWhatsAppHref,
+  patientWhatsAppMeHref,
   patientWhatsAppWebHref,
   WHATSAPP_BLANK_REL,
   WHATSAPP_BLANK_TARGET,

@@ -14,12 +14,6 @@ import { sleepLabel } from "@/lib/patients/display"
 import { formatExerciseDuration } from "@/lib/patients/session-duration"
 import { notifyChannelLabel } from "@/lib/patients/notify-channel"
 import { getTherapistPatient } from "@/lib/patients/queries"
-import {
-  patientWhatsAppHref,
-  patientWhatsAppMessage,
-  patientWhatsAppWebHref,
-} from "@/lib/patients/whatsapp"
-
 type PatientFilePageProps = {
   params: Promise<{ id: string }>
 }
@@ -31,11 +25,6 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
     notFound()
   }
 
-  const inviteMessage = patientWhatsAppMessage({
-    fullName: patient.full_name,
-    clinicName: "KinetoFlow",
-    accessCode: patient.access_code ?? "",
-  })
   const phone = patient.phone ?? ""
 
   return (
@@ -78,9 +67,6 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
               <NotifyChannelActions
                 patientId={patient.id}
                 phone={phone}
-                message={inviteMessage}
-                whatsappHref={patientWhatsAppHref(phone, inviteMessage)}
-                whatsappWebHref={patientWhatsAppWebHref(phone, inviteMessage)}
                 initialChannel={patient.notify_channel}
               />
             </div>

@@ -4,13 +4,20 @@ import { test } from "node:test"
 import {
   isExternalWhatsAppUrl,
   patientWhatsAppHref,
+  patientWhatsAppMeHref,
   patientWhatsAppWebHref,
   WHATSAPP_BLANK_REL,
   WHATSAPP_BLANK_TARGET,
   whatsappBlankAnchorProps,
 } from "./whatsapp-links.ts"
 
-test("click-to-chat folosește api.whatsapp.com, nu o rută internă", () => {
+test("contactul pacientului deschide wa.me doar cu numărul, fără text", () => {
+  const href = patientWhatsAppMeHref("0722 123 456")
+  assert.equal(href, "https://wa.me/40722123456")
+  assert.equal(patientWhatsAppMeHref("12"), null)
+})
+
+test("click-to-chat cu mesaj folosește api.whatsapp.com, nu o rută internă", () => {
   const href = patientWhatsAppHref("0722 123 456", "Bună, Ana!")
   assert.ok(href)
   const url = new URL(href)

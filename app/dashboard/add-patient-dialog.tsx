@@ -144,9 +144,6 @@ export function AddPatientDialog() {
                     <NotifyChannelActions
                       patientId={created.patientId}
                       phone={created.phone}
-                      message={created.whatsappMessage || created.portalUrl}
-                      whatsappHref={created.whatsappHref}
-                      whatsappWebHref={created.whatsappWebHref}
                     />
                     {created.whatsappMessage ? (
                       <Button
