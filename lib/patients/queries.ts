@@ -9,6 +9,8 @@ import {
 import { addBucharestCalendarDays, bucharestDateKey, isBucharestToday } from "@/lib/time/bucharest"
 import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
 import { privilegedClinicClient } from "@/lib/clinics/members"
+import { listCheckInsForPatient, listVasPointsForPatients } from "@/lib/patients/check-ins"
+import { readPatientRecordId } from "@/lib/patients/patient-id"
 import { fetchPatientNotes } from "@/lib/patients/patient-notes"
 import type {
   CheckInRecord,
@@ -206,14 +208,8 @@ async function assemblePatientList(
     })
   } else {
     const ids = patients.map((patient) => patient.id)
-    if (ids.length > 0) {
-      const { data } = await supabase
-        .from("check_ins")
-        .select("patient_id, vas_score, created_at")
-        .in("patient_id", ids)
-        .order("created_at", { ascending: false })
-      checkIns = (data ?? []) as Array<Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>
-    }
+    const clinicClient = await privilegedClinicClient(supabase)
+    checkIns = await listVasPointsForPatients(clinicClient, ids)
   }
 
   const latestByPatient = new Map<string, Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>()
@@ -295,12 +291,12 @@ export const getTherapistPatient = cache(async (id: string): Promise<{
 
   const stamped = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_STAMPED)
   if (!stamped.error && stamped.data) {
-    return loadPatientRelations(supabase, withClinicalNotes(stamped.data as Record<string, unknown>))
+    return loadPatientRelations(supabase, withClinicalNotes(stamped.data as Record<string, unknown>), id)
   }
 
   const stampedNoChannel = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_STAMPED_NO_CHANNEL)
   if (!stampedNoChannel.error && stampedNoChannel.data) {
-    return loadPatientRelations(supabase, withClinicalNotes(stampedNoChannel.data as Record<string, unknown>))
+    return loadPatientRelations(supabase, withClinicalNotes(stampedNoChannel.data as Record<string, unknown>), id)
   }
 
   const { data: patientRow, error } = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS)
@@ -312,18 +308,20 @@ export const getTherapistPatient = cache(async (id: string): Promise<{
       return { patient: null, exercises: [], checkIns: [], error: "Pacientul nu a fost găsit." }
     }
 
-    return loadPatientRelations(supabase, withClinicalNotes(fallback.data as Record<string, unknown>))
+    return loadPatientRelations(supabase, withClinicalNotes(fallback.data as Record<string, unknown>), id)
   }
 
-  return loadPatientRelations(supabase, withClinicalNotes(patientRow as Record<string, unknown>))
+  return loadPatientRelations(supabase, withClinicalNotes(patientRow as Record<string, unknown>), id)
 })
 
 async function loadPatientRelations(
   supabase: Awaited<ReturnType<typeof currentTherapist>>["supabase"],
   patient: PatientRecord,
+  patientIdFromUrl: string,
 ) {
-  const notesClient = await privilegedClinicClient(supabase)
-  const notesRow = await fetchPatientNotes(notesClient, patient.id)
+  const patientId = readPatientRecordId(patientIdFromUrl, patient.id) ?? patient.id
+  const clinicClient = await privilegedClinicClient(supabase)
+  const notesRow = await fetchPatientNotes(clinicClient, patientId)
   if (notesRow) {
     patient.clinical_notes = notesRow.notes
     if (notesRow.updated_at) {
@@ -334,50 +332,16 @@ async function loadPatientRelations(
   const { data: exercises } = await supabase
     .from("exercises")
     .select("id, patient_id, title, video_url, sets, reps, notes")
-    .eq("patient_id", patient.id)
+    .eq("patient_id", patientId)
     .order("title", { ascending: true })
 
-  const withDuration = await supabase
-    .from("check_ins")
-    .select("id, patient_id, vas_score, sleep_quality, pain_type, notes, created_at, exercise_duration_seconds")
-    .eq("patient_id", patient.id)
-    .order("created_at", { ascending: false })
-
-  let checkInRows: Record<string, unknown>[] | null = (withDuration.data ?? null) as Record<string, unknown>[] | null
-  if (withDuration.error) {
-    const missingDuration =
-      withDuration.error.code === "PGRST204" ||
-      withDuration.error.message.toLowerCase().includes("exercise_duration_seconds")
-    if (missingDuration) {
-      const fallback = await supabase
-        .from("check_ins")
-        .select("id, patient_id, vas_score, sleep_quality, pain_type, notes, created_at")
-        .eq("patient_id", patient.id)
-        .order("created_at", { ascending: false })
-      checkInRows = (fallback.data ?? null) as Record<string, unknown>[] | null
-    }
-  }
+  const checkIns = await listCheckInsForPatient(clinicClient, patientId)
 
   return {
     patient,
     exercises: (exercises ?? []) as ExerciseRecord[],
-    checkIns: (checkInRows ?? []).map(mapCheckInRow),
+    checkIns,
     error: null,
-  }
-}
-
-function mapCheckInRow(row: Record<string, unknown>): CheckInRecord {
-  const duration = row.exercise_duration_seconds
-  return {
-    id: String(row.id),
-    patient_id: String(row.patient_id),
-    vas_score: Number(row.vas_score),
-    sleep_quality: typeof row.sleep_quality === "string" ? row.sleep_quality : null,
-    pain_type: typeof row.pain_type === "string" ? row.pain_type : null,
-    notes: typeof row.notes === "string" ? row.notes : null,
-    created_at: String(row.created_at),
-    exercise_duration_seconds:
-      typeof duration === "number" && Number.isFinite(duration) ? duration : null,
   }
 }
 

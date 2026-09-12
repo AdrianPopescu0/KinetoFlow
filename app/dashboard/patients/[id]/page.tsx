@@ -14,6 +14,7 @@ import { sleepLabel } from "@/lib/patients/display"
 import { formatExerciseDuration } from "@/lib/patients/session-duration"
 import { notifyChannelLabel } from "@/lib/patients/notify-channel"
 import { getTherapistPatient } from "@/lib/patients/queries"
+
 type PatientFilePageProps = {
   params: Promise<{ id: string }>
 }
@@ -94,6 +95,7 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
             <h2 className="text-base font-semibold text-slate-800">Monitorizare clinică</h2>
             <p className="text-sm text-slate-600">
               Evoluția scorului VAS, istoricul check-in-urilor și durata ședinței de exerciții.
+              Istoricul e același pentru toți terapeuții din cabinet — se încarcă după pacient, nu după terapeutul logat.
             </p>
           </div>
           <VasChart checkIns={checkIns} />
