@@ -34,11 +34,14 @@ export function patientWhatsAppHref(phone: string, message: string): string | nu
   return `https://api.whatsapp.com/send?phone=${digits}&text=${encodedWhatsAppText(message)}`
 }
 
-/** WhatsApp Web — useful on desktop; hide on phones where this URL often fails. */
-export function patientWhatsAppWebHref(phone: string, message: string): string | null {
-  const digits = toWhatsAppNumber(phone)
+/** WhatsApp Web în browser: `web.whatsapp.com/send?phone=` — fără text dacă nu e dat. */
+export function patientWhatsAppWebHref(phone: string | null | undefined, message?: string | null): string | null {
+  const digits = phone ? toWhatsAppNumber(phone) : null
   if (!digits) {
     return null
+  }
+  if (!message?.trim()) {
+    return `https://web.whatsapp.com/send?phone=${digits}`
   }
   return `https://web.whatsapp.com/send?phone=${digits}&text=${encodedWhatsAppText(message)}`
 }

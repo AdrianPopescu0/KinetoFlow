@@ -39,6 +39,13 @@ test("WhatsApp Web rămâne pe web.whatsapp.com", () => {
   assert.ok((url.searchParams.get("text") ?? "").includes("12345678"))
 })
 
+test("WhatsApp Web pe fișă deschide web.whatsapp.com doar cu numărul, fără text", () => {
+  const href = patientWhatsAppWebHref("0722 123 456")
+  assert.equal(href, "https://web.whatsapp.com/send?phone=40722123456")
+  assert.equal(href?.includes("text="), false)
+  assert.equal(patientWhatsAppWebHref("12"), null)
+})
+
 test("număr invalid nu produce link", () => {
   assert.equal(patientWhatsAppHref("12", "salut"), null)
   assert.equal(patientWhatsAppWebHref("", "salut"), null)

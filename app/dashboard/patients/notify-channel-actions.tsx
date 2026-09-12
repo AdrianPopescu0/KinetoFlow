@@ -7,7 +7,12 @@ import { buttonVariants } from "@/components/ui/button"
 import { toast } from "@/components/ui/toaster"
 import { notifyChannelLabel, type PatientNotifyChannel } from "@/lib/patients/notify-channel"
 import { openPatientSms, patientSmsHref } from "@/lib/patients/phone"
-import { openExternalWhatsApp, patientWhatsAppMeHref, whatsappBlankAnchorProps } from "@/lib/patients/whatsapp"
+import {
+  openExternalWhatsApp,
+  patientWhatsAppMeHref,
+  patientWhatsAppWebHref,
+  whatsappBlankAnchorProps,
+} from "@/lib/patients/whatsapp"
 import { cn } from "@/lib/utils"
 
 type NotifyChannelActionsProps = {
@@ -23,6 +28,7 @@ export function NotifyChannelActions({
 }: NotifyChannelActionsProps) {
   const [channel, setChannel] = useState<PatientNotifyChannel | null>(initialChannel)
   const whatsappHref = patientWhatsAppMeHref(phone)
+  const whatsappWebHref = patientWhatsAppWebHref(phone)
   const smsHref = patientSmsHref(phone)
   const sendActionClassName =
     "h-12 w-full min-w-0 shrink justify-center whitespace-normal px-3 text-center rounded-xl"
@@ -79,6 +85,23 @@ export function NotifyChannelActions({
         >
           <MessageCircle className="size-4 shrink-0" />
           WhatsApp
+        </a>
+      ) : null}
+      {whatsappWebHref ? (
+        <a
+          {...whatsappBlankAnchorProps(whatsappWebHref)}
+          onClick={(event) => {
+            openExternalWhatsApp(event, whatsappWebHref)
+            void remember("whatsapp")
+          }}
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            sendActionClassName,
+            "border-slate-300 text-slate-800 hover:bg-slate-50",
+          )}
+        >
+          <MessageCircle className="size-4 shrink-0" />
+          WhatsApp Web
         </a>
       ) : null}
       {smsHref ? (
