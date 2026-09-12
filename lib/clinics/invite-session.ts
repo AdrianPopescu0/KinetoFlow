@@ -1,3 +1,4 @@
+import { postGoogleAuthDestination } from "./google-auth-path.ts"
 import { isTherapistInviteToken, THERAPIST_INVITE_PATH } from "./therapist-invite-token.ts"
 
 export { THERAPIST_INVITE_PATH }
@@ -223,20 +224,16 @@ export function therapistPostAuthHref(
 }
 
 /**
- * După Google OAuth: niciodată /onboarding.
- * Token (URL, cookie, sesiune) → finalize (asociază clinica).
- * Fără token → continue, care citește localStorage/sessionStorage.
+ * După Google OAuth: clinică existentă → dashboard.
+ * Invitație → finalize. Utilizator nou → crearea clinicii.
  */
 export function afterGoogleOAuthPath(input: {
   attached: boolean
   clinicReady: boolean
   inviteToken?: string | null
 }): string {
-  if (input.attached || input.clinicReady) {
-    return "/dashboard"
-  }
-  if (input.inviteToken && isTherapistInviteToken(input.inviteToken)) {
+  if (input.inviteToken && isTherapistInviteToken(input.inviteToken) && !input.attached && !input.clinicReady) {
     return therapistInviteFinalizeHref(input.inviteToken)
   }
-  return THERAPIST_INVITE_CONTINUE_PATH
+  return postGoogleAuthDestination(input)
 }

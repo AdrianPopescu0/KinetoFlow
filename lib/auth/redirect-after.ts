@@ -16,6 +16,7 @@ import {
   THERAPIST_INVITE_COOKIE,
   inviteTokenFromAuthUser,
 } from "@/lib/clinics/invite-session"
+import { ensureExistingClinicMembership } from "@/lib/clinics/membership"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import { createClient } from "@/utils/supabase/server"
 
@@ -68,7 +69,10 @@ export async function resolveTherapistAppPath(): Promise<TherapistAppPath> {
     return "/dashboard"
   }
 
-  const ready = clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
+  const ready =
+    clinicReadyFromUser(user) ||
+    (await therapistHasClinicProfile(supabase, user.id)) ||
+    (await ensureExistingClinicMembership(user))
   return therapistAppPath(ready)
 }
 

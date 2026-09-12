@@ -68,18 +68,15 @@ test("după login, invitația în așteptare bate ecranul de clinică nouă", ()
   assert.equal(therapistPostAuthHref(null, "nu"), "/dashboard")
 })
 
-test("după Google OAuth nu se deschide formularul de clinică nouă", () => {
+test("după Google OAuth, clinica existentă bate onboarding-ul; utilizatorul nou creează clinica", () => {
   assert.equal(afterGoogleOAuthPath({ attached: true, clinicReady: false, inviteToken: token }), "/dashboard")
   assert.equal(afterGoogleOAuthPath({ attached: false, clinicReady: true }), "/dashboard")
   assert.equal(
     afterGoogleOAuthPath({ attached: false, clinicReady: false, inviteToken: token }),
     `/auth/invitatie/finalize?invite=${token}`,
   )
-  assert.equal(
-    afterGoogleOAuthPath({ attached: false, clinicReady: false, inviteToken: null }),
-    THERAPIST_INVITE_CONTINUE_PATH,
-  )
-  assert.notEqual(afterGoogleOAuthPath({ attached: false, clinicReady: false }), "/onboarding")
+  assert.equal(afterGoogleOAuthPath({ attached: false, clinicReady: false, inviteToken: null }), "/onboarding")
+  assert.equal(afterGoogleOAuthPath({ attached: false, clinicReady: false }), "/onboarding")
 })
 
 test("tokenul se citește din query, cookie httpOnly, cookie client sau metadate", () => {

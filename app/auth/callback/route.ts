@@ -19,6 +19,7 @@ import {
   therapistInviteCheckedCookieOptions,
   writeTherapistInviteCookies,
 } from "@/lib/clinics/invite-session"
+import { ensureExistingClinicMembership } from "@/lib/clinics/membership"
 import { clinicReadyFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import type { Database } from "@/lib/supabase/database.types"
 import { getSupabasePublicEnv } from "@/utils/supabase/env"
@@ -207,10 +208,16 @@ export async function GET(request: NextRequest) {
   }
 
   if (user) {
-    const clinicReady =
+    let clinicReady =
       clinicReadyFromUser(user) ||
       invitedTherapistFromUser(user) ||
       (await therapistHasClinicProfile(supabase, user.id))
+    if (!clinicReady) {
+      clinicReady = await ensureExistingClinicMembership(user)
+      if (clinicReady) {
+        await supabase.auth.refreshSession()
+      }
+    }
     const path = afterGoogleOAuthPath({
       attached: false,
       clinicReady,

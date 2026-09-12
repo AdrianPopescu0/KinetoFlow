@@ -12,6 +12,11 @@ export function isSupabaseAuthCookieName(name: string): boolean {
   return name.startsWith("sb-") && (name.includes("-auth-token") || name.includes("code-verifier"))
 }
 
+/** Pe mobil, Google trebuie să arate mereu selectorul de conturi. */
+export const GOOGLE_OAUTH_QUERY_PARAMS = {
+  prompt: "select_account",
+} as const
+
 export function therapistEnterPath(next?: string | null): "/dashboard" | "/onboarding" {
   return next === "/onboarding" ? "/onboarding" : "/dashboard"
 }

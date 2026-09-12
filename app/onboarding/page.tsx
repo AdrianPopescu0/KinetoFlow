@@ -17,6 +17,7 @@ import {
   THERAPIST_INVITE_COOKIE,
   inviteTokenFromAuthUser,
 } from "@/lib/clinics/invite-session"
+import { ensureExistingClinicMembership } from "@/lib/clinics/membership"
 import { fetchClinicProfile } from "@/lib/clinics/profile"
 
 export const metadata: Metadata = {
@@ -61,6 +62,11 @@ export default async function OnboardingPage() {
 
   const { profile, error: clinicLoadError } = await fetchClinicProfile(supabase, user.id)
   if (profile) {
+    redirect("/dashboard")
+  }
+
+  if (await ensureExistingClinicMembership(user)) {
+    await supabase.auth.refreshSession()
     redirect("/dashboard")
   }
 

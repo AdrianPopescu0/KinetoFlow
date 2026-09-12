@@ -2,7 +2,12 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import { isPublicMarketingPath, isSignupAuthMode, loginHref, safeAuthNextPath, shouldStayOnTherapistLogin, therapistAppPath } from "./paths.ts"
-import { isSupabaseAuthCookieName, oauthBrowserRedirectTo, therapistEnterPath } from "./oauth-redirect.ts"
+import {
+  GOOGLE_OAUTH_QUERY_PARAMS,
+  isSupabaseAuthCookieName,
+  oauthBrowserRedirectTo,
+  therapistEnterPath,
+} from "./oauth-redirect.ts"
 
 test("taburile de autentificare și înregistrare au rute distincte", () => {
   assert.equal(loginHref("signin"), "/login?mode=signin")
@@ -39,6 +44,10 @@ test("după login, destinația implicită e dashboard-ul clinicii", () => {
   assert.equal(therapistEnterPath("/onboarding"), "/onboarding")
   assert.equal(therapistEnterPath(null), "/dashboard")
   assert.equal(therapistEnterPath("/"), "/dashboard")
+})
+
+test("login-ul Google cere mereu selectarea contului", () => {
+  assert.equal(GOOGLE_OAUTH_QUERY_PARAMS.prompt, "select_account")
 })
 
 test("callback-ul Google duce în dashboard, nu pe pagina principală", () => {

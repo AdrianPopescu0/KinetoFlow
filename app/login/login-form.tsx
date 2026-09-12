@@ -12,7 +12,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { enterTherapistApp, oauthBrowserRedirectToWithPendingInvite } from "@/lib/auth/oauth-redirect"
+import {
+  enterTherapistApp,
+  GOOGLE_OAUTH_QUERY_PARAMS,
+  oauthBrowserRedirectToWithPendingInvite,
+} from "@/lib/auth/oauth-redirect"
 import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
 import { emailOtpPageHref, loginHref } from "@/lib/auth/paths"
 import { writePendingEmailOtp } from "@/lib/auth/pending-email-otp"
@@ -97,6 +101,7 @@ export function LoginForm({
             window.location.origin,
             "/dashboard",
           ),
+          queryParams: { ...GOOGLE_OAUTH_QUERY_PARAMS },
         },
       })
       if (error) {
