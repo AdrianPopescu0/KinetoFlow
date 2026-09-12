@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { isWriteConflict } from "@/lib/patients/optimistic"
-import { isMissingPatientNotesTable } from "@/lib/patients/schema-error"
+import { isMissingPatientNotesTable, isMissingSchemaObject } from "@/lib/patients/schema-error"
 
 export const PATIENT_NOTES_SQL = "sql/030_patient_notes.sql"
 
@@ -44,7 +44,7 @@ export async function upsertPatientNotes(
   supabase: SupabaseClient,
   patientId: string,
   notes: string | null,
-  options?: { expectedUpdatedAt?: string | null; forceOverwrite?: boolean },
+  options?: { expectedUpdatedAt?: string | null; forceOverwrite?: boolean; updatedBy?: string | null },
 ): Promise<
   | { ok: true; updated_at: string | null }
   | { ok: false; error: string; missingTable?: boolean; conflict?: boolean; currentNotes?: string | null; currentUpdatedAt?: string | null }
@@ -62,14 +62,26 @@ export async function upsertPatientNotes(
   }
 
   const stamp = new Date().toISOString()
-  const { data, error } = await supabase
+  const baseRow = { patient_id: patientId, notes, updated_at: stamp }
+  const withAuthor = options?.updatedBy
+    ? { ...baseRow, updated_by: options.updatedBy }
+    : baseRow
+
+  let { data, error } = await supabase
     .from("patient_notes")
-    .upsert(
-      { patient_id: patientId, notes, updated_at: stamp },
-      { onConflict: "patient_id" },
-    )
+    .upsert(withAuthor, { onConflict: "patient_id" })
     .select("patient_id, notes, updated_at")
     .maybeSingle()
+
+  if (error && options?.updatedBy && isMissingSchemaObject(error, "updated_by")) {
+    const retry = await supabase
+      .from("patient_notes")
+      .upsert(baseRow, { onConflict: "patient_id" })
+      .select("patient_id, notes, updated_at")
+      .maybeSingle()
+    data = retry.data
+    error = retry.error
+  }
 
   if (error) {
     if (isMissingPatientNotesTable(error)) {

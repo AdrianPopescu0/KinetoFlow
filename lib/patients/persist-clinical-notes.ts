@@ -37,6 +37,7 @@ export async function persistClinicalNotesForTherapist(input: {
   const result = await upsertPatientNotes(client, patientId, trimmed, {
     expectedUpdatedAt: input.expectedUpdatedAt ?? null,
     forceOverwrite: input.forceOverwrite === true,
+    updatedBy: input.userId,
   })
 
   if (!result.ok) {

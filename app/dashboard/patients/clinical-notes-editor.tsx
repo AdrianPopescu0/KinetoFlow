@@ -62,9 +62,7 @@ export function ClinicalNotesEditor({
     setNotes(restored)
     notesRef.current = restored
     lastWrittenRef.current = restored
-    if (restored !== serverValue) {
-      setDraftAt(Date.now())
-    }
+    setDraftAt(null)
   }, [resolvedPatientId, serverValue])
 
   useEffect(() => {
@@ -234,7 +232,7 @@ export function ClinicalNotesEditor({
         <p className="text-xs text-slate-500">
           {draftAt
             ? `Draft salvat local la ${new Date(draftAt).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}.`
-            : "Draft-ul se salvează automat la fiecare 5 secunde pe acest dispozitiv."}
+            : "La salvare, notița e vizibilă pentru toți terapeuții din clinică. Draft-ul local e doar rezervă pe acest dispozitiv."}
         </p>
         <Button type="submit" disabled={isSaving} className="h-11 rounded-xl">
           {isSaving ? (

@@ -161,7 +161,7 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
   const code = typeof row.access_code === "string" ? row.access_code : accessCode
   if (notes) {
     const notesClient = await privilegedClinicClient(supabase)
-    await upsertPatientNotes(notesClient, String(row.id), notes)
+    await upsertPatientNotes(notesClient, String(row.id), notes, { updatedBy: user.id })
   }
   const clinicName = (await clinicNameForUser(supabase, user.id)) || "KinetoFlow"
   const message = patientWhatsAppMessage({ fullName, clinicName, accessCode: code })

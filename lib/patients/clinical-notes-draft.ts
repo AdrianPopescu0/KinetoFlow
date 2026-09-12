@@ -46,10 +46,7 @@ export function clearClinicalNotesDraft(patientId: string): void {
   }
 }
 
-export function initialClinicalNotes(patientId: string, serverNotes: string): string {
-  const draft = readClinicalNotesDraft(patientId)
-  if (draft && draft.notes !== serverNotes) {
-    return draft.notes
-  }
+/** La deschiderea fișei: întotdeauna textul din baza de date, nu draft-ul local. */
+export function initialClinicalNotes(_patientId: string, serverNotes: string): string {
   return serverNotes
 }

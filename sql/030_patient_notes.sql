@@ -6,8 +6,12 @@
 create table if not exists public.patient_notes (
   patient_id uuid primary key references public.patients (id) on delete cascade,
   notes text,
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  updated_by uuid
 );
+
+alter table public.patient_notes
+  add column if not exists updated_by uuid;
 
 create index if not exists patient_notes_updated_at_idx
   on public.patient_notes (updated_at);
@@ -87,6 +91,33 @@ begin
   pred := 'p.therapist_id = auth.uid()';
   if has_assigned then
     pred := pred || ' or p.assigned_therapist_id = auth.uid()';
+  end if;
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'clinic_profiles'
+  ) then
+    pred := pred || $c$
+      or exists (
+        select 1
+        from public.clinic_profiles owner_profile
+        join public.clinic_profiles me
+          on lower(btrim(me.clinic_name)) = lower(btrim(owner_profile.clinic_name))
+        where owner_profile.user_id = p.therapist_id
+          and me.user_id = auth.uid()
+      )
+    $c$;
+    if has_assigned then
+      pred := pred || $c$
+        or exists (
+          select 1
+          from public.clinic_profiles owner_profile
+          join public.clinic_profiles me
+            on lower(btrim(me.clinic_name)) = lower(btrim(owner_profile.clinic_name))
+          where owner_profile.user_id = p.assigned_therapist_id
+            and me.user_id = auth.uid()
+        )
+      $c$;
+    end if;
   end if;
 
   execute format(

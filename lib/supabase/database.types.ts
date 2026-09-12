@@ -88,15 +88,18 @@ export type Database = {
           patient_id: string
           notes: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           patient_id: string
           notes?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           notes?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
