@@ -126,29 +126,28 @@ function ProfileForm({
         </div>
       </section>
 
-      <section className="flex flex-col gap-4 border-t border-slate-200 pt-5">
-        <div>
-          <h2 className="text-base font-semibold text-slate-800">Preferințe de profil</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Numele de mai sus este afișat pacienților.{" "}
-            {isAdmin
-              ? "Ca administrator, poți redenumi cabinetul; colegii rămân în aceeași clinică."
-              : "Numele cabinetului poate fi schimbat doar de administrator."}
-          </p>
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="clinic_name">Numele clinicii / cabinetului</Label>
-          <Input
-            id="clinic_name"
-            name="clinic_name"
-            required={isAdmin}
-            readOnly={!isAdmin}
-            disabled={isPending || !isAdmin}
-            defaultValue={clinicName}
-            className="h-12 border-slate-300"
-          />
-        </div>
-      </section>
+      {isAdmin ? (
+        <section className="flex flex-col gap-4 border-t border-slate-200 pt-5">
+          <div>
+            <h2 className="text-base font-semibold text-slate-800">Preferințe de profil</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Numele clinicii este vizibil în echipă și în programul pacienților. Doar administratorul îl poate
+              schimba; colegii rămân în aceeași clinică.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="clinic_name">Numele clinicii / cabinetului</Label>
+            <Input
+              id="clinic_name"
+              name="clinic_name"
+              required
+              defaultValue={clinicName}
+              disabled={isPending}
+              className="h-12 border-slate-300"
+            />
+          </div>
+        </section>
+      ) : null}
 
       <Button type="submit" disabled={isPending} className="h-12 min-h-[48px] w-full rounded-xl sm:w-auto">
         {isPending ? (

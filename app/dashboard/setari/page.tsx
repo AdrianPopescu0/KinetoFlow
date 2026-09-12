@@ -28,6 +28,7 @@ export default async function AccountSettingsPage() {
     (typeof user.user_metadata?.clinic_name === "string" ? user.user_metadata.clinic_name.trim() : "")
   const phone = profile?.phone?.trim() || metadataPhone
   const email = user.email ?? ""
+  const isAdmin = isClinicAdmin(profile)
 
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col gap-6 overflow-x-hidden px-5 py-8">
@@ -35,7 +36,9 @@ export default async function AccountSettingsPage() {
         <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase">Account Settings</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-800">Setări cont</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Gestionează datele personale, parola și preferințele de profil afișate în clinică.
+          {isAdmin
+            ? "Gestionează datele personale, parola și numele clinicii."
+            : "Gestionează datele personale și parola."}
         </p>
       </div>
 
@@ -55,7 +58,7 @@ export default async function AccountSettingsPage() {
             therapistName={therapistName}
             phone={phone}
             clinicName={clinicName}
-            isAdmin={isClinicAdmin(profile)}
+            isAdmin={isAdmin}
           />
         </section>
       )}
