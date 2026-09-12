@@ -26,11 +26,15 @@ export const ExerciseCard = memo(function ExerciseCard({
 }: ExerciseCardProps) {
   const src = exercise.videoUrl ?? (exercise.youtubeId ? `https://www.youtube.com/watch?v=${exercise.youtubeId}` : null)
 
-  function markCompleted(next: boolean) {
-    if (next) {
-      onSessionStart?.()
+  const locked = completed
+  const controlsDisabled = pending || locked
+
+  function markCompleted() {
+    if (controlsDisabled) {
+      return
     }
-    onToggle(exercise.id, next)
+    onSessionStart?.()
+    onToggle(exercise.id, true)
   }
 
   return (
@@ -70,15 +74,21 @@ export const ExerciseCard = memo(function ExerciseCard({
         <div className="mt-auto flex flex-col gap-3 pt-1">
           <label
             className={cn(
-              "flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border px-3 py-2",
+              "flex min-h-[44px] items-center gap-3 rounded-xl border px-3 py-2",
               completed ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-slate-50",
+              locked ? "cursor-not-allowed" : "cursor-pointer",
               pending && "pointer-events-none opacity-60",
+              locked && "pointer-events-none",
             )}
           >
             <Checkbox
               checked={completed}
-              disabled={pending}
-              onCheckedChange={(next) => markCompleted(next === true)}
+              disabled={controlsDisabled}
+              onCheckedChange={(next) => {
+                if (next === true) {
+                  markCompleted()
+                }
+              }}
               className="size-5 border-slate-400 data-checked:border-[#042f2e] data-checked:bg-[#042f2e]"
               aria-label={`Efectuat: ${exercise.title}`}
             />
@@ -88,8 +98,8 @@ export const ExerciseCard = memo(function ExerciseCard({
           </label>
           <Button
             type="button"
-            disabled={pending}
-            onClick={() => markCompleted(!completed)}
+            disabled={controlsDisabled}
+            onClick={markCompleted}
             className={cn(
               "h-11 min-h-[44px] w-full rounded-xl",
               completed && "bg-emerald-600 hover:bg-emerald-600",

@@ -103,22 +103,22 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
   }, [localDate, program.token])
 
   const toggleExercise = useCallback(async (exerciseId: string, completed: boolean) => {
-    if (completed) {
-      markSessionStarted(program.token, localDate)
+    if (!completed || completedIds.includes(exerciseId)) {
+      return
     }
-    const previous = completedIds
-    const next = completed
-      ? mergeIds(completedIds, [exerciseId])
-      : completedIds.filter((id) => id !== exerciseId)
 
-    // Feedback vizual imediat.
+    markSessionStarted(program.token, localDate)
+    const previous = completedIds
+    const next = mergeIds(completedIds, [exerciseId])
+
+    // Feedback vizual imediat; butonul rămâne blocat după salvarea cu succes.
     setCompletedIds(next)
     setPendingExerciseId(exerciseId)
     saveCompletedExercises(program.token, localDate, next)
 
     if (!canPersistToServer) {
       setPendingExerciseId(null)
-      toast(completed ? "Marcat ca efectuat (demo)." : "Marcaj anulat (demo).")
+      toast("Marcat ca efectuat (demo).")
       return
     }
 
@@ -129,7 +129,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         body: JSON.stringify({
           token: program.token,
           exerciseId,
-          completed,
+          completed: true,
           localDate,
           patientId: program.patientId ?? null,
         }),
@@ -159,7 +159,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         saveCompletedExercises(program.token, localDate, payload.completedIds)
       }
 
-      toast(completed ? "Exercițiu marcat ca efectuat." : "Marcaj anulat.")
+      toast("Exercițiu marcat ca efectuat.")
     } catch (err) {
       console.error("[Marchează ca Efectuat] network/error", err)
       setCompletedIds(previous)

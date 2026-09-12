@@ -25,7 +25,8 @@ type Body = {
 }
 
 /**
- * Portal pacient (fără Auth): marchează / anulează un exercițiu pentru ziua curentă.
+ * Portal pacient (fără Auth): marchează un exercițiu ca efectuat pentru ziua curentă.
+ * După salvare, marcajul nu mai poate fi anulat de pacient.
  * Auth = token UUID al pacientului (același din /patient/[token]).
  */
 export async function POST(request: Request) {
@@ -40,6 +41,16 @@ export async function POST(request: Request) {
   const exerciseId = typeof body.exerciseId === "string" ? body.exerciseId.trim() : ""
   const localDate = typeof body.localDate === "string" ? body.localDate.trim() : ""
   const completed = Boolean(body.completed)
+
+  if (!completed) {
+    return NextResponse.json(
+      {
+        error: "Exercițiile marcate ca efectuate nu pot fi anulate.",
+        completedIds: [],
+      },
+      { status: 400 },
+    )
+  }
 
   if (!isUuid(token) || !isUuid(exerciseId) || !isDateKey(localDate)) {
     return NextResponse.json(

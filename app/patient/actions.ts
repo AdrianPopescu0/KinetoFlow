@@ -40,11 +40,19 @@ export async function togglePatientExerciseCompletion(input: {
       return { error: "Programul pacientului nu a fost găsit.", completedIds: [] }
     }
 
+    if (!input.completed) {
+      const completedIds = await listCompletedExerciseIdsForDay(admin, patient.id, localDate)
+      return {
+        error: "Exercițiile marcate ca efectuate nu pot fi anulate.",
+        completedIds,
+      }
+    }
+
     const result = await setExerciseCompletion({
       supabase: admin,
       patientId: patient.id,
       exerciseId,
-      completed: Boolean(input.completed),
+      completed: true,
       completedOn: localDate,
     })
 
