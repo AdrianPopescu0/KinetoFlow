@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import {
   isMissingClinicalNotesColumn,
+  isMissingPatientAdviceTable,
   isMissingPatientNotesTable,
   isMissingSchemaObject,
 } from "./schema-error.ts"
@@ -35,4 +36,15 @@ test("recunoaște tabela patient_notes lipsă", () => {
   )
   assert.equal(isMissingPatientNotesTable({ message: "relation patient_notes does not exist" }), true)
   assert.equal(isMissingPatientNotesTable({ message: "Nu am putut salva notițele." }), false)
+})
+
+test("recunoaște tabela patient_advice lipsă", () => {
+  assert.equal(
+    isMissingPatientAdviceTable({
+      code: "PGRST205",
+      message: "Could not find the table 'public.patient_advice' in the schema cache",
+    }),
+    true,
+  )
+  assert.equal(isMissingPatientAdviceTable({ message: "Nu am putut salva mesajul." }), false)
 })

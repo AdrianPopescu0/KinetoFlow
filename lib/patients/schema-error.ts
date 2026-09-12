@@ -32,3 +32,9 @@ export function isMissingPatientNotesTable(
 ): boolean {
   return isMissingSchemaObject(error, "patient_notes")
 }
+
+export function isMissingPatientAdviceTable(
+  error: { message?: string; code?: string } | null | undefined,
+): boolean {
+  return isMissingSchemaObject(error, "patient_advice")
+}

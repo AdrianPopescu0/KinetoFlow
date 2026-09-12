@@ -1,25 +1,28 @@
 import { MessageCircle } from "lucide-react"
 
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
+import { displayTherapistAdvice } from "@/lib/patients/patient-advice"
 import { GOLDEN_RULES, whatsappHref } from "@/lib/patients/recovery-guide"
 import { cn } from "@/lib/utils"
 
 export function TherapistCard({
   therapistName,
   therapistPhone,
+  therapistAdvice,
   className,
 }: {
   therapistName: string
   therapistPhone: string | null
+  therapistAdvice?: string | null
   className?: string
 }) {
+  const advice = displayTherapistAdvice(therapistAdvice)
+
   return (
     <section className={cn(surfaceCardClassName("flex h-full min-h-0 flex-col p-5 sm:p-6"), className)}>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Kinetoterapeutul tău</p>
       <p className="mt-2 text-lg font-semibold text-slate-900">{therapistName}</p>
-      <p className="mt-1 flex-1 text-sm leading-relaxed text-slate-600">
-        Scrie dacă un exercițiu doare altfel decât de obicei sau dacă nu ești sigur de doză.
-      </p>
+      <p className="mt-1 flex-1 text-sm leading-relaxed whitespace-pre-wrap text-slate-600">{advice}</p>
       <a
         href={whatsappHref(therapistPhone)}
         target="_blank"
@@ -58,13 +61,19 @@ export function GoldenRulesCard({ className }: { className?: string }) {
 export function TherapistSupportColumn({
   therapistName,
   therapistPhone,
+  therapistAdvice,
 }: {
   therapistName: string
   therapistPhone: string | null
+  therapistAdvice?: string | null
 }) {
   return (
     <div className="flex flex-col gap-5">
-      <TherapistCard therapistName={therapistName} therapistPhone={therapistPhone} />
+      <TherapistCard
+        therapistName={therapistName}
+        therapistPhone={therapistPhone}
+        therapistAdvice={therapistAdvice}
+      />
       <GoldenRulesCard />
     </div>
   )

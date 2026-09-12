@@ -264,6 +264,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
           <TherapistCard
             therapistName={program.therapistName}
             therapistPhone={program.therapistPhone}
+            therapistAdvice={program.therapistAdvice}
           />
           <GoldenRulesCard />
         </section>
@@ -307,7 +308,11 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
 
       {guideOpen ? (
         <RecoveryDrawer title="Ghid recuperare" onClose={() => setGuideOpen(false)}>
-          <TherapistSupportColumn therapistName={program.therapistName} therapistPhone={program.therapistPhone} />
+          <TherapistSupportColumn
+            therapistName={program.therapistName}
+            therapistPhone={program.therapistPhone}
+            therapistAdvice={program.therapistAdvice}
+          />
           <RecoveryGuidePanel
             onReadMore={() => {
               setGuideOpen(false)

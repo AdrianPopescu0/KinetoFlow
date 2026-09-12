@@ -36,6 +36,7 @@ import {
   type PatientFileSnapshot,
 } from "@/lib/patients/optimistic"
 import { persistClinicalNotesForTherapist } from "@/lib/patients/persist-clinical-notes"
+import { fetchPatientAdvice, upsertPatientAdvice } from "@/lib/patients/patient-advice"
 import { upsertPatientNotes } from "@/lib/patients/patient-notes"
 import { readPatientIdFromSaveArgs, readPatientRecordId } from "@/lib/patients/patient-id"
 
@@ -509,7 +510,7 @@ export type AssignableExerciseInput = {
 export async function assignExercisesBatch(
   patientId: string,
   exercises: AssignableExerciseInput[],
-  interval: { startDate: string; endDate: string },
+  interval: { startDate: string; endDate: string; patientMessage?: string },
 ): Promise<{ error: string | null; inserted: number }> {
   if (!patientId || exercises.length === 0) {
     return { error: "Selectează cel puțin un exercițiu.", inserted: 0 }
@@ -525,7 +526,7 @@ export async function assignExercisesBatch(
     return { error: "Sesiunea a expirat.", inserted: 0 }
   }
 
-  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id, full_name")
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id, full_name, token")
   if (!owned.data) {
     return { error: "Pacientul nu aparține acestui cabinet.", inserted: 0 }
   }
@@ -614,39 +615,52 @@ export async function assignExercisesBatch(
     saved += 1
   }
 
+  const adviceResult = await upsertPatientAdvice(client, patientId, interval.patientMessage ?? "")
+  if (adviceResult.error) {
+    return { error: adviceResult.error, inserted: saved }
+  }
+
   revalidatePath("/dashboard")
   revalidatePath(`/dashboard/patients/${patientId}`)
+  const token = typeof (owned.data as { token?: unknown }).token === "string"
+    ? (owned.data as { token: string }).token
+    : null
+  if (token) {
+    revalidatePath(`/patient/${token}`)
+  }
   return { error: null, inserted: saved }
 }
 
 export async function listAssignedExercisesForPatient(
   patientId: string,
-): Promise<{ error: string | null; exercises: ExerciseRecord[] }> {
+): Promise<{ error: string | null; exercises: ExerciseRecord[]; patientMessage: string }> {
   if (!patientId) {
-    return { error: "Pacientul lipsește.", exercises: [] }
+    return { error: "Pacientul lipsește.", exercises: [], patientMessage: "" }
   }
 
   const { supabase, user } = await requireUser()
   if (!user) {
-    return { error: "Sesiunea a expirat.", exercises: [] }
+    return { error: "Sesiunea a expirat.", exercises: [], patientMessage: "" }
   }
 
   const owned = await getOwnPatientRow(supabase, user.id, patientId, "id")
   if (!owned.data) {
-    return { error: "Pacientul nu aparține acestui cabinet.", exercises: [] }
+    return { error: "Pacientul nu aparține acestui cabinet.", exercises: [], patientMessage: "" }
   }
 
-  const { data, error } = await supabase
+  const client = await privilegedClinicClient(supabase)
+  const { data, error } = await client
     .from("exercises")
     .select("id, patient_id, title, video_url, sets, reps, notes")
     .eq("patient_id", patientId)
     .order("title", { ascending: true })
 
   if (error) {
-    return { error: error.message, exercises: [] }
+    return { error: error.message, exercises: [], patientMessage: "" }
   }
 
-  return { error: null, exercises: (data ?? []) as ExerciseRecord[] }
+  const patientMessage = await fetchPatientAdvice(client, patientId)
+  return { error: null, exercises: (data ?? []) as ExerciseRecord[], patientMessage }
 }
 
 export async function deleteExercise(patientId: string, exerciseId: string): Promise<void> {

@@ -48,6 +48,8 @@ export type PatientProgram = {
   todaysCheckin?: DailyCheckin | null
   therapistName: string
   therapistPhone: string | null
+  /** Mesaj/sfat salvat la atribuirea planului, afișat la „Kinetoterapeutul tău”. */
+  therapistAdvice?: string | null
 }
 
 export type DailyCheckin = {

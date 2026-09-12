@@ -7,6 +7,7 @@ import { loadStoredLibraryExercises } from "@/app/dashboard/exercises/actions"
 import { assignExercisesBatch, listAssignedExercisesForPatient } from "@/app/dashboard/patients/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
 import {
   librarySelectionForAssignedInterval,
@@ -18,6 +19,7 @@ import { loadCustomExercises } from "@/lib/exercises/extras"
 import { formatTreatmentInterval } from "@/lib/exercises/schedule"
 import { regionById, regionLabels } from "@/lib/exercises/taxonomy"
 import type { LibraryExercise } from "@/lib/exercises/types"
+import { PATIENT_ADVICE_MAX_LENGTH } from "@/lib/patients/patient-advice"
 import { cn } from "@/lib/utils"
 
 type Dose = { sets: number; reps: number }
@@ -107,6 +109,7 @@ function AssignExercisesModalContent({
     ...openingSelection.doses,
   }))
   const [isPending, startTransition] = useTransition()
+  const [patientMessage, setPatientMessage] = useState("")
 
   useEffect(() => {
     void loadStoredLibraryExercises().then((stored) => {
@@ -139,6 +142,7 @@ function AssignExercisesModalContent({
         return
       }
       setAssigned(result.exercises)
+      setPatientMessage(result.patientMessage)
       setAssignedLoading(false)
     })
     return () => {
@@ -214,7 +218,11 @@ function AssignExercisesModalContent({
       }))
 
     startTransition(async () => {
-      const result = await assignExercisesBatch(patientId, exercises, { startDate, endDate })
+      const result = await assignExercisesBatch(patientId, exercises, {
+        startDate,
+        endDate,
+        patientMessage,
+      })
       if (result.error) {
         toast(result.error)
         return
@@ -292,6 +300,22 @@ function AssignExercisesModalContent({
               </label>
             </div>
           </section>
+
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
+            Mesaj sau sfat pentru pacient
+            <Textarea
+              value={patientMessage}
+              onChange={(event) => setPatientMessage(event.target.value.slice(0, PATIENT_ADVICE_MAX_LENGTH))}
+              rows={3}
+              maxLength={PATIENT_ADVICE_MAX_LENGTH}
+              disabled={assignedLoading || isPending}
+              placeholder="Recomandări kinetoterapeut — pacientul le vede la „Kinetoterapeutul tău”."
+              className="min-h-[5.5rem] resize-y text-base md:text-sm"
+            />
+            <span className="font-normal text-slate-500">
+              {patientMessage.length}/{PATIENT_ADVICE_MAX_LENGTH} · apare dinamic în programul pacientului
+            </span>
+          </label>
 
           <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />

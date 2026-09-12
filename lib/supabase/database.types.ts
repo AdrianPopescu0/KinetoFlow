@@ -62,6 +62,7 @@ export type Database = {
           clinic_id: string | null
           clinic_name: string | null
           notify_channel: "whatsapp" | "sms" | null
+          therapist_advice: string | null
         }
         Insert: {
           id?: string
@@ -79,9 +80,35 @@ export type Database = {
           clinic_id?: string | null
           clinic_name?: string | null
           notify_channel?: "whatsapp" | "sms" | null
+          therapist_advice?: string | null
         }
         Update: Record<string, unknown>
         Relationships: []
+      }
+      patient_advice: {
+        Row: {
+          patient_id: string
+          message: string | null
+          updated_at: string
+        }
+        Insert: {
+          patient_id: string
+          message?: string | null
+          updated_at?: string
+        }
+        Update: {
+          message?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_advice_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       patient_notes: {
         Row: {

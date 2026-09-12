@@ -90,6 +90,7 @@ export function getPatientProgram(token: string): PatientProgram | null {
       exercises: KNEE_EXERCISES,
       therapistName: "Elena Ionescu",
       therapistPhone: null,
+      therapistAdvice: "După genuflexiuni, lasă genunchiul să se odihnească 20 de secunde. Dacă durerea trece de 5, oprește-te și scrie-mi.",
     }
   }
 
@@ -102,6 +103,7 @@ export function getPatientProgram(token: string): PatientProgram | null {
       exercises: SHOULDER_EXERCISES,
       therapistName: "Elena Ionescu",
       therapistPhone: null,
+      therapistAdvice: "Mișcarea trebuie să rămână nedureroasă. Dacă simți înțepătură în vârful umărului, scade amplitudinea, nu forța.",
     }
   }
 

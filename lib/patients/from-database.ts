@@ -6,6 +6,7 @@ import { dailyCheckinFromRow, fetchTodaysCheckInRow } from "@/lib/patients/daily
 import { isPatientUuidToken } from "@/lib/patients/session"
 import { youtubeIdFromUrl } from "@/lib/patients/youtube"
 import { bucharestDateKey } from "@/lib/time/bucharest"
+import { fetchPatientAdvice } from "@/lib/patients/patient-advice"
 import { createServiceRoleClient } from "@/utils/supabase/admin"
 
 export { isPatientUuidToken }
@@ -61,7 +62,10 @@ export async function loadPatientProgramFromDatabase(
       isExerciseActiveOnDate(exercise.notes, today),
     )
     const exercises = mapExercises(activeExerciseRows)
-    const therapist = await loadTherapistProfile(supabase, record.therapist_id)
+    const [therapist, therapistAdvice] = await Promise.all([
+      loadTherapistProfile(supabase, record.therapist_id),
+      fetchPatientAdvice(supabase, record.id),
+    ])
     const completedExerciseIdsToday = await listCompletedExerciseIdsForDay(
       supabase,
       record.id,
@@ -90,6 +94,7 @@ export async function loadPatientProgramFromDatabase(
       todaysCheckin,
       therapistName: therapist.name,
       therapistPhone: therapist.phone,
+      therapistAdvice,
     }
   } catch {
     return null
