@@ -43,7 +43,7 @@ import {
 } from "@/lib/patients/storage"
 import { computeExerciseDurationSeconds } from "@/lib/patients/session-duration"
 import type { DailyCheckin, EnergyLevel, PatientProgram, SleepQuality } from "@/lib/patients/types"
-import { OFFLINE_CHECKIN_MESSAGE, OFFLINE_EXERCISE_TOAST } from "@/lib/patients/ux-copy"
+import { EXERCISES_COMPLETE_MESSAGE, OFFLINE_CHECKIN_MESSAGE, OFFLINE_EXERCISE_TOAST } from "@/lib/patients/ux-copy"
 import { toast } from "@/components/ui/toaster"
 
 function mergeIds(...lists: Array<string[] | undefined>): string[] {
@@ -155,6 +155,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
     }
     if (showCelebration && !prevExercisesComplete.current) {
       setCelebrateAnimate(true)
+      toast(EXERCISES_COMPLETE_MESSAGE)
     }
     prevExercisesComplete.current = showCelebration
   }, [showCelebration])
