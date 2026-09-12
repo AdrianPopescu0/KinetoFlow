@@ -126,12 +126,12 @@ export function ThemePreferenceSection({ standalone = false }: { standalone?: bo
     <section
       className={cn(
         "flex flex-col gap-4",
-        !standalone && "border-t border-slate-200 pt-6 dark:border-slate-700",
+        !standalone && "border-t border-slate-200 pt-6 dark:border-[var(--kf-border)]",
       )}
     >
       <div>
-        <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Aspect</h2>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        <h2 className="text-base font-semibold text-slate-800 dark:text-[var(--kf-text)]">Aspect</h2>
+        <p className="mt-1 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">
           Alege tema panoului. Se aplică imediat pe tot dashboard-ul.
         </p>
       </div>
@@ -164,15 +164,15 @@ export function ThemePreferenceSection({ standalone = false }: { standalone?: bo
               className={cn(
                 "flex min-h-[5.5rem] flex-col items-start gap-1 rounded-xl border px-3 py-3 text-left transition-colors",
                 selected
-                  ? "border-[#042f2e] bg-teal-50 ring-1 ring-[#042f2e] dark:border-teal-400 dark:bg-teal-950/50 dark:ring-teal-400"
-                  : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800",
+                  ? "border-[#042f2e] bg-teal-50 ring-1 ring-[#042f2e] dark:border-teal-400 dark:bg-[#1f2e2c] dark:ring-teal-400"
+                  : "border-slate-200 bg-white hover:bg-slate-50 dark:border-[var(--kf-border)] dark:bg-[var(--kf-surface)] dark:hover:bg-[var(--kf-raised)]",
               )}
             >
-              <span className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              <span className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-[var(--kf-text)]">
                 <Icon className="size-4 shrink-0" aria-hidden="true" />
                 {option.label}
               </span>
-              <span className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">{option.description}</span>
+              <span className="text-xs leading-relaxed text-slate-600 dark:text-[var(--kf-text-muted)]">{option.description}</span>
             </button>
           )
         })}

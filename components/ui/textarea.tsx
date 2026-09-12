@@ -7,7 +7,7 @@ function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
     <textarea
       data-slot="textarea"
       className={cn(
-        "flex field-sizing-content min-h-16 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-base text-slate-900 transition-colors outline-none placeholder:text-slate-400 focus-visible:border-[#042f2e] focus-visible:ring-3 focus-visible:ring-[#042f2e]/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-slate-800 dark:focus-visible:border-teal-400 dark:focus-visible:ring-teal-400/20",
+        "flex field-sizing-content min-h-16 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-base text-slate-900 transition-colors outline-none placeholder:text-slate-400 focus-visible:border-[#042f2e] focus-visible:ring-3 focus-visible:ring-[#042f2e]/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:border-[var(--kf-border)] dark:bg-[var(--kf-surface)] dark:text-[var(--kf-text)] dark:placeholder:text-[var(--kf-text-muted)] dark:disabled:bg-[var(--kf-raised)] dark:focus-visible:border-teal-400 dark:focus-visible:ring-teal-400/20",
         className
       )}
       {...props}
