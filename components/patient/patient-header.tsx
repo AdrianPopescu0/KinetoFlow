@@ -5,6 +5,7 @@ import { BookOpen } from "lucide-react"
 import { logoutPatient } from "@/app/acces/actions"
 import { InstallPWAButton } from "@/components/InstallPWAButton"
 import { Logo } from "@/components/Logo"
+import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { clearStoredPatientToken } from "@/lib/patients/token-storage"
 
@@ -21,6 +22,7 @@ export function PatientHeader({ firstName, dateLabel, onOpenGuide }: PatientHead
         <div className="flex items-start justify-between gap-3">
           <Logo size="md" variant="onDark" />
           <div className="flex items-center gap-2">
+            <ThemeToggle variant="onDark" />
             {onOpenGuide ? (
               <button
                 type="button"

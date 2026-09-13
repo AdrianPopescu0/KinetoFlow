@@ -33,7 +33,7 @@ export function Logo({
         "inline-flex items-center font-sans tracking-tight",
         scale.gap,
         scale.text,
-        onDark ? "text-white" : "text-slate-900",
+        onDark ? "text-white" : "text-slate-900 dark:text-[var(--kf-text)]",
         className,
       )}
     >

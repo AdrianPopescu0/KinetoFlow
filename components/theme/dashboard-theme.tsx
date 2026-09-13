@@ -10,25 +10,18 @@ import {
   parseThemePreference,
   resolveTheme,
   THEME_STORAGE_KEY,
-  themeCookieWrite,
+  writeThemePreference,
+  type ResolvedTheme,
   type ThemePreference,
 } from "@/lib/theme/preference"
 
 type ThemeContextValue = {
   preference: ThemePreference
+  resolved: ResolvedTheme
   setPreference: (next: ThemePreference) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
-
-function persistTheme(preference: ThemePreference) {
-  try {
-    window.localStorage.setItem(THEME_STORAGE_KEY, preference)
-  } catch {
-    // ignore quota / private mode
-  }
-  document.cookie = themeCookieWrite(preference)
-}
 
 function systemPrefersDark() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -36,28 +29,39 @@ function systemPrefersDark() {
 
 export function DashboardThemeProvider({
   initialPreference = "system",
+  persistAccount = true,
   children,
 }: {
   initialPreference?: ThemePreference
+  persistAccount?: boolean
   children: ReactNode
 }) {
   const [preference, setPreferenceState] = useState<ThemePreference>(initialPreference)
+  const [resolved, setResolved] = useState<ResolvedTheme>(() =>
+    resolveTheme(initialPreference, false),
+  )
 
   useEffect(() => {
     const stored = parseThemePreference(window.localStorage.getItem(THEME_STORAGE_KEY), initialPreference)
     setPreferenceState(stored)
-    persistTheme(stored)
-    applyResolvedTheme(resolveTheme(stored, systemPrefersDark()))
+    writeThemePreference(stored)
+    const next = resolveTheme(stored, systemPrefersDark())
+    setResolved(next)
+    applyResolvedTheme(next)
   }, [initialPreference])
 
   useEffect(() => {
-    applyResolvedTheme(resolveTheme(preference, systemPrefersDark()))
+    const next = resolveTheme(preference, systemPrefersDark())
+    setResolved(next)
+    applyResolvedTheme(next)
     if (preference !== "system") {
       return
     }
     const media = window.matchMedia("(prefers-color-scheme: dark)")
     function onChange() {
-      applyResolvedTheme(resolveTheme("system", media.matches))
+      const fromSystem = resolveTheme("system", media.matches)
+      setResolved(fromSystem)
+      applyResolvedTheme(fromSystem)
     }
     media.addEventListener("change", onChange)
     return () => media.removeEventListener("change", onChange)
@@ -72,25 +76,48 @@ export function DashboardThemeProvider({
   const value = useMemo<ThemeContextValue>(
     () => ({
       preference,
+      resolved,
       setPreference(next) {
         setPreferenceState(next)
-        persistTheme(next)
-        applyResolvedTheme(resolveTheme(next, systemPrefersDark()))
-        void persistAccountTheme(next)
+        writeThemePreference(next)
+        const applied = resolveTheme(next, systemPrefersDark())
+        setResolved(applied)
+        applyResolvedTheme(applied)
+        if (persistAccount) {
+          void persistAccountTheme(next)
+        }
       },
     }),
-    [preference],
+    [persistAccount, preference, resolved],
   )
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
 
-export function useDashboardTheme() {
+export function PatientThemeProvider({
+  initialPreference = "system",
+  children,
+}: {
+  initialPreference?: ThemePreference
+  children: ReactNode
+}) {
+  return (
+    <DashboardThemeProvider initialPreference={initialPreference} persistAccount={false}>
+      {children}
+    </DashboardThemeProvider>
+  )
+}
+
+export function useAppTheme() {
   const context = useContext(ThemeContext)
   if (!context) {
-    throw new Error("useDashboardTheme trebuie folosit în dashboard.")
+    throw new Error("useAppTheme trebuie folosit într-un ThemeProvider.")
   }
   return context
+}
+
+export function useDashboardTheme() {
+  return useAppTheme()
 }
 
 const OPTIONS: Array<{

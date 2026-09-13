@@ -29,10 +29,10 @@ export function VasScale({ value, onChange }: VasScaleProps) {
     <div className="flex flex-col gap-4">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p id={labelId} className="text-sm font-semibold text-slate-800">
+          <p id={labelId} className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">
             Durere VAS 0–10
           </p>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-[var(--kf-text-muted)]">
             Cât de intensă e durerea acum? Atinge un număr sau glisează.
           </p>
         </div>

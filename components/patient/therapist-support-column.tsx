@@ -20,9 +20,9 @@ export function TherapistCard({
 
   return (
     <section className={cn(surfaceCardClassName("flex h-full min-h-0 flex-col p-5 sm:p-6"), className)}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Kinetoterapeutul tău</p>
-      <p className="mt-2 text-lg font-semibold text-slate-900">{therapistName}</p>
-      <p className="mt-1 flex-1 text-sm leading-relaxed whitespace-pre-wrap text-slate-600">{advice}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-[var(--kf-text-muted)]">Kinetoterapeutul tău</p>
+      <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-[var(--kf-text)]">{therapistName}</p>
+      <p className="mt-1 flex-1 text-sm leading-relaxed whitespace-pre-wrap text-slate-600 dark:text-[var(--kf-text-muted)]">{advice}</p>
       <a
         href={whatsappHref(therapistPhone)}
         target="_blank"
@@ -39,16 +39,16 @@ export function TherapistCard({
 export function GoldenRulesCard({ className }: { className?: string }) {
   return (
     <section className={cn(surfaceCardClassName("flex h-full min-h-0 flex-col p-5 sm:p-6"), className)}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Reguli de aur</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-[var(--kf-text-muted)]">Reguli de aur</p>
       <ol className="mt-3 flex flex-1 flex-col gap-3 sm:gap-3.5">
         {GOLDEN_RULES.map((rule, index) => (
           <li key={rule.title} className="flex gap-3">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-semibold text-[#042f2e]">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-semibold text-[#042f2e] dark:bg-[#1f2e2c] dark:text-teal-200">
               {index + 1}
             </span>
             <span className="min-w-0">
-              <span className="block text-sm font-semibold text-slate-900">{rule.title}</span>
-              <span className="mt-0.5 block text-sm leading-relaxed text-slate-600">{rule.detail}</span>
+              <span className="block text-sm font-semibold text-slate-900 dark:text-[var(--kf-text)]">{rule.title}</span>
+              <span className="mt-0.5 block text-sm leading-relaxed text-slate-600 dark:text-[var(--kf-text-muted)]">{rule.detail}</span>
             </span>
           </li>
         ))}

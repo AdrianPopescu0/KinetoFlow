@@ -20,40 +20,40 @@ export function CheckinSuccess({
       <span className="flex size-14 items-center justify-center rounded-full bg-emerald-500 text-white">
         <Check className="size-8 stroke-[3]" />
       </span>
-      <h2 className="mt-6 max-w-sm text-xl font-semibold text-slate-800">
+      <h2 className="mt-6 max-w-sm text-xl font-semibold text-slate-800 dark:text-[var(--kf-text)]">
         Check-in-ul a fost trimis terapeutului tău! Ne vedem mâine 👍
       </h2>
-      <p className="mt-2 text-sm text-slate-600">
+      <p className="mt-2 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">
         {alreadySubmitted
           ? "Ai trimis deja evaluarea pentru ziua de azi."
           : "Mulțumim. Răspunsul ajută la ajustarea programului."}
       </p>
-      <dl className="mt-auto w-full divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left text-sm">
+      <dl className="mt-auto w-full divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left text-sm dark:divide-[var(--kf-border)] dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)]">
         <div className="flex justify-between px-4 py-3">
-          <dt className="text-slate-500">Durere</dt>
+          <dt className="text-slate-500 dark:text-[var(--kf-text-muted)]">Durere</dt>
           <dd className="font-semibold">
             {checkin.pain}/10 · {intensity.label}
           </dd>
         </div>
         <div className="flex justify-between px-4 py-3">
-          <dt className="text-slate-500">Somn</dt>
+          <dt className="text-slate-500 dark:text-[var(--kf-text-muted)]">Somn</dt>
           <dd className="font-semibold">{sleepLabel(checkin.sleep)}</dd>
         </div>
         {checkin.energy ? (
           <div className="flex justify-between px-4 py-3">
-            <dt className="text-slate-500">Energie</dt>
+            <dt className="text-slate-500 dark:text-[var(--kf-text-muted)]">Energie</dt>
             <dd className="font-semibold">{energyLabel(checkin.energy)}</dd>
           </div>
         ) : null}
         {checkin.exerciseDurationSeconds != null ? (
           <div className="flex justify-between px-4 py-3">
-            <dt className="text-slate-500">Durată exerciții</dt>
+            <dt className="text-slate-500 dark:text-[var(--kf-text-muted)]">Durată exerciții</dt>
             <dd className="font-semibold">{formatExerciseDuration(checkin.exerciseDurationSeconds)}</dd>
           </div>
         ) : null}
         {checkin.notes ? (
           <div className="flex flex-col gap-1 px-4 py-3">
-            <dt className="text-slate-500">Notițe</dt>
+            <dt className="text-slate-500 dark:text-[var(--kf-text-muted)]">Notițe</dt>
             <dd className="font-medium">{checkin.notes}</dd>
           </div>
         ) : null}

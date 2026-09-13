@@ -75,7 +75,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ro"
       className={`${geistSans.variable} ${geistMono.variable} min-h-screen max-w-full overflow-x-hidden antialiased`}
     >
-      <body className="flex min-h-screen max-w-full flex-col justify-between overflow-x-hidden bg-slate-50 text-slate-800">
+      <body className="flex min-h-screen max-w-full flex-col justify-between overflow-x-hidden bg-slate-50 text-slate-800 dark:bg-[var(--kf-canvas)] dark:text-[var(--kf-text)]">
         <Script id="dashboard-theme-boot" strategy="beforeInteractive">
           {DASHBOARD_THEME_BOOT_SCRIPT}
         </Script>

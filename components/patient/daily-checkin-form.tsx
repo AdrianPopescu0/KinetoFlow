@@ -53,10 +53,10 @@ export function DailyCheckinForm({
     <section className={surfaceCardClassName("flex w-full min-w-0 flex-col gap-6 p-5 sm:p-6 lg:p-7")}>
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-slate-800 sm:text-xl">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-800 sm:text-xl dark:text-[var(--kf-text)]">
             Check-in zilnic
           </h2>
-          <p className="mt-1 text-sm text-slate-600">Spune-i terapeutului cum te simți azi.</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">Spune-i terapeutului cum te simți azi.</p>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export function DailyCheckinForm({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
         <fieldset className="flex min-w-0 flex-col gap-3">
-          <legend className="text-sm font-semibold text-slate-800">Calitatea somnului</legend>
+          <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Calitatea somnului</legend>
           <div className="grid grid-cols-3 gap-2">
             {SLEEP_OPTIONS.map((option) => (
               <button
@@ -75,7 +75,7 @@ export function DailyCheckinForm({
                   "flex min-h-[4.75rem] flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-3 text-center",
                   sleep === option.value
                     ? "border-[#042f2e] bg-[#042f2e] text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-700",
+                    : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
                 )}
               >
                 <span className="text-2xl" aria-hidden="true">
@@ -88,7 +88,7 @@ export function DailyCheckinForm({
         </fieldset>
 
         <fieldset className="flex min-w-0 flex-col gap-3">
-          <legend className="text-sm font-semibold text-slate-800">Nivel de energie</legend>
+          <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Nivel de energie</legend>
           <div className="grid grid-cols-5 gap-1.5">
             {ENERGY_OPTIONS.map((option) => (
               <button
@@ -100,7 +100,7 @@ export function DailyCheckinForm({
                   "flex min-h-[4.75rem] flex-col items-center justify-center gap-1 rounded-2xl border px-1 py-2 text-center transition-colors",
                   energy === option.value
                     ? "border-[#042f2e] bg-[#042f2e] text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-700",
+                    : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
                 )}
               >
                 <span className="text-xl" aria-hidden="true">
@@ -115,7 +115,7 @@ export function DailyCheckinForm({
 
       <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
         <div className="flex min-w-0 flex-col gap-2">
-          <label htmlFor={notesId} className="text-sm font-semibold text-slate-800">
+          <label htmlFor={notesId} className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">
             Cum te simți azi?
           </label>
           <Textarea
@@ -138,7 +138,7 @@ export function DailyCheckinForm({
             {pending ? "Se trimite…" : offline ? "Trimite când ai internet" : "Trimite check-in-ul"}
           </Button>
           {!submitEnabled && exercisesTotal > 0 ? (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">
               Bifează toate exercițiile de azi ({exercisesDone}/{exercisesTotal}) ca să deblochezi trimiterea.
             </p>
           ) : null}
@@ -150,8 +150,8 @@ export function DailyCheckinForm({
           role="status"
           className={
             errorTone === "offline"
-              ? "rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
-              : "rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+              ? "rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+              : "rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
           }
         >
           {error}

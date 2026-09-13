@@ -33,14 +33,14 @@ export default async function PatientAccessPage({ searchParams }: PatientAccessP
   const prefilledPhone = accessPhoneFromParam(phone)
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-slate-50">
+    <div className="flex min-h-full flex-1 flex-col bg-slate-50 dark:bg-[var(--kf-canvas)]">
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-12">
         <Link href="/" className="mb-8 inline-flex items-center">
           <Logo size="md" />
         </Link>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Acces pacient</h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-[var(--kf-border)] dark:bg-[var(--kf-surface)]">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-[var(--kf-text)]">Acces pacient</h1>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-[var(--kf-text-muted)]">
             {accessIntro(prefilledPhone, prefilledCode)}
           </p>
           <div className="mt-6">

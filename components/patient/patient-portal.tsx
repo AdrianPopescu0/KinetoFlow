@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTran
 
 import { submitPatientCheckin } from "@/app/dashboard/patients/actions"
 import { AppShell } from "@/components/brand/app-atmosphere"
+import { PatientThemeProvider } from "@/components/theme/dashboard-theme"
 import { CheckinSuccess } from "@/components/patient/checkin-success"
 import { ConnectionBanner } from "@/components/patient/connection-banner"
 import { DailyCheckinForm } from "@/components/patient/daily-checkin-form"
@@ -365,6 +366,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
   }
 
   return (
+    <PatientThemeProvider>
     <AppShell>
       <PatientOnboardingModal patientKey={program.token} />
       <PatientPushOnboarding patientKey={program.token} firstName={program.firstName} />
@@ -376,7 +378,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         {/* Check-in full-width */}
         <section className="w-full min-w-0">
           {!isClient ? (
-            <div className="h-56 w-full animate-pulse rounded-2xl border border-slate-200 bg-white" />
+            <div className="h-56 w-full animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-[var(--kf-border)] dark:bg-[var(--kf-surface)]" />
           ) : storedCheckin ? (
             <CheckinSuccess checkin={storedCheckin} alreadySubmitted={!justSubmitted} />
           ) : (
@@ -414,10 +416,10 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         {/* Exerciții pe 3 coloane */}
         <section className="flex min-w-0 flex-col gap-5">
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold tracking-tight text-slate-800 sm:text-xl">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-800 sm:text-xl dark:text-[var(--kf-text)]">
               Exercițiile de azi
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">
               Urmărește video-ul, apoi bifează exercițiul. Check-in-ul se deblochează când sunt toate efectuate.
             </p>
           </div>
@@ -425,7 +427,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
           {showCelebration ? <ExercisesCompleteCelebration animate={celebrateAnimate} /> : null}
 
           {program.exercises.length === 0 ? (
-            <p className="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-sm text-slate-600 shadow-sm">
+            <p className="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-sm text-slate-600 shadow-sm dark:border-[var(--kf-border)] dark:bg-[var(--kf-surface)] dark:text-[var(--kf-text-muted)]">
               Terapeutul nu a alocat încă exerciții pentru azi. Poți trimite check-in-ul.
             </p>
           ) : (
@@ -467,5 +469,6 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       ) : null}
       {tipsOpen ? <ExtraTipsDialog onClose={() => setTipsOpen(false)} /> : null}
     </AppShell>
+    </PatientThemeProvider>
   )
 }

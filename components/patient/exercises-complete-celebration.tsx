@@ -9,7 +9,7 @@ export function ExercisesCompleteCelebration({ animate }: { animate: boolean }) 
       role="status"
       aria-live="polite"
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-5 sm:px-6",
+        "relative overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-5 sm:px-6 dark:border-emerald-900 dark:bg-emerald-950/40",
         animate && "kf-celebrate-in",
       )}
     >
@@ -25,7 +25,7 @@ export function ExercisesCompleteCelebration({ animate }: { animate: boolean }) 
         >
           <PartyPopper className="size-5" aria-hidden="true" />
         </span>
-        <p className="pt-1.5 text-base font-semibold leading-snug text-emerald-950 sm:text-lg">
+        <p className="pt-1.5 text-base font-semibold leading-snug text-emerald-950 sm:text-lg dark:text-emerald-100">
           {EXERCISES_COMPLETE_MESSAGE}
         </p>
       </div>

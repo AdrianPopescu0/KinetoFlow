@@ -83,7 +83,7 @@ export function PatientAccessForm({
       ) : null}
 
       {autoSigningIn ? (
-        <p className="flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-[#042f2e]">
+        <p className="flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-[#042f2e] dark:border-teal-700 dark:bg-[#1f2e2c] dark:text-teal-100">
           <Loader2 className="size-4 animate-spin" />
           Te conectăm automat…
         </p>
@@ -135,9 +135,9 @@ export function PatientAccessForm({
         )}
       </Button>
 
-      <p className="text-center text-sm text-slate-500">
+      <p className="text-center text-sm text-slate-500 dark:text-[var(--kf-text-muted)]">
         Ești terapeut?{" "}
-        <Link href="/login" className="font-medium text-[#042f2e] underline-offset-4 hover:underline">
+        <Link href="/login" className="font-medium text-[#042f2e] underline-offset-4 hover:underline dark:text-teal-300">
           Autentificare clinică
         </Link>
       </p>

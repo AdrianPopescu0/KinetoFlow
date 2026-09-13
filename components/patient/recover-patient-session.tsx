@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Logo } from "@/components/Logo"
+import { PatientThemeProvider } from "@/components/theme/dashboard-theme"
+import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { patientPublicPath } from "@/lib/patients/session"
 import { readStoredPatientToken } from "@/lib/patients/token-storage"
 
@@ -22,28 +24,32 @@ export function RecoverPatientSession() {
   }, [router])
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-slate-50">
+    <PatientThemeProvider>
+    <div className="relative flex min-h-full flex-1 flex-col bg-slate-50 dark:bg-[var(--kf-canvas)]">
+      <div className="absolute top-4 right-4 z-10 sm:top-5 sm:right-5">
+        <ThemeToggle variant="surface" />
+      </div>
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-12">
         <Link href="/" className="mb-8 inline-flex items-center">
           <Logo size="md" />
         </Link>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-[var(--kf-border)] dark:bg-[var(--kf-surface)]">
           {status === "searching" ? (
             <>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-[var(--kf-text)]">
                 Reîncărcăm programul
               </h1>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-[var(--kf-text-muted)]">
                 Linkul din WhatsApp sau Facebook a pierdut tokenul. Căutăm sesiunea salvată pe
                 acest dispozitiv…
               </p>
             </>
           ) : (
             <>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-[var(--kf-text)]">
                 Link incomplet
               </h1>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-[var(--kf-text-muted)]">
                 Deschide din nou linkul primit de la terapeut sau intră cu telefonul și codul de 8
                 cifre.
               </p>
@@ -58,5 +64,6 @@ export function RecoverPatientSession() {
         </div>
       </main>
     </div>
+    </PatientThemeProvider>
   )
 }
