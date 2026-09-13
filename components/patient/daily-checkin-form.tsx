@@ -1,6 +1,6 @@
 "use client"
 
-import { useId } from "react"
+import { useId, type ReactNode } from "react"
 
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,19 @@ import { VasScale } from "@/components/patient/vas-scale"
 import { ENERGY_OPTIONS, PAIN_KIND_OPTIONS, SLEEP_OPTIONS } from "@/lib/patients/program"
 import type { EnergyLevel, PainKind, SleepQuality } from "@/lib/patients/types"
 import { cn } from "@/lib/utils"
+
+const choiceTileClass = (selected: boolean) =>
+  cn(
+    "flex size-[4.75rem] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border px-1.5 text-center transition-colors",
+    "sm:size-[5.25rem]",
+    selected
+      ? "border-[#042f2e] bg-[#042f2e] text-white"
+      : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
+  )
+
+function ChoiceRow({ children }: { children: ReactNode }) {
+  return <div className="flex flex-wrap content-start items-start gap-2">{children}</div>
+}
 
 type DailyCheckinFormProps = {
   pain: number
@@ -66,78 +79,61 @@ export function DailyCheckinForm({
 
       <VasScale value={pain} onChange={onPainChange} />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
-        <fieldset className="flex min-w-0 flex-col gap-3">
-          <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Calitatea somnului</legend>
-          <div className="grid grid-cols-5 gap-1.5">
-            {SLEEP_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={sleep === option.value}
-                onClick={() => onSleepChange(option.value)}
-                className={cn(
-                  "flex min-h-[4.75rem] flex-col items-center justify-center gap-1 rounded-2xl border px-1 py-2 text-center transition-colors",
-                  sleep === option.value
-                    ? "border-[#042f2e] bg-[#042f2e] text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
-                )}
-              >
-                <span className="text-xl" aria-hidden="true">
-                  {option.emoji}
-                </span>
-                <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
+      <fieldset className="flex min-w-0 flex-col gap-3">
+        <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Calitatea somnului</legend>
+        <ChoiceRow>
+          {SLEEP_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={sleep === option.value}
+              onClick={() => onSleepChange(option.value)}
+              className={choiceTileClass(sleep === option.value)}
+            >
+              <span className="text-xl leading-none" aria-hidden="true">
+                {option.emoji}
+              </span>
+              <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
+            </button>
+          ))}
+        </ChoiceRow>
+      </fieldset>
 
-        <fieldset className="flex min-w-0 flex-col gap-3">
-          <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Tip durere</legend>
-          <div className="grid grid-cols-3 gap-2">
-            {PAIN_KIND_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={painKind === option.value}
-                onClick={() => onPainKindChange(option.value)}
-                className={cn(
-                  "flex min-h-[4.75rem] items-center justify-center rounded-2xl border px-2 py-3 text-center",
-                  painKind === option.value
-                    ? "border-[#042f2e] bg-[#042f2e] text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
-                )}
-              >
-                <span className="text-xs font-semibold leading-tight sm:text-sm">{option.label}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      </div>
+      <fieldset className="flex min-w-0 flex-col gap-3">
+        <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Tip durere</legend>
+        <ChoiceRow>
+          {PAIN_KIND_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={painKind === option.value}
+              onClick={() => onPainKindChange(option.value)}
+              className={choiceTileClass(painKind === option.value)}
+            >
+              <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
+            </button>
+          ))}
+        </ChoiceRow>
+      </fieldset>
 
       <fieldset className="flex min-w-0 flex-col gap-3">
         <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Nivel de energie</legend>
-        <div className="grid grid-cols-5 gap-1.5">
+        <ChoiceRow>
           {ENERGY_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
               aria-pressed={energy === option.value}
               onClick={() => onEnergyChange(option.value)}
-              className={cn(
-                "flex min-h-[4.75rem] flex-col items-center justify-center gap-1 rounded-2xl border px-1 py-2 text-center transition-colors",
-                energy === option.value
-                  ? "border-[#042f2e] bg-[#042f2e] text-white"
-                  : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
-              )}
+              className={choiceTileClass(energy === option.value)}
             >
-              <span className="text-xl" aria-hidden="true">
+              <span className="text-xl leading-none" aria-hidden="true">
                 {option.emoji}
               </span>
               <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
             </button>
           ))}
-        </div>
+        </ChoiceRow>
       </fieldset>
 
       <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
