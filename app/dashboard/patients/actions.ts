@@ -23,7 +23,7 @@ import {
   isUniqueCheckinConstraintError,
 } from "@/lib/patients/daily-checkin"
 import {
-  patientAccessUrl,
+  patientAccessLoginUrl,
   patientWhatsAppHref,
   patientWhatsAppMessage,
   patientWhatsAppWebHref,
@@ -165,7 +165,14 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     await upsertPatientNotes(notesClient, String(row.id), notes, { updatedBy: user.id })
   }
   const clinicName = (await clinicNameForUser(supabase, user.id)) || "KinetoFlow"
-  const message = patientWhatsAppMessage({ fullName, clinicName, accessCode: code })
+  const savedPhone = typeof row.phone === "string" && row.phone.trim() ? row.phone : phone
+  const message = patientWhatsAppMessage({
+    fullName,
+    clinicName,
+    accessCode: code,
+    phone: savedPhone,
+  })
+  const portalUrl = patientAccessLoginUrl({ phone: savedPhone, accessCode: code })
 
   revalidatePath("/dashboard")
   return {
@@ -173,9 +180,9 @@ export async function createPatient(formData: FormData): Promise<MutationState> 
     token,
     patientId: String(row.id),
     accessCode: code,
-    phone: typeof row.phone === "string" && row.phone.trim() ? row.phone : phone,
+    phone: savedPhone,
     fullName,
-    portalUrl: patientAccessUrl(),
+    portalUrl,
     whatsappHref: patientWhatsAppHref(phone, message),
     whatsappWebHref: patientWhatsAppWebHref(phone, message),
     whatsappMessage: message,

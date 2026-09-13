@@ -13,7 +13,7 @@ export function patientInviteShareMessage(input: {
     "",
     `Codul tău unic de 8 cifre: ${code}`,
     "",
-    "Introdu numărul tău de telefon și codul de mai sus pentru a intra în program.",
+    "Deschide linkul: telefonul și codul se completează singure, apoi confirmă accesul.",
     "Te rog să faci check-in-ul de durere înainte să începi exercițiile. Spor la recuperare!",
   ].join("\n")
 }

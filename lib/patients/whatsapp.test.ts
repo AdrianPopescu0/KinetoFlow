@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
+import { patientAccessLoginQuery, patientWhatsAppMessage } from "./whatsapp.ts"
 import {
   isExternalWhatsAppUrl,
   patientWhatsAppHref,
@@ -11,6 +12,27 @@ import {
   whatsappBlankAnchorProps,
 } from "./whatsapp-links.ts"
 
+test("mesajul WhatsApp include /acces?phone=&code=", () => {
+  const message = patientWhatsAppMessage({
+    fullName: "Ana Popescu",
+    clinicName: "KinetoFlow",
+    accessCode: "12345678",
+    phone: "0722 123 456",
+  })
+  assert.match(message, /\/acces\?phone=40722123456&code=12345678/)
+  assert.match(message, /12345678/)
+})
+
+test("linkul de acces pune telefonul și codul ca parametri", () => {
+  assert.equal(
+    patientAccessLoginQuery({ phone: "0722 123 456", accessCode: "12345678" }),
+    "?phone=40722123456&code=12345678",
+  )
+  assert.equal(patientAccessLoginQuery({ accessCode: "12345678" }), "?code=12345678")
+  assert.equal(patientAccessLoginQuery({ phone: "0722 123 456" }), "?phone=40722123456")
+  assert.equal(patientAccessLoginQuery({}), "")
+})
+
 test("contactul pacientului deschide wa.me doar cu numărul, fără text", () => {
   const href = patientWhatsAppMeHref("0722 123 456")
   assert.equal(href, "https://wa.me/40722123456")
@@ -19,7 +41,7 @@ test("contactul pacientului deschide wa.me doar cu numărul, fără text", () =>
 
 test("invitația de pacient pune codul și linkul în textul wa.me", () => {
   const message =
-    "Bună, Ana! Codul tău de acces este 12345678. Intră aici: https://kinetoflow.ro/acces?code=12345678"
+    "Bună, Ana! Codul tău de acces este 12345678. Intră aici: https://kinetoflow.ro/acces?phone=40722123456&code=12345678"
   const href = patientWhatsAppHref("0722 123 456", message)
   assert.ok(href)
   const url = new URL(href)

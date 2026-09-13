@@ -41,6 +41,21 @@ export function toTwilioE164(phone: string | null | undefined): string | null {
   return digits ? `+${digits}` : null
 }
 
+/** Valoare de afișat în formularul /acces din `?phone=`. */
+export function accessPhoneFromParam(value: unknown): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return ""
+  }
+  const digits = toWhatsAppNumber(value)
+  if (!digits) {
+    return value.replace(/\D/g, "").slice(0, 15)
+  }
+  if (digits.startsWith("40") && digits.length === 11) {
+    return `0${digits.slice(2)}`
+  }
+  return digits
+}
+
 export function phonesMatch(stored: string | null, input: string): boolean {
   const a = stored ? toWhatsAppNumber(stored) : null
   const b = toWhatsAppNumber(input)

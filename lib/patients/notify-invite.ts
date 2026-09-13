@@ -13,7 +13,7 @@ import { sendPatientNotification } from "@/lib/patients/notify-patient"
 import { rememberPatientNotifyChannel } from "@/lib/patients/remember-notify-channel"
 import { getOwnPatientRow } from "@/lib/patients/tenant"
 import {
-  patientAccessUrl,
+  patientAccessLoginUrl,
   patientWhatsAppHref,
   patientWhatsAppMessage,
   patientWhatsAppWebHref,
@@ -73,7 +73,13 @@ export async function handlePatientInviteNotify(
   const phone = typeof found.phone === "string" ? found.phone : ""
   const fullName = String(found.full_name)
   const clinicName = (await clinicNameForUser(supabase, user.id)) || "KinetoFlow"
-  const message = patientWhatsAppMessage({ fullName, clinicName, accessCode })
+  const message = patientWhatsAppMessage({
+    fullName,
+    clinicName,
+    accessCode,
+    phone,
+  })
+  const portalUrl = patientAccessLoginUrl({ phone, accessCode })
 
   const remembered = await rememberPatientNotifyChannel(supabase, patientId, storedChannel)
 
@@ -85,7 +91,7 @@ export async function handlePatientInviteNotify(
       saved: remembered.saved,
       missingColumn: remembered.missingColumn ?? false,
       error: remembered.error ?? null,
-      portalUrl: patientAccessUrl(),
+      portalUrl,
       whatsappHref: phone ? patientWhatsAppHref(phone, message) : null,
       whatsappWebHref: phone ? patientWhatsAppWebHref(phone, message) : null,
       message,
@@ -104,7 +110,7 @@ export async function handlePatientInviteNotify(
     saved: remembered.saved,
     missingColumn: remembered.missingColumn ?? false,
     error: result.sent ? null : (result.error ?? remembered.error ?? null),
-    portalUrl: patientAccessUrl(),
+    portalUrl,
     whatsappHref: phone ? patientWhatsAppHref(phone, message) : null,
     whatsappWebHref: phone ? patientWhatsAppWebHref(phone, message) : null,
     message,

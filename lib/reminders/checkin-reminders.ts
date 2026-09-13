@@ -7,7 +7,7 @@ import { sendPushToTokens } from "@/lib/patients/push-send"
 import { listPushTokensByPatientIds } from "@/lib/patients/push-tokens"
 import { chooseReminderDelivery } from "@/lib/patients/reminder-delivery"
 import {
-  patientAccessUrlWithCode,
+  patientAccessLoginUrl,
   patientPortalUrl,
 } from "@/lib/patients/whatsapp"
 import { maskPhone, providerFlags, reminderLog, reminderWarn } from "@/lib/reminders/log"
@@ -256,7 +256,7 @@ export async function runCheckinReminders(
       const portalUrl =
         typeof patient.token === "string" && patient.token
           ? patientPortalUrl(patient.token)
-          : patientAccessUrlWithCode(accessCode)
+          : patientAccessLoginUrl({ accessCode, phone: patient.phone })
 
       if (options.dryRun) {
         reminderLog("Dry-run: aș trimite push, dar nu trimit.", {

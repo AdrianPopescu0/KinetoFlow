@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import { PatientAccessForm } from "@/app/acces/access-form"
 import { Logo } from "@/components/Logo"
+import { accessPhoneFromParam } from "@/lib/patients/phone"
 
 export const metadata: Metadata = {
   title: "Acces pacient | KinetoFlow",
@@ -10,12 +11,26 @@ export const metadata: Metadata = {
 }
 
 type PatientAccessPageProps = {
-  searchParams: Promise<{ redirectTo?: string; code?: string }>
+  searchParams: Promise<{ redirectTo?: string; code?: string; phone?: string }>
+}
+
+function accessIntro(prefilledPhone: string, prefilledCode: string): string {
+  if (prefilledPhone && prefilledCode) {
+    return "Telefonul și codul din mesaj sunt deja complete. Te conectăm automat — confirmă accesul doar dacă nu pornește singur."
+  }
+  if (prefilledCode) {
+    return "Codul tău e deja completat. Confirmă numărul de telefon ca să intri în program."
+  }
+  if (prefilledPhone) {
+    return "Numărul tău e deja completat. Introdu codul de 8 cifre primit de la terapeut."
+  }
+  return "Introdu numărul de telefon și codul de 8 cifre primit pe WhatsApp. Nu ai nevoie de parolă."
 }
 
 export default async function PatientAccessPage({ searchParams }: PatientAccessPageProps) {
-  const { redirectTo, code } = await searchParams
+  const { redirectTo, code, phone } = await searchParams
   const prefilledCode = typeof code === "string" ? code.replace(/\D/g, "").slice(0, 8) : ""
+  const prefilledPhone = accessPhoneFromParam(phone)
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-slate-50">
@@ -26,12 +41,14 @@ export default async function PatientAccessPage({ searchParams }: PatientAccessP
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Acces pacient</h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            {prefilledCode
-              ? "Codul tău e deja completat. Confirmă numărul de telefon ca să intri în program."
-              : "Introdu numărul de telefon și codul de 8 cifre primit pe WhatsApp. Nu ai nevoie de parolă."}
+            {accessIntro(prefilledPhone, prefilledCode)}
           </p>
           <div className="mt-6">
-            <PatientAccessForm redirectTo={redirectTo} prefilledCode={prefilledCode} />
+            <PatientAccessForm
+              redirectTo={redirectTo}
+              prefilledPhone={prefilledPhone}
+              prefilledCode={prefilledCode}
+            />
           </div>
         </div>
       </main>

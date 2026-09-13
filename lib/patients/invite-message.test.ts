@@ -8,19 +8,19 @@ import { patientWhatsAppHref, patientWhatsAppMeHref, patientWhatsAppWebHref } fr
 const SAMPLE = patientInviteShareMessage({
   fullName: "Ana Popescu",
   accessCode: "12345678",
-  accessUrl: "https://kinetoflow.ro/acces",
+  accessUrl: "https://kinetoflow.ro/acces?phone=40722123456&code=12345678",
 })
 
-test("mesajul de invitație are numele, linkul /acces și codul de 8 cifre", () => {
+test("mesajul de invitație are numele, linkul /acces cu telefon și cod", () => {
   assert.equal(
     SAMPLE,
     [
       "Bună, Ana Popescu! Sunt kinetoterapeutul tău de la KinetoFlow. Ți-am pregătit planul tău personalizat de exerciții.",
-      "Accesează aplicația aici: https://kinetoflow.ro/acces",
+      "Accesează aplicația aici: https://kinetoflow.ro/acces?phone=40722123456&code=12345678",
       "",
       "Codul tău unic de 8 cifre: 12345678",
       "",
-      "Introdu numărul tău de telefon și codul de mai sus pentru a intra în program.",
+      "Deschide linkul: telefonul și codul se completează singure, apoi confirmă accesul.",
       "Te rog să faci check-in-ul de durere înainte să începi exercițiile. Spor la recuperare!",
     ].join("\n"),
   )

@@ -18,9 +18,11 @@ import {
 
 export function PatientAccessForm({
   redirectTo,
+  prefilledPhone = "",
   prefilledCode = "",
 }: {
   redirectTo?: string
+  prefilledPhone?: string
   prefilledCode?: string
 }) {
   const [error, setError] = useState<string | null>(null)
@@ -32,6 +34,9 @@ export function PatientAccessForm({
     readRememberedPhone,
     rememberedPhoneServerSnapshot,
   )
+
+  const phoneValue = prefilledPhone || rememberedPhone
+  const canAutoSignIn = Boolean(prefilledCode) && Boolean(phoneValue)
 
   const submit = useCallback(
     (formData: FormData) => {
@@ -48,23 +53,23 @@ export function PatientAccessForm({
     [startTransition],
   )
 
-  // Link din WhatsApp + telefon reținut pe acest dispozitiv = intrare fără niciun tap.
+  // Link din WhatsApp/SMS cu ?phone=&code= (sau cod + telefon reținut) = un tap / conectare automată.
   useEffect(() => {
-    if (autoSubmitted.current || !prefilledCode || !rememberedPhone) {
+    if (autoSubmitted.current || !canAutoSignIn) {
       return
     }
     autoSubmitted.current = true
 
     const formData = new FormData()
-    formData.set("phone", rememberedPhone)
+    formData.set("phone", phoneValue)
     formData.set("access_code", prefilledCode)
     if (redirectTo) {
       formData.set("redirectTo", redirectTo)
     }
     submit(formData)
-  }, [prefilledCode, rememberedPhone, redirectTo, submit])
+  }, [canAutoSignIn, phoneValue, prefilledCode, redirectTo, submit])
 
-  const autoSigningIn = isPending && Boolean(prefilledCode) && Boolean(rememberedPhone) && !error
+  const autoSigningIn = isPending && canAutoSignIn && !error
 
   return (
     <form action={submit} className="flex flex-col gap-5">
@@ -93,8 +98,8 @@ export function PatientAccessForm({
           inputMode="tel"
           required
           disabled={isPending}
-          defaultValue={rememberedPhone}
-          autoFocus={Boolean(prefilledCode) && !rememberedPhone}
+          defaultValue={phoneValue}
+          autoFocus={!phoneValue}
           placeholder="07xx xxx xxx"
           className="h-12 border-slate-300"
           autoComplete="tel"
@@ -112,6 +117,7 @@ export function PatientAccessForm({
           required
           disabled={isPending}
           defaultValue={prefilledCode}
+          autoFocus={Boolean(phoneValue) && !prefilledCode}
           placeholder="12345678"
           className="h-12 border-slate-300 tracking-[0.3em]"
           autoComplete="one-time-code"

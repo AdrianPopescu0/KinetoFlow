@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { patientSmsHref, toTwilioE164 } from "./phone.ts"
+import { accessPhoneFromParam, patientSmsHref, toTwilioE164 } from "./phone.ts"
 
 test("SMS de contact e sms:+număr, fără body și fără cod de acces", () => {
   assert.equal(patientSmsHref("0722 123 456"), "sms:+40722123456")
@@ -12,6 +12,14 @@ test("SMS de contact e sms:+număr, fără body și fără cod de acces", () => 
 
 test("SMS cu text păstrează body-ul", () => {
   assert.equal(patientSmsHref("0722123456", "Bună!"), `sms:+40722123456?body=${encodeURIComponent("Bună!")}`)
+})
+
+test("accessPhoneFromParam pune numărul din URL în formatul formularului", () => {
+  assert.equal(accessPhoneFromParam("40722123456"), "0722123456")
+  assert.equal(accessPhoneFromParam("+40 722 123 456"), "0722123456")
+  assert.equal(accessPhoneFromParam("0722 123 456"), "0722123456")
+  assert.equal(accessPhoneFromParam(""), "")
+  assert.equal(accessPhoneFromParam(undefined), "")
 })
 
 test("toTwilioE164 scoate prefixul whatsapp: și păstrează E.164", () => {
