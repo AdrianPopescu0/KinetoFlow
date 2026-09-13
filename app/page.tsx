@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 
-import { AppShell } from "@/components/brand/app-atmosphere"
 import { RecoverSessionRedirect } from "@/components/auth/recover-session-redirect"
 import { LandingCta } from "@/components/landing/landing-cta"
 import { LandingFaq } from "@/components/landing/landing-faq"
@@ -16,7 +15,10 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <AppShell>
+    <div
+      data-landing-page
+      className="flex min-h-0 max-w-full flex-1 flex-col overflow-x-hidden scroll-smooth bg-[#0c1615] text-[#e8eeed]"
+    >
       <RecoverSessionRedirect />
       <LandingHeader />
       <main className="flex flex-1 flex-col">
@@ -25,6 +27,6 @@ export default function HomePage() {
         <LandingCta />
         <LandingFaq />
       </main>
-    </AppShell>
+    </div>
   )
 }

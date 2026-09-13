@@ -257,8 +257,69 @@
 @media (prefers-reduced-motion: reduce) {
   .kf-celebrate-in,
   .kf-celebrate-check,
-  .kf-celebrate-spark {
+  .kf-celebrate-spark,
+  .kf-hero-flow,
+  .kf-hero-flow-slow,
+  .kf-hero-pulse {
     animation: none !important;
+  }
+}
+
+html:has([data-landing-page]) {
+  scroll-behavior: smooth;
+  background-color: #0c1615;
+}
+
+body:has([data-landing-page]) {
+  background-color: #0c1615;
+  color: #e8eeed;
+}
+
+body:has([data-landing-page]) footer {
+  background-color: #0c1615;
+  color: #8fa3a0;
+}
+
+body:has([data-landing-page]) footer a,
+body:has([data-landing-page]) footer button {
+  color: #b7c9c6;
+}
+
+body:has([data-landing-page]) footer a:hover,
+body:has([data-landing-page]) footer button:hover {
+  color: #5eead4;
+}
+
+.kf-hero-flow {
+  stroke-dasharray: 14 22;
+  animation: kf-hero-flow 22s linear infinite;
+}
+
+.kf-hero-flow-slow {
+  animation-duration: 32s;
+  animation-direction: reverse;
+}
+
+.kf-hero-pulse {
+  transform-origin: 760px 210px;
+  animation: kf-hero-pulse 3.6s ease-in-out infinite;
+}
+
+@keyframes kf-hero-flow {
+  to {
+    stroke-dashoffset: -220;
+  }
+}
+
+@keyframes kf-hero-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.35);
   }
 }
 

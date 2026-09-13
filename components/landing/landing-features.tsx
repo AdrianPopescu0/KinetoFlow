@@ -7,8 +7,6 @@ import {
   Users,
 } from "lucide-react"
 
-import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
-
 const features = [
   {
     title: "Pacienți și fișe într-un singur loc",
@@ -50,27 +48,31 @@ const features = [
 
 export function LandingFeatures() {
   return (
-    <section id="beneficii" className="px-4 pb-16 sm:px-6 sm:pb-20">
+    <section id="beneficii" className="px-4 py-16 sm:px-6 sm:py-24">
       <div className="mx-auto w-full max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+          <p className="text-xs font-semibold tracking-[0.18em] text-teal-300 uppercase">Beneficii</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
             Tot ce trebuie ca să ții activitatea sub control
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
+          <p className="mt-3 text-sm leading-relaxed text-teal-100/70 sm:text-base">
             De la primul pacient până la check-in-ul de seară: mai puțină administrare, mai multă
             atenție pe recuperare.
           </p>
         </div>
-        <ul className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => {
             const Icon = feature.icon
             return (
-              <li key={feature.title} className={surfaceCardClassName("flex h-full flex-col p-5 sm:p-6")}>
-                <span className="flex size-10 items-center justify-center rounded-xl bg-teal-50 text-[#042f2e]">
+              <li
+                key={feature.title}
+                className="flex h-full flex-col rounded-2xl border border-white/10 bg-[#14201f] p-5 shadow-[0_20px_50px_-28px_rgba(4,47,46,0.9)] sm:p-6"
+              >
+                <span className="flex size-10 items-center justify-center rounded-xl bg-teal-400/12 text-teal-300">
                   <Icon className="size-5" aria-hidden="true" />
                 </span>
-                <h3 className="mt-4 text-base font-semibold text-slate-900">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{feature.description}</p>
+                <h3 className="mt-4 text-base font-semibold text-white">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-teal-100/70">{feature.description}</p>
               </li>
             )
           })}
