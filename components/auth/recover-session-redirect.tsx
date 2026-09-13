@@ -1,30 +1,17 @@
 "use client"
 
-import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 
-import { enterTherapistApp } from "@/lib/auth/oauth-redirect"
-import { createClient } from "@/utils/supabase/client"
+import { CaptureOAuthSession } from "@/components/auth/capture-oauth-session"
 
 /**
- * Dacă Google lasă sesiunea pe landing (Site URL = `/`), ducem terapeutul
- * în dashboard printr-un document request — fără buclă pe `/login`.
+ * Dacă Google lasă tokenii pe landing (Site URL = `/`) sau sesiunea e deja
+ * în client, ducem terapeutul în dashboard după `onAuthStateChange`.
  */
 export function RecoverSessionRedirect() {
   const pathname = usePathname()
-
-  useEffect(() => {
-    if (pathname !== "/") {
-      return
-    }
-
-    const supabase = createClient()
-    void supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        enterTherapistApp("/dashboard")
-      }
-    })
-  }, [pathname])
-
-  return null
+  if (pathname !== "/") {
+    return null
+  }
+  return <CaptureOAuthSession mode="landing" />
 }

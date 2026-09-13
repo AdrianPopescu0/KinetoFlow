@@ -36,6 +36,16 @@ export function isPublicMarketingPath(pathname: string): boolean {
   return pathname === "/"
 }
 
+/** Rute unde PKCE / tokenii din URL trebuie lăsați neatinși de middleware. */
+export function isAuthHandshakePath(pathname: string): boolean {
+  return (
+    pathname === "/auth/callback" ||
+    pathname.startsWith("/auth/callback/") ||
+    pathname === "/auth/sesiune" ||
+    pathname.startsWith("/auth/sesiune/")
+  )
+}
+
 export function therapistAppPath(clinicReady: boolean): "/dashboard" | "/onboarding" {
   return clinicReady ? "/dashboard" : "/onboarding"
 }

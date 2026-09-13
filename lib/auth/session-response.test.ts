@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { isPublicMarketingPath, isSignupAuthMode, loginHref, safeAuthNextPath, shouldStayOnTherapistLogin, therapistAppPath } from "./paths.ts"
+import { isAuthHandshakePath, isPublicMarketingPath, isSignupAuthMode, loginHref, safeAuthNextPath, shouldStayOnTherapistLogin, therapistAppPath } from "./paths.ts"
 import {
   GOOGLE_OAUTH_QUERY_PARAMS,
   isSupabaseAuthCookieName,
@@ -19,11 +19,20 @@ test("taburile de autentificare și înregistrare au rute distincte", () => {
   assert.equal(isSignupAuthMode({}), false)
 })
 
+test("callback-ul Google nu e atins de middleware-ul de sesiune", () => {
+  assert.equal(isAuthHandshakePath("/auth/callback"), true)
+  assert.equal(isAuthHandshakePath("/auth/callback/"), true)
+  assert.equal(isAuthHandshakePath("/auth/sesiune"), true)
+  assert.equal(isAuthHandshakePath("/login"), false)
+  assert.equal(isAuthHandshakePath("/dashboard"), false)
+})
+
 test("landing-ul public e pagina de marketing, nu dashboard-ul", () => {
   assert.equal(isPublicMarketingPath("/"), true)
   assert.equal(isPublicMarketingPath("/login"), false)
   assert.equal(isPublicMarketingPath("/dashboard"), false)
   assert.equal(isPublicMarketingPath("/acces"), false)
+  assert.equal(isPublicMarketingPath("/auth/sesiune"), false)
 })
 
 test("terapeutul cu clinică merge în dashboard, altfel la onboarding", () => {

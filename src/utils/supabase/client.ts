@@ -6,5 +6,11 @@ import { getSupabasePublicEnv } from "@/utils/supabase/env"
 export function createClient() {
   const { url, anonKey } = getSupabasePublicEnv()
 
-  return createBrowserClient<Database>(url, anonKey)
+  return createBrowserClient<Database>(url, anonKey, {
+    auth: {
+      detectSessionInUrl: true,
+      persistSession: true,
+      flowType: "pkce",
+    },
+  })
 }

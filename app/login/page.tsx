@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { LoginForm } from "@/app/login/login-form"
+import { CaptureOAuthSession } from "@/components/auth/capture-oauth-session"
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout"
 import { EMAIL_CONFIRM_REQUIRED } from "@/lib/auth/email-confirmed"
 import { isSignupAuthMode } from "@/lib/auth/paths"
@@ -46,6 +47,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </p>
       }
     >
+      <CaptureOAuthSession mode="login" />
       <LoginForm
         key={signup ? "register" : "login"}
         initialTab={signup ? "register" : "login"}

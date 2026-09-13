@@ -96,11 +96,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(callbackAbsoluteUrl(request, "/login?reason=oauth"))
   }
 
+  // Fără `code` / `token_hash`: tokenii pot fi în hash (implicit). Nu-i trimitem
+  // la /login — browserul păstrează fragmentul pe redirect către /auth/sesiune.
   if (!code && !(tokenHash && isEmailOtpType(otpType))) {
-    if (inviteToken) {
-      return NextResponse.redirect(callbackAbsoluteUrl(request, therapistInvitePagePath(inviteToken, "oauth")))
+    const sessionParams = new URLSearchParams()
+    if (next && next !== "/dashboard") {
+      sessionParams.set("next", next)
     }
-    return NextResponse.redirect(callbackAbsoluteUrl(request, "/login"))
+    if (inviteToken) {
+      sessionParams.set("invite", inviteToken)
+    }
+    const query = sessionParams.toString()
+    return NextResponse.redirect(callbackAbsoluteUrl(request, query ? `/auth/sesiune?${query}` : "/auth/sesiune"))
   }
 
   const sessionCookies: SessionCookie[] = []
@@ -115,7 +122,14 @@ export async function GET(request: NextRequest) {
         return Array.from(merged.values())
       },
       setAll(cookiesToSet) {
-        sessionCookies.push(...cookiesToSet)
+        for (const cookie of cookiesToSet) {
+          const index = sessionCookies.findIndex((item) => item.name === cookie.name)
+          if (index >= 0) {
+            sessionCookies[index] = cookie
+          } else {
+            sessionCookies.push(cookie)
+          }
+        }
       },
     },
   })

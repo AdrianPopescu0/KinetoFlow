@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
-import { isPublicMarketingPath, shouldStayOnTherapistLogin } from "@/lib/auth/paths"
+import { isAuthHandshakePath, isPublicMarketingPath, shouldStayOnTherapistLogin } from "@/lib/auth/paths"
 import { redirectWithAuthCookies } from "@/lib/auth/session-response"
 import { clinicReadyFromUser, invitedTherapistFromUser, therapistHasClinicProfile } from "@/lib/clinics/profile"
 import {
@@ -55,6 +55,8 @@ function allowsUnconfirmedEmail(pathname: string): boolean {
   return (
     pathname === "/auth/callback" ||
     pathname.startsWith("/auth/callback/") ||
+    pathname === "/auth/sesiune" ||
+    pathname.startsWith("/auth/sesiune/") ||
     pathname === "/auth/activare" ||
     pathname.startsWith("/auth/activare/") ||
     pathname === "/auth/email-cod" ||
@@ -127,6 +129,10 @@ export async function updateSession(request: NextRequest) {
 
   if (urlToken) {
     stampPatientCookies(supabaseResponse, urlToken)
+  }
+
+  if (isAuthHandshakePath(pathname)) {
+    return supabaseResponse
   }
 
   const { url, anonKey } = getSupabasePublicEnv()
