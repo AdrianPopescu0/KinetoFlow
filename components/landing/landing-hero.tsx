@@ -13,7 +13,7 @@ const highlights = [
 
 export function LandingHero() {
   return (
-    <section className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden">
+    <section className="kf-hero-fade relative isolate min-h-[calc(100svh-4rem)] overflow-hidden">
       <Image
         src="/landing/hero-recovery.jpg"
         alt="Terapeut care urmărește un pacient în timpul unui exercițiu de recuperare pe reformer"
@@ -33,6 +33,10 @@ export function LandingHero() {
       <div className="pointer-events-none absolute inset-0 opacity-80">
         <LandingHeroArt />
       </div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[32%] bg-gradient-to-b from-transparent via-[#0c1615]/55 to-[#0c1615]"
+      />
 
       <div className="relative mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-6xl flex-col justify-between gap-10 px-4 pt-10 pb-6 sm:px-6 sm:pt-16 sm:pb-8">
         <div className="max-w-3xl">
