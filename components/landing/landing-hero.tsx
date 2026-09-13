@@ -35,10 +35,10 @@ export function LandingHero() {
       </div>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[32%] bg-gradient-to-b from-transparent via-[#0c1615]/55 to-[#0c1615]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-b from-transparent from-0% via-[#0c1615]/25 via-45% to-[#0c1615]"
       />
 
-      <div className="relative mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-6xl flex-col justify-between gap-10 px-4 pt-10 pb-6 sm:px-6 sm:pt-16 sm:pb-8">
+      <div className="relative mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-6xl flex-col justify-between gap-10 px-4 pt-10 pb-16 sm:px-6 sm:pt-16 sm:pb-24">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold tracking-[0.2em] text-teal-300 uppercase">
             Platformă clinică pentru kinetoterapie

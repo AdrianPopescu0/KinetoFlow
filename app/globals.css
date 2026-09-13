@@ -291,8 +291,26 @@ body:has([data-landing-page]) footer button:hover {
 }
 
 .kf-hero-fade {
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 42%,
+    rgb(0 0 0 / 0.92) 54%,
+    rgb(0 0 0 / 0.68) 66%,
+    rgb(0 0 0 / 0.38) 78%,
+    rgb(0 0 0 / 0.14) 90%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 42%,
+    rgb(0 0 0 / 0.92) 54%,
+    rgb(0 0 0 / 0.68) 66%,
+    rgb(0 0 0 / 0.38) 78%,
+    rgb(0 0 0 / 0.14) 90%,
+    transparent 100%
+  );
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
@@ -303,11 +321,29 @@ body:has([data-landing-page]) footer button:hover {
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    #000 16%,
-    #000 70%,
+    rgb(0 0 0 / 0.18) 10%,
+    rgb(0 0 0 / 0.5) 20%,
+    rgb(0 0 0 / 0.86) 32%,
+    #000 42%,
+    #000 52%,
+    rgb(0 0 0 / 0.82) 64%,
+    rgb(0 0 0 / 0.48) 76%,
+    rgb(0 0 0 / 0.16) 88%,
     transparent 100%
   );
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 70%, transparent 100%);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / 0.18) 10%,
+    rgb(0 0 0 / 0.5) 20%,
+    rgb(0 0 0 / 0.86) 32%,
+    #000 42%,
+    #000 52%,
+    rgb(0 0 0 / 0.82) 64%,
+    rgb(0 0 0 / 0.48) 76%,
+    rgb(0 0 0 / 0.16) 88%,
+    transparent 100%
+  );
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
