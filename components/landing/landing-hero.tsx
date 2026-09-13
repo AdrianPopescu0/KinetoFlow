@@ -24,33 +24,36 @@ export function LandingHero() {
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-[linear-gradient(90deg,#071412_0%,#0c1615e6_38%,#042f2ecc_62%,#042f2e66_100%)] sm:bg-[linear-gradient(105deg,#071412_0%,#0c1615f2_34%,#042f2ed9_54%,#042f2e40_78%,transparent_100%)]"
+        className="absolute inset-0 bg-[linear-gradient(180deg,#071412f2_0%,#0c1615cc_38%,#042f2e99_62%,#0c1615e6_100%)] sm:bg-[linear-gradient(180deg,#071412f0_0%,#0c1615b8_32%,#042f2e66_58%,#0c1615f2_100%)]"
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(45,212,191,0.18),transparent_42%)]"
+        className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(45,212,191,0.16),transparent_42%)]"
       />
       <div className="pointer-events-none absolute inset-0 opacity-80">
         <LandingHeroArt />
       </div>
 
-      <div className="relative mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-6xl flex-col justify-center px-4 py-16 sm:px-6 sm:py-24">
-        <div className="max-w-2xl">
+      <div className="relative mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-6xl flex-col justify-between gap-10 px-4 pt-10 pb-6 sm:px-6 sm:pt-16 sm:pb-8">
+        <div className="max-w-3xl">
           <p className="text-xs font-semibold tracking-[0.2em] text-teal-300 uppercase">
             Platformă clinică pentru kinetoterapie
           </p>
-          <h1 className="mt-5 text-4xl font-semibold tracking-tight text-balance text-white sm:text-6xl sm:leading-[1.05]">
-            Optimizează activitatea. Gestionează recuperarea dintr-un singur loc.
+          <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-6xl sm:leading-[1.05]">
+            <span className="block text-balance">Optimizează activitatea.</span>
+            <span className="mt-2 block text-balance text-teal-100 sm:mt-3">
+              Gestionează recuperarea dintr-un singur loc.
+            </span>
           </h1>
           <p className="mt-5 text-lg font-medium tracking-tight text-pretty text-teal-200 sm:text-2xl">
             KinetoFlow – Fluxul mișcării și al recuperării.
           </p>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-pretty text-teal-50/80 sm:text-lg">
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-pretty text-teal-50/80 sm:text-lg">
             KinetoFlow aduce pacienții, programele de exerciții și echipa clinicii în același flux de
             lucru. Intră în cont sau înregistrează cabinetul, apoi gestionezi recuperarea fără hârtii
             și fără un al doilea sistem.
           </p>
-          <div className="mt-9 flex w-full max-w-md flex-col items-stretch gap-3 sm:max-w-none sm:flex-row">
+          <div className="mt-8 flex w-full max-w-md flex-col items-stretch gap-3 sm:max-w-none sm:flex-row">
             <Link
               href="/login"
               prefetch
@@ -72,7 +75,7 @@ export function LandingHero() {
               Înregistrează clinică
             </Link>
           </div>
-          <p className="mt-5 text-sm text-teal-100/70">
+          <p className="mt-4 text-sm text-teal-100/70">
             Ești pacient?{" "}
             <Link href="/acces" prefetch className="font-medium text-teal-300 underline-offset-4 hover:underline">
               Accesează programul cu telefonul și codul
@@ -80,14 +83,14 @@ export function LandingHero() {
           </p>
         </div>
 
-        <ul className="mt-12 grid max-w-3xl gap-3 sm:grid-cols-3">
+        <ul className="grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
           {highlights.map((item) => (
             <li
               key={item.label}
-              className="rounded-2xl border border-white/10 bg-[#0c1615]/55 px-4 py-3.5 backdrop-blur-sm"
+              className="flex min-h-[7.5rem] flex-col justify-between rounded-2xl border border-white/12 bg-[#0c1615]/70 px-5 py-4 backdrop-blur-md sm:min-h-[8.5rem] sm:px-5 sm:py-5"
             >
-              <p className="text-sm font-semibold text-white">{item.label}</p>
-              <p className="mt-1 text-xs leading-relaxed text-teal-100/70">{item.detail}</p>
+              <p className="text-base font-semibold text-white">{item.label}</p>
+              <p className="mt-2 text-sm leading-relaxed text-teal-100/75">{item.detail}</p>
             </li>
           ))}
         </ul>
