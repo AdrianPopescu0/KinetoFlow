@@ -63,6 +63,7 @@ export type Database = {
           clinic_name: string | null
           notify_channel: "whatsapp" | "sms" | null
           therapist_advice: string | null
+          archived_at: string | null
         }
         Insert: {
           id?: string
@@ -81,6 +82,7 @@ export type Database = {
           clinic_name?: string | null
           notify_channel?: "whatsapp" | "sms" | null
           therapist_advice?: string | null
+          archived_at?: string | null
         }
         Update: Record<string, unknown>
         Relationships: []
@@ -258,6 +260,8 @@ export type Database = {
           therapist_name: string
           phone: string | null
           role: string | null
+          subscription_starts_at: string | null
+          subscription_ends_at: string | null
         }
         Insert: {
           id?: string
@@ -266,6 +270,8 @@ export type Database = {
           therapist_name: string
           phone?: string | null
           role?: string | null
+          subscription_starts_at?: string | null
+          subscription_ends_at?: string | null
         }
         Update: Record<string, unknown>
         Relationships: []

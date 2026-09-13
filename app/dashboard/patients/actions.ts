@@ -456,8 +456,51 @@ export async function deletePatient(patientId: string): Promise<{ error: string 
 
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/patients")
+  revalidatePath("/dashboard/arhiva")
   revalidatePath(`/dashboard/patients/${patientId}`)
   return { error: null }
+}
+
+async function setPatientArchivedAt(
+  patientId: string,
+  archivedAt: string | null,
+): Promise<{ error: string | null }> {
+  const { supabase, user } = await requireUser()
+  if (!user) {
+    return { error: "Sesiunea a expirat. Autentifică-te din nou." }
+  }
+
+  const owned = await getOwnPatientRow(supabase, user.id, patientId, "id")
+  if (!owned.data) {
+    return { error: "Pacientul nu aparține acestui cabinet." }
+  }
+
+  const id = String(owned.data.id)
+  const client = await privilegedClinicClient(supabase)
+  const { error } = await client.from("patients").update({ archived_at: archivedAt }).eq("id", id)
+
+  if (error) {
+    if (isMissingColumnError(error, "archived_at")) {
+      return {
+        error: "Arhiva nu este disponibilă încă. Rulează sql/033_patient_archive_and_subscription.sql în SQL Editor.",
+      }
+    }
+    return { error: error.message }
+  }
+
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/patients")
+  revalidatePath("/dashboard/arhiva")
+  revalidatePath(`/dashboard/patients/${id}`)
+  return { error: null }
+}
+
+export async function archivePatient(patientId: string): Promise<{ error: string | null }> {
+  return setPatientArchivedAt(patientId, new Date().toISOString())
+}
+
+export async function unarchivePatient(patientId: string): Promise<{ error: string | null }> {
+  return setPatientArchivedAt(patientId, null)
 }
 
 export async function addExercise(patientId: string, formData: FormData): Promise<MutationState> {

@@ -22,6 +22,7 @@ function patient(overrides: Partial<PatientListItem> & Pick<PatientListItem, "id
     updated_at: null,
     assigned_therapist_id: "t1",
     notify_channel: "sms",
+    archived_at: null,
     lastVas: null,
     lastCheckInAt: null,
     activeDaysLast7: 0,

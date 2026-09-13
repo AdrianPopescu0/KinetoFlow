@@ -19,6 +19,7 @@ type DashboardHeaderProps = {
 export function DashboardHeader({ email, displayName, clinicName, isAdmin = false }: DashboardHeaderProps) {
   const pathname = usePathname()
   const patientsActive = pathname === "/dashboard" || pathname.startsWith("/dashboard/patients")
+  const archiveActive = pathname === "/dashboard/arhiva" || pathname.startsWith("/dashboard/arhiva/")
   const exercisesActive = pathname.startsWith("/dashboard/exercises")
   const teamActive = pathname.startsWith("/dashboard/echipa")
   const settingsActive = pathname.startsWith("/dashboard/setari")
@@ -35,6 +36,9 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
           <nav className="hidden items-center gap-1 sm:flex">
             <NavLink href="/dashboard" active={patientsActive}>
               Pacienți
+            </NavLink>
+            <NavLink href="/dashboard/arhiva" active={archiveActive}>
+              Arhivă
             </NavLink>
             <NavLink href="/dashboard/exercises" active={exercisesActive}>
               Bibliotecă
@@ -68,6 +72,9 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
       <nav className="flex flex-wrap gap-1 border-t border-white/10 px-4 py-2 sm:hidden">
         <NavLink href="/dashboard" active={patientsActive}>
           Pacienți
+        </NavLink>
+        <NavLink href="/dashboard/arhiva" active={archiveActive}>
+          Arhivă
         </NavLink>
         <NavLink href="/dashboard/exercises" active={exercisesActive}>
           Bibliotecă

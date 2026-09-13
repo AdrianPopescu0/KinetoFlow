@@ -12,6 +12,7 @@ export type PatientRecord = {
   updated_at: string | null
   assigned_therapist_id: string | null
   notify_channel: "whatsapp" | "sms" | null
+  archived_at: string | null
 }
 
 export type ExerciseRecord = {

@@ -15,6 +15,12 @@ import {
   PatientMonitoringSkeleton,
 } from "@/app/dashboard/patients/[id]/patient-file-sections"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
+import { getCachedUser } from "@/lib/auth/session"
+import {
+  ARCHIVE_LOCKED_MESSAGE,
+  fetchClinicSubscription,
+  isClinicSubscriptionActive,
+} from "@/lib/clinics/subscription"
 import { notifyChannelLabel } from "@/lib/patients/notify-channel"
 import { getTherapistPatientHeader } from "@/lib/patients/queries"
 
@@ -31,12 +37,41 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
 
   const phone = patient.phone ?? ""
   const patientId = patient.id || id
+  const archived = Boolean(patient.archived_at)
+  let archiveLocked = false
+  if (archived) {
+    const { supabase, user } = await getCachedUser()
+    if (user) {
+      const subscription = await fetchClinicSubscription(supabase, user.id)
+      archiveLocked = !isClinicSubscriptionActive(subscription.startsAt, subscription.endsAt)
+    }
+  }
+
+  if (archiveLocked) {
+    return (
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-8">
+        <Link href="/dashboard" prefetch className="inline-flex items-center gap-1 text-sm font-medium text-[#042f2e]">
+          <ArrowLeft className="size-4" />
+          Înapoi la dashboard
+        </Link>
+        <section className={surfaceCardClassName("p-5")}>
+          <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase">Arhiva Clinicii</p>
+          <h1 className="mt-1 text-2xl font-semibold text-slate-800">Fișă arhivată</h1>
+          <p className="mt-3 text-sm text-slate-600">{ARCHIVE_LOCKED_MESSAGE}</p>
+        </section>
+      </main>
+    )
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-8">
-      <Link href="/dashboard" prefetch className="inline-flex items-center gap-1 text-sm font-medium text-[#042f2e]">
+      <Link
+        href={archived ? "/dashboard/arhiva" : "/dashboard"}
+        prefetch
+        className="inline-flex items-center gap-1 text-sm font-medium text-[#042f2e]"
+      >
         <ArrowLeft className="size-4" />
-        Înapoi la dashboard
+        {archived ? "Înapoi la arhivă" : "Înapoi la dashboard"}
       </Link>
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
@@ -46,7 +81,14 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase">Fișa pacientului</p>
-              <h1 className="mt-1 text-2xl font-semibold text-slate-800">{patient.full_name}</h1>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-semibold text-slate-800">{patient.full_name}</h1>
+                {archived ? (
+                  <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                    Arhivat
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-2 text-sm text-slate-600">
                 <span className="font-medium text-slate-800">Diagnostic:</span> {patient.diagnosis || "—"}
               </p>

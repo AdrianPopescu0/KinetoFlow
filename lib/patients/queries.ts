@@ -7,7 +7,7 @@ import {
   countActiveFrequencyDays,
 } from "@/lib/patients/compliance"
 import { addBucharestCalendarDays, bucharestDateKey, isBucharestToday } from "@/lib/time/bucharest"
-import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
+import { getOwnPatientRow, isMissingColumn, selectOwnPatients } from "@/lib/patients/tenant"
 import { privilegedClinicClient } from "@/lib/clinics/members"
 import {
   DASHBOARD_VAS_DAYS,
@@ -29,11 +29,11 @@ import type {
 const PATIENT_LIST_COLUMNS =
   "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS_STAMPED =
-  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, updated_at, notify_channel"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, updated_at, notify_channel, archived_at"
 const PATIENT_COLUMNS =
   "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, notify_channel"
 const PATIENT_COLUMNS_STAMPED_NO_CHANNEL =
-  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, updated_at"
+  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, updated_at, archived_at"
 const PATIENT_LIST_COLUMNS_NO_ASSIGN =
   "id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS_FALLBACK =
@@ -70,6 +70,7 @@ function withClinicalNotes(row: Record<string, unknown>): PatientRecord {
       typeof row.assigned_therapist_id === "string" ? row.assigned_therapist_id : null,
     notify_channel:
       row.notify_channel === "sms" || row.notify_channel === "whatsapp" ? "sms" : null,
+    archived_at: typeof row.archived_at === "string" ? row.archived_at : null,
   }
 }
 
@@ -99,7 +100,7 @@ export const listTherapistPatients = cache(async (): Promise<{
     return { patients: [], stats: emptyStats, error: "Sesiunea a expirat.", needsMigration: false }
   }
 
-  const listOptions = { limit: 200 }
+  const listOptions = { limit: 200, archived: "active" as const }
   const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS, listOptions)
 
   if (error) {
@@ -206,7 +207,7 @@ async function assemblePatientList(
   rawPatients: Record<string, unknown>[],
   supabase: Awaited<ReturnType<typeof currentTherapist>>["supabase"],
 ) {
-  const patients = rawPatients.map(withClinicalNotes)
+  const patients = rawPatients.map(withClinicalNotes).filter((patient) => patient.archived_at == null)
   const ids = patients.map((patient) => patient.id)
   const clinicClient = await privilegedClinicClient(supabase)
   const since = new Date(Date.now() - DASHBOARD_VAS_DAYS * 24 * 60 * 60 * 1000).toISOString()
@@ -379,16 +380,58 @@ export const listTherapistPatientSummaries = cache(async () => {
     return [] as Array<{ id: string; fullName: string; diagnosis: string | null }>
   }
 
-  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_PICKER_COLUMNS, {
-    limit: 200,
-  })
+  const pickerOptions = { limit: 200, archived: "active" as const }
+  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_PICKER_COLUMNS, pickerOptions)
   const rows = !error
     ? data
-    : (await selectOwnPatients(supabase, userId, "id, full_name, diagnosis", { limit: 200 })).data
+    : (await selectOwnPatients(supabase, userId, "id, full_name, diagnosis", pickerOptions)).data
 
   return ((rows ?? []) as Record<string, unknown>[]).map((row) => ({
     id: String(row.id),
     fullName: String(row.full_name),
     diagnosis: typeof row.diagnosis === "string" ? row.diagnosis : null,
   }))
+})
+
+export type ArchivedClinicPatient = {
+  id: string
+  fullName: string
+  diagnosis: string | null
+  archivedAt: string
+}
+
+const ARCHIVED_LIST_COLUMNS = "id, full_name, diagnosis, archived_at, created_at"
+
+export const listArchivedClinicPatients = cache(async (): Promise<{
+  patients: ArchivedClinicPatient[]
+  error: string | null
+}> => {
+  const { supabase, userId } = await currentTherapist()
+  if (!userId) {
+    return { patients: [], error: "Sesiunea a expirat." }
+  }
+
+  const { data, error } = await selectOwnPatients(supabase, userId, ARCHIVED_LIST_COLUMNS, {
+    limit: 200,
+    archived: "archived",
+  })
+
+  if (error) {
+    if (isMissingColumn(error, "archived_at")) {
+      return { patients: [], error: null }
+    }
+    return { patients: [], error: error.message }
+  }
+
+  const patients = ((data ?? []) as Record<string, unknown>[])
+    .map((row) => ({
+      id: String(row.id),
+      fullName: String(row.full_name),
+      diagnosis: typeof row.diagnosis === "string" ? row.diagnosis : null,
+      archivedAt: typeof row.archived_at === "string" ? row.archived_at : "",
+    }))
+    .filter((row) => row.archivedAt.length > 0)
+    .sort((left, right) => (left.archivedAt < right.archivedAt ? 1 : left.archivedAt > right.archivedAt ? -1 : 0))
+
+  return { patients, error: null }
 })

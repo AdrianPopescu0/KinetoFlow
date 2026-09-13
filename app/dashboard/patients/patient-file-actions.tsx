@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, Pencil, Trash2 } from "lucide-react"
 
-import { deletePatient, updatePatient } from "@/app/dashboard/patients/actions"
+import { archivePatient, deletePatient, unarchivePatient, updatePatient } from "@/app/dashboard/patients/actions"
 import { PatientSaveConflictNotice } from "@/app/dashboard/patients/patient-save-conflict"
 import { usePatientFileStamp } from "@/app/dashboard/patients/patient-file-stamp"
 import { Button } from "@/components/ui/button"
@@ -96,11 +96,43 @@ export function PatientFileActions({ patient }: { patient: PatientRecord }) {
     })
   }
 
+  function toggleArchive() {
+    const archived = Boolean(patient.archived_at)
+    const confirmed = archived
+      ? window.confirm(`Reactivezi fișa lui ${patient.full_name}? Pacientul revine în lista activă.`)
+      : window.confirm(
+          `Arhivezi fișa lui ${patient.full_name}? Pacientul dispare din lista activă și apare în Arhiva Clinicii.`,
+        )
+    if (!confirmed) {
+      return
+    }
+    startTransition(async () => {
+      const result = archived ? await unarchivePatient(patient.id) : await archivePatient(patient.id)
+      if (result.error) {
+        alert(result.error)
+        return
+      }
+      toast(archived ? "Pacientul a fost reactivat." : "Pacientul a fost arhivat.")
+      router.push(archived ? "/dashboard" : "/dashboard/arhiva")
+      router.refresh()
+    })
+  }
+
   return (
     <div className="flex flex-wrap gap-2">
       <Button type="button" variant="outline" onClick={() => setOpen(true)} className="h-11 rounded-xl">
         <Pencil className="size-4" />
         Editează
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={toggleArchive}
+        disabled={isPending}
+        className="h-11 rounded-xl"
+      >
+        {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+        {patient.archived_at ? "Reactivează pacientul" : "Arhivează pacientul"}
       </Button>
       <Button
         type="button"
