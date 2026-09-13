@@ -51,7 +51,7 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) pentru landing, [http
 
 | Rută | Rol |
 | --- | --- |
-| `/` | Landing de prezentare, **hero întunecat** (fotografie de recuperare + verde medical). Butoane către `/login` (autentificare) și înregistrare clinică. Secțiuni: beneficii, îndemn la acțiune, **Întrebări frecvente** (acordeon) înainte de subsol. Fără cumpărare abonament. |
+| `/` | Landing de prezentare, **hero întunecat** (fotografie de recuperare + verde medical). Butoane către `/login` (autentificare) și înregistrare clinică. Secțiuni: **Ce este KinetoFlow?**, cifre cheie (momentan 0), beneficii, îndemn la acțiune, **Întrebări frecvente** (acordeon) înainte de subsol. Fără cumpărare abonament. |
 | `/login` | Interfața clasică: **Google**, apoi email + parolă. Tab-uri **Intră în cont** / **Înregistrează clinică nouă**. La **înregistrare**, aplicația trimite un **cod de 6 cifre** și deschide `/auth/email-cod`. La **Sign In**, un cont deja confirmat merge direct în dashboard/onboarding, fără OTP. La signup e obligatoriu consimțământul la Termeni. |
 | `/auth/email-cod` | Ecran de confirmare **doar pentru înregistrare**: utilizatorul tastează manual codul de 6 cifre. Validarea e `verifyOtp` pe dispozitivul de pe care a început înregistrarea; linkurile din email nu mai autentifică automat. Accesul cu `purpose=login` redirecționează la Sign In. |
 | `/termeni` | Termeni și Condiții (inclusiv disclaimer medical) |

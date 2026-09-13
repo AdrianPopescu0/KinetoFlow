@@ -14,6 +14,12 @@ export function LandingHeader() {
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4" aria-label="Navigare principală">
           <Link
+            href="#despre"
+            className="hidden text-sm font-medium text-teal-100/80 transition-colors hover:text-white sm:inline"
+          >
+            Despre
+          </Link>
+          <Link
             href="#beneficii"
             className="hidden text-sm font-medium text-teal-100/80 transition-colors hover:text-white sm:inline"
           >

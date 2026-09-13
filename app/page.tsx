@@ -1,11 +1,13 @@
 import type { Metadata } from "next"
 
 import { RecoverSessionRedirect } from "@/components/auth/recover-session-redirect"
+import { LandingAbout } from "@/components/landing/landing-about"
 import { LandingCta } from "@/components/landing/landing-cta"
 import { LandingFaq } from "@/components/landing/landing-faq"
 import { LandingFeatures } from "@/components/landing/landing-features"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { LandingHero } from "@/components/landing/landing-hero"
+import { LandingStats } from "@/components/landing/landing-stats"
 
 export const metadata: Metadata = {
   title: "KinetoFlow — optimizează activitatea clinicii",
@@ -23,6 +25,8 @@ export default function HomePage() {
       <LandingHeader />
       <main className="flex flex-1 flex-col">
         <LandingHero />
+        <LandingAbout />
+        <LandingStats />
         <LandingFeatures />
         <LandingCta />
         <LandingFaq />
