@@ -17,14 +17,26 @@ test("contactul pacientului deschide wa.me doar cu numărul, fără text", () =>
   assert.equal(patientWhatsAppMeHref("12"), null)
 })
 
-test("click-to-chat cu mesaj folosește api.whatsapp.com, nu o rută internă", () => {
+test("invitația de pacient pune codul și linkul în textul wa.me", () => {
+  const message =
+    "Bună, Ana! Codul tău de acces este 12345678. Intră aici: https://kinetoflow.ro/acces?code=12345678"
+  const href = patientWhatsAppHref("0722 123 456", message)
+  assert.ok(href)
+  const url = new URL(href)
+  assert.equal(url.hostname, "wa.me")
+  assert.equal(url.pathname, "/40722123456")
+  const text = url.searchParams.get("text") ?? ""
+  assert.match(text, /12345678/)
+  assert.match(text, /\/acces/)
+})
+
+test("click-to-chat cu mesaj folosește wa.me, nu o rută internă", () => {
   const href = patientWhatsAppHref("0722 123 456", "Bună, Ana!")
   assert.ok(href)
   const url = new URL(href)
   assert.equal(url.protocol, "https:")
-  assert.equal(url.hostname, "api.whatsapp.com")
-  assert.equal(url.pathname, "/send")
-  assert.equal(url.searchParams.get("phone"), "40722123456")
+  assert.equal(url.hostname, "wa.me")
+  assert.equal(url.pathname, "/40722123456")
   assert.equal(url.searchParams.get("text"), "Bună, Ana!")
   assert.equal(href.includes("/dashboard"), false)
 })
@@ -52,7 +64,7 @@ test("număr invalid nu produce link", () => {
 })
 
 test("linkul WhatsApp se deschide într-un tab nou, nu în dashboard", () => {
-  const href = "https://api.whatsapp.com/send?phone=40722123456&text=x"
+  const href = "https://wa.me/40722123456?text=x"
   const props = whatsappBlankAnchorProps(href)
   assert.equal(props.href, href)
   assert.equal(props.target, WHATSAPP_BLANK_TARGET)

@@ -65,8 +65,8 @@ export function NotifyChannelActions({
   return (
     <div className="flex w-full min-w-0 flex-col gap-2.5">
       <p className="text-sm text-slate-600">
-        Deschide conversația pe WhatsApp sau SMS, doar cu numărul pacientului. Aplicația reține
-        canalul ales (
+        Deschide conversația pe WhatsApp sau SMS, doar cu numărul — fără mesaj precompletat.
+        Aplicația reține canalul ales (
         <span className="font-medium text-slate-800">{notifyChannelLabel(channel)}</span>
         ).
       </p>

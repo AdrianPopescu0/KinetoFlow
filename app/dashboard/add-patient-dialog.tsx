@@ -10,8 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
-import { NotifyChannelActions } from "@/app/dashboard/patients/notify-channel-actions"
-import { cn } from "@/lib/utils"
+import { ShareInviteActions } from "@/components/invite/share-invite-actions"
 
 type CreatedPatient = {
   patientId: string
@@ -24,9 +23,6 @@ type CreatedPatient = {
   whatsappMessage: string
 }
 
-const sendActionClassName =
-  "h-12 w-full min-w-0 shrink justify-center whitespace-normal px-3 text-center"
-
 export function AddPatientDialog() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -34,14 +30,12 @@ export function AddPatientDialog() {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [copiedCode, setCopiedCode] = useState(false)
-  const [copiedMessage, setCopiedMessage] = useState(false)
 
   function reset() {
     setOpen(false)
     setCreated(null)
     setError(null)
     setCopiedCode(false)
-    setCopiedMessage(false)
   }
 
   function handleSubmit(formData: FormData) {
@@ -74,13 +68,6 @@ export function AddPatientDialog() {
     setCopiedCode(true)
     toast("Codul de acces a fost copiat.")
     window.setTimeout(() => setCopiedCode(false), 2000)
-  }
-
-  async function copyMessage(message: string) {
-    await navigator.clipboard.writeText(message)
-    setCopiedMessage(true)
-        toast("Mesajul a fost copiat. Poți da paste în WhatsApp.")
-    window.setTimeout(() => setCopiedMessage(false), 2000)
   }
 
   return (
@@ -139,42 +126,15 @@ export function AddPatientDialog() {
                 {created.portalUrl ? (
                   <p className="break-all text-center text-xs text-slate-500">{created.portalUrl}</p>
                 ) : null}
-                {created.patientId && (created.whatsappWebHref || created.whatsappHref || created.phone) ? (
-                  <div className="flex w-full min-w-0 flex-col gap-2.5">
-                    <NotifyChannelActions
-                      patientId={created.patientId}
-                      phone={created.phone}
-                    />
-                    {created.whatsappMessage ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => copyMessage(created.whatsappMessage)}
-                        className={cn(sendActionClassName, "rounded-xl border-slate-300 text-slate-700")}
-                      >
-                        {copiedMessage ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
-                        {copiedMessage ? "Copiat!" : "Copiază mesajul"}
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    <p className="text-sm text-amber-800">
-                      Numărul nu a putut fi convertit. Copiază mesajul sau codul și trimite-le manual.
-                    </p>
-                    {created.whatsappMessage ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => copyMessage(created.whatsappMessage)}
-                        className={cn(sendActionClassName, "rounded-xl")}
-                      >
-                        {copiedMessage ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
-                        {copiedMessage ? "Copiat!" : "Copiază mesajul"}
-                      </Button>
-                    ) : null}
-                  </div>
-                )}
+                <p className="text-sm text-slate-600">
+                  Trimite pe WhatsApp sau SMS mesajul cu codul de acces și linkul către program.
+                </p>
+                <ShareInviteActions
+                  phone={created.phone}
+                  message={created.whatsappMessage}
+                  whatsappHref={created.whatsappHref}
+                  whatsappWebHref={created.whatsappWebHref}
+                />
                 <Button type="button" variant="outline" onClick={reset} className="h-11 w-full rounded-xl">
                   Închide
                 </Button>

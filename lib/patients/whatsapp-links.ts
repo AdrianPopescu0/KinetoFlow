@@ -22,7 +22,7 @@ export function patientWhatsAppMeHref(phone: string | null | undefined): string 
   return `https://wa.me/${digits}`
 }
 
-/** Official click-to-chat (mobile + desktop). Avoids in-app Next.js routing. */
+/** Click-to-chat cu mesaj precompletat: `https://wa.me/40…?text=…`. */
 export function patientWhatsAppHref(phone: string, message: string): string | null {
   const digits = toWhatsAppNumber(phone)
   if (!digits) {
@@ -31,7 +31,7 @@ export function patientWhatsAppHref(phone: string, message: string): string | nu
   if (!message.trim()) {
     return patientWhatsAppMeHref(phone)
   }
-  return `https://api.whatsapp.com/send?phone=${digits}&text=${encodedWhatsAppText(message)}`
+  return `https://wa.me/${digits}?text=${encodedWhatsAppText(message)}`
 }
 
 /** WhatsApp Web în browser: `web.whatsapp.com/send?phone=` — fără text dacă nu e dat. */
