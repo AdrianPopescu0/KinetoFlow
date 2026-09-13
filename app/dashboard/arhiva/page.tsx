@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
+import { RestoreArchivedPatientButton } from "@/app/dashboard/arhiva/restore-archived-patient-button"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { getCachedUser } from "@/lib/auth/session"
 import {
@@ -74,12 +75,13 @@ export default async function ClinicArchivePage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[28rem] text-left text-sm">
+            <table className="w-full min-w-[36rem] text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 <tr>
                   <th className="px-5 py-3">Nume</th>
                   <th className="px-5 py-3">Diagnostic</th>
                   <th className="px-5 py-3">Arhivat la</th>
+                  <th className="px-5 py-3 text-right">Acțiuni</th>
                 </tr>
               </thead>
               <tbody>
@@ -96,6 +98,9 @@ export default async function ClinicArchivePage() {
                     </td>
                     <td className="px-5 py-3 text-slate-600">{patient.diagnosis || "—"}</td>
                     <td className="px-5 py-3 text-slate-600">{formatArchivedOn(patient.archivedAt)}</td>
+                    <td className="px-5 py-3 text-right">
+                      <RestoreArchivedPatientButton patientId={patient.id} patientName={patient.fullName} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
