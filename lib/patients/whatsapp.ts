@@ -1,4 +1,5 @@
 import { CANONICAL_PRODUCTION_ORIGIN, resolveAppOrigin } from "@/lib/auth/site-origin"
+import { patientInviteShareMessage } from "@/lib/patients/invite-message"
 
 export {
   isExternalWhatsAppUrl,
@@ -41,14 +42,11 @@ export function patientWhatsAppMessage(input: {
   clinicName: string
   accessCode: string
 }): string {
-  return [
-    `Bună, ${input.fullName}! Sunt kinetoterapeutul tău de la ${input.clinicName}. Ți-am pregătit planul de recuperare de astăzi.`,
-    "Intră în programul tău aici:",
-    `👉 ${patientAccessUrlWithCode(input.accessCode)}`,
-    "",
-    `(Codul tău de acces este ${input.accessCode} și s-a completat automat).`,
-    "Te rog să completezi check-in-ul de durere înainte de exerciții. Spor la mișcare!",
-  ].join("\n")
+  return patientInviteShareMessage({
+    fullName: input.fullName,
+    accessCode: input.accessCode,
+    accessUrl: patientAccessUrl(),
+  })
 }
 
 /** Reminder zilnic: check-in lipsă, cu link precompletat pe codul de 8 cifre. */
