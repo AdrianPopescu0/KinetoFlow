@@ -6,6 +6,7 @@ import { getCachedUser } from "@/lib/auth/session"
 import { LIBRARY_WRITE_FORBIDDEN, authUserCanEditLibrary } from "@/lib/exercises/library-admin"
 import { libraryExerciseToRow, listStoredLibraryExercises } from "@/lib/exercises/library-store"
 import { isPersistedLibraryId } from "@/lib/exercises/merge-catalog"
+import { parseDoseCount } from "@/lib/exercises/dose-input"
 import { hydrateLibraryExercise } from "@/lib/exercises/hydrate"
 import { isAnatomicalRegion, isEquipment, isExercisePosition, isTherapeuticObjective } from "@/lib/exercises/taxonomy"
 import type { LibraryExercise } from "@/lib/exercises/types"
@@ -79,8 +80,8 @@ function exerciseFromForm(formData: FormData, id?: string): LibraryExercise | { 
     difficulty: difficultyRaw === "mediu" || difficultyRaw === "avansat" ? difficultyRaw : "usor",
     equipments: equipments.length > 0 ? equipments : ["none"],
     position,
-    sets: readNumber(formData, "sets", 3),
-    reps: readNumber(formData, "reps", 10),
+    sets: parseDoseCount(readText(formData, "sets")),
+    reps: parseDoseCount(readText(formData, "reps")),
     durationSeconds: readNumber(formData, "duration", 90),
     youtubeId: youtubeIdFromUrl(videoUrl),
     videoUrl,

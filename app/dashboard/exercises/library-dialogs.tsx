@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react"
 
 import { createLibraryExercise } from "@/app/dashboard/exercises/actions"
 import { addExercise } from "@/app/dashboard/patients/actions"
+import { DoseCountInput } from "@/components/exercises/dose-count-input"
 import { VideoPreview } from "@/components/media/video-preview"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -194,6 +195,8 @@ export function AddExerciseDialog({
   onCreated: (exercise: LibraryExercise) => void
 }) {
   const [isPending, startCreate] = useTransition()
+  const [sets, setSets] = useState("3")
+  const [reps, setReps] = useState("10")
   const [regions, setRegions] = useState<string[]>([REGIONS[0].id])
   const [objectives, setObjectives] = useState<string[]>([OBJECTIVES[0].id])
   const [equipments, setEquipments] = useState<string[]>(["none"])
@@ -281,12 +284,12 @@ export function AddExerciseDialog({
             <Input id="video_url" name="video_url" placeholder="https://youtube.com/..." className="h-11" />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="sets">Seturi</Label>
-            <Input id="sets" name="sets" type="number" min={1} defaultValue={3} className="h-11" />
+            <Label htmlFor="sets">Serii</Label>
+            <DoseCountInput id="sets" name="sets" value={sets} onValueChange={setSets} className="h-11" />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="reps">Repetări</Label>
-            <Input id="reps" name="reps" type="number" min={1} defaultValue={10} className="h-11" />
+            <DoseCountInput id="reps" name="reps" value={reps} onValueChange={setReps} className="h-11" />
           </div>
         </div>
         <div className="flex flex-col gap-2">

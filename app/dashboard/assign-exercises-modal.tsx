@@ -5,6 +5,7 @@ import { Check, Loader2, Search, X } from "lucide-react"
 
 import { loadStoredLibraryExercises } from "@/app/dashboard/exercises/actions"
 import { assignExercisesBatch, listAssignedExercisesForPatient } from "@/app/dashboard/patients/actions"
+import { DoseCountInput } from "@/components/exercises/dose-count-input"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -16,13 +17,18 @@ import {
 } from "@/lib/exercises/assigned-selection"
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
 import { loadCustomExercises } from "@/lib/exercises/extras"
+import { doseCountDraft, parseDoseCount } from "@/lib/exercises/dose-input"
 import { formatTreatmentInterval } from "@/lib/exercises/schedule"
 import { regionById, regionLabels } from "@/lib/exercises/taxonomy"
 import type { LibraryExercise } from "@/lib/exercises/types"
 import { PATIENT_ADVICE_MAX_LENGTH } from "@/lib/patients/patient-advice"
 import { cn } from "@/lib/utils"
 
-type Dose = { sets: number; reps: number }
+type Dose = { sets: string; reps: string }
+
+function doseDraftFromCounts(sets: number, reps: number): Dose {
+  return { sets: doseCountDraft(sets), reps: doseCountDraft(reps) }
+}
 
 function localDateKey(date: Date): string {
   const year = date.getFullYear()
@@ -104,9 +110,11 @@ function AssignExercisesModalContent({
   const [catalog, setCatalog] = useState<LibraryExercise[]>(openingCatalog)
   const [doses, setDoses] = useState<Record<string, Dose>>(() => ({
     ...Object.fromEntries(
-      openingCatalog.map((exercise) => [exercise.id, { sets: exercise.sets, reps: exercise.reps }]),
+      openingCatalog.map((exercise) => [exercise.id, doseDraftFromCounts(exercise.sets, exercise.reps)]),
     ),
-    ...openingSelection.doses,
+    ...Object.fromEntries(
+      Object.entries(openingSelection.doses).map(([id, dose]) => [id, doseDraftFromCounts(dose.sets, dose.reps)]),
+    ),
   }))
   const [isPending, startTransition] = useTransition()
   const [patientMessage, setPatientMessage] = useState("")
@@ -123,7 +131,7 @@ function AssignExercisesModalContent({
       setDoses((current) => {
         const next = { ...current }
         for (const exercise of stored) {
-          next[exercise.id] = current[exercise.id] ?? { sets: exercise.sets, reps: exercise.reps }
+          next[exercise.id] = current[exercise.id] ?? doseDraftFromCounts(exercise.sets, exercise.reps)
         }
         return next
       })
@@ -165,7 +173,12 @@ function AssignExercisesModalContent({
     }
     const selection = librarySelectionForAssignedInterval(catalog, assigned, { startDate, endDate })
     setSelectedIds(selection.selectedIds)
-    setDoses((current) => ({ ...current, ...selection.doses }))
+    setDoses((current) => ({
+      ...current,
+      ...Object.fromEntries(
+        Object.entries(selection.doses).map(([id, dose]) => [id, doseDraftFromCounts(dose.sets, dose.reps)]),
+      ),
+    }))
   }, [assigned, catalog, datesTouched, endDate, startDate])
 
   const filtered = useMemo(() => {
@@ -190,10 +203,9 @@ function AssignExercisesModalContent({
   }, [])
 
   const updateDose = useCallback((id: string, field: keyof Dose, raw: string) => {
-    const value = Math.max(1, Math.min(99, Number.parseInt(raw, 10) || 1))
     setDoses((current) => ({
       ...current,
-      [id]: { ...(current[id] ?? { sets: 1, reps: 1 }), [field]: value },
+      [id]: { ...(current[id] ?? { sets: "0", reps: "0" }), [field]: raw },
     }))
   }, [])
 
@@ -212,8 +224,8 @@ function AssignExercisesModalContent({
       .map((exercise) => ({
         title: exercise.title,
         videoUrl: exercise.videoUrl,
-        sets: doses[exercise.id]?.sets ?? exercise.sets,
-        reps: doses[exercise.id]?.reps ?? exercise.reps,
+        sets: parseDoseCount(doses[exercise.id]?.sets ?? doseCountDraft(exercise.sets)),
+        reps: parseDoseCount(doses[exercise.id]?.reps ?? doseCountDraft(exercise.reps)),
         description: exercise.description,
       }))
 
@@ -340,10 +352,7 @@ function AssignExercisesModalContent({
               <li className="px-4 py-8 text-center text-sm text-slate-500">Niciun exercițiu găsit.</li>
             ) : (
               filtered.map((exercise) => {
-                const dose = doses[exercise.id] ?? {
-                  sets: exercise.sets,
-                  reps: exercise.reps,
-                }
+                const dose = doses[exercise.id] ?? doseDraftFromCounts(exercise.sets, exercise.reps)
                 return (
                   <AssignExerciseRow
                     key={exercise.id}
@@ -407,8 +416,8 @@ const AssignExerciseRow = memo(function AssignExerciseRow({
 }: {
   exercise: LibraryExercise
   checked: boolean
-  sets: number
-  reps: number
+  sets: string
+  reps: string
   onToggle: (id: string) => void
   onDoseChange: (id: string, field: keyof Dose, raw: string) => void
 }) {
@@ -451,16 +460,10 @@ const AssignExerciseRow = memo(function AssignExerciseRow({
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          Seturi
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={99}
+          Serii
+          <DoseCountInput
             value={sets}
-            onClick={(event) => event.stopPropagation()}
-            onPointerDown={(event) => event.stopPropagation()}
-            onChange={(event) => onDoseChange(exercise.id, "sets", event.target.value)}
+            onValueChange={(next) => onDoseChange(exercise.id, "sets", next)}
             className="mt-0.5 h-11 min-h-11 px-2 text-center text-base md:h-9 md:min-h-9 md:text-sm"
           />
         </label>
@@ -470,15 +473,9 @@ const AssignExerciseRow = memo(function AssignExerciseRow({
           onPointerDown={(event) => event.stopPropagation()}
         >
           Repetări
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={99}
+          <DoseCountInput
             value={reps}
-            onClick={(event) => event.stopPropagation()}
-            onPointerDown={(event) => event.stopPropagation()}
-            onChange={(event) => onDoseChange(exercise.id, "reps", event.target.value)}
+            onValueChange={(next) => onDoseChange(exercise.id, "reps", next)}
             className="mt-0.5 h-11 min-h-11 px-2 text-center text-base md:h-9 md:min-h-9 md:text-sm"
           />
         </label>

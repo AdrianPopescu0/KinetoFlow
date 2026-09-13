@@ -85,3 +85,20 @@ test("checkbox-urile și dozele se iau din programul deja alocat pe interval", (
     },
   })
 })
+
+test("dozele 0 din program rămân 0, nu revin la default-ul din bibliotecă", () => {
+  const catalog = [libraryItem({ id: "bridge", title: "Punte fesieri", sets: 3, reps: 12 })]
+  const interval = { startDate: "2026-09-08", endDate: "2026-09-14" }
+  const assigned = [
+    {
+      title: "Punte fesieri",
+      sets: 0,
+      reps: 0,
+      notes: composeIntervalExerciseNotes("", interval.startDate, interval.endDate),
+    },
+  ]
+  assert.deepEqual(librarySelectionForAssignedInterval(catalog, assigned, interval), {
+    selectedIds: ["bridge"],
+    doses: { bridge: { sets: 0, reps: 0 } },
+  })
+})

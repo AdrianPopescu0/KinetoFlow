@@ -1,6 +1,7 @@
 import { cache } from "react"
 
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
+import { parseDoseCount } from "@/lib/exercises/dose-input"
 import { hydrateLibraryExercise } from "@/lib/exercises/hydrate"
 import { mergeLibraryCatalog } from "@/lib/exercises/merge-catalog"
 import { serializeTagList } from "@/lib/exercises/tags"
@@ -41,8 +42,8 @@ export function mapLibraryRow(row: LibraryRow): LibraryExercise | null {
     difficulty: row.difficulty === "mediu" || row.difficulty === "avansat" ? row.difficulty : "usor",
     equipment: row.equipment,
     position: normalizePosition(row.position),
-    sets: row.sets && row.sets > 0 ? row.sets : 3,
-    reps: row.reps && row.reps > 0 ? row.reps : 10,
+    sets: typeof row.sets === "number" && Number.isFinite(row.sets) ? parseDoseCount(String(row.sets)) : 3,
+    reps: typeof row.reps === "number" && Number.isFinite(row.reps) ? parseDoseCount(String(row.reps)) : 10,
     durationSeconds: row.duration_seconds && row.duration_seconds > 0 ? row.duration_seconds : 90,
     youtubeId: row.youtube_id?.trim() || youtubeIdFromUrl(videoUrl),
     videoUrl,

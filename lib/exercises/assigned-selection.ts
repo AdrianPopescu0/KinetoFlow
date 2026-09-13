@@ -1,3 +1,4 @@
+import { parseDoseCount } from "./dose-input.ts"
 import { parseTreatmentIntervalFromNotes } from "./schedule.ts"
 import type { LibraryExercise } from "./types.ts"
 
@@ -27,8 +28,10 @@ function normalizeVideoUrl(url: string | null | undefined): string {
   return (url ?? "").trim().toLowerCase()
 }
 
-function positiveInt(value: number | null | undefined, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 1 ? Math.min(99, Math.trunc(value)) : fallback
+function clampedDose(value: number | null | undefined, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.min(99, Math.trunc(value))
+    : parseDoseCount(String(fallback))
 }
 
 export function assignedExerciseMatchesInterval(
@@ -107,8 +110,8 @@ export function librarySelectionForAssignedInterval(
     usedIds.add(match.id)
     selectedIds.push(match.id)
     doses[match.id] = {
-      sets: positiveInt(row.sets, match.sets),
-      reps: positiveInt(row.reps, match.reps),
+      sets: clampedDose(row.sets, match.sets),
+      reps: clampedDose(row.reps, match.reps),
     }
   }
 
