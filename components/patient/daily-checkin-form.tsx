@@ -1,6 +1,6 @@
 "use client"
 
-import { useId, type ReactNode } from "react"
+import { useId } from "react"
 
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Button } from "@/components/ui/button"
@@ -10,17 +10,40 @@ import { ENERGY_OPTIONS, PAIN_KIND_OPTIONS, SLEEP_OPTIONS } from "@/lib/patients
 import type { EnergyLevel, PainKind, SleepQuality } from "@/lib/patients/types"
 import { cn } from "@/lib/utils"
 
-const choiceTileClass = (selected: boolean) =>
-  cn(
-    "flex size-[4.75rem] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border px-1.5 text-center transition-colors",
-    "sm:size-[5.25rem]",
-    selected
-      ? "border-[#042f2e] bg-[#042f2e] text-white"
-      : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
-  )
+/** 5 opțiuni: 3 pe rând pe telefon (3+2), 5 aliniate de la tabletă. */
+const CHOICE_GRID_FIVE = "grid auto-rows-fr grid-cols-3 gap-3 md:grid-cols-5"
+/** 6 opțiuni: mereu 3 pe rând pe ecrane mici, 6 pe un rând de la tabletă. */
+const CHOICE_GRID_SIX = "grid auto-rows-fr grid-cols-3 gap-3 md:grid-cols-6"
 
-function ChoiceRow({ children }: { children: ReactNode }) {
-  return <div className="flex flex-wrap content-start items-start gap-2">{children}</div>
+function ChoiceButton({
+  selected,
+  emoji,
+  label,
+  onClick,
+}: {
+  selected: boolean
+  emoji?: string
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      className={cn(
+        "flex h-full min-h-[5.75rem] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-3 text-center transition-colors",
+        selected
+          ? "border-[#042f2e] bg-[#042f2e] text-white"
+          : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
+      )}
+    >
+      <span className="flex h-6 items-center justify-center text-xl leading-none" aria-hidden="true">
+        {emoji ?? ""}
+      </span>
+      <span className="text-[11px] leading-tight font-semibold">{label}</span>
+    </button>
+  )
 }
 
 type DailyCheckinFormProps = {
@@ -81,59 +104,46 @@ export function DailyCheckinForm({
 
       <fieldset className="flex min-w-0 flex-col gap-3">
         <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Calitatea somnului</legend>
-        <ChoiceRow>
+        <div className={CHOICE_GRID_FIVE}>
           {SLEEP_OPTIONS.map((option) => (
-            <button
+            <ChoiceButton
               key={option.value}
-              type="button"
-              aria-pressed={sleep === option.value}
+              selected={sleep === option.value}
+              emoji={option.emoji}
+              label={option.label}
               onClick={() => onSleepChange(option.value)}
-              className={choiceTileClass(sleep === option.value)}
-            >
-              <span className="text-xl leading-none" aria-hidden="true">
-                {option.emoji}
-              </span>
-              <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
-            </button>
+            />
           ))}
-        </ChoiceRow>
+        </div>
       </fieldset>
 
       <fieldset className="flex min-w-0 flex-col gap-3">
         <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Tip durere</legend>
-        <ChoiceRow>
+        <div className={CHOICE_GRID_SIX}>
           {PAIN_KIND_OPTIONS.map((option) => (
-            <button
+            <ChoiceButton
               key={option.value}
-              type="button"
-              aria-pressed={painKind === option.value}
+              selected={painKind === option.value}
+              label={option.label}
               onClick={() => onPainKindChange(option.value)}
-              className={choiceTileClass(painKind === option.value)}
-            >
-              <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
-            </button>
+            />
           ))}
-        </ChoiceRow>
+        </div>
       </fieldset>
 
       <fieldset className="flex min-w-0 flex-col gap-3">
         <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Nivel de energie</legend>
-        <ChoiceRow>
+        <div className={CHOICE_GRID_FIVE}>
           {ENERGY_OPTIONS.map((option) => (
-            <button
+            <ChoiceButton
               key={option.value}
-              type="button"
-              aria-pressed={energy === option.value}
+              selected={energy === option.value}
+              emoji={option.emoji}
+              label={option.label}
               onClick={() => onEnergyChange(option.value)}
-              className={choiceTileClass(energy === option.value)}
-            >
-              <span className="text-xl leading-none" aria-hidden="true">
-                {option.emoji}
-              </span>
-              <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
-            </button>
+            />
           ))}
-        </ChoiceRow>
+        </div>
       </fieldset>
 
       <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
