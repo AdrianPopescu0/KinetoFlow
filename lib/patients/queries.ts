@@ -9,7 +9,12 @@ import {
 import { addBucharestCalendarDays, bucharestDateKey, isBucharestToday } from "@/lib/time/bucharest"
 import { getOwnPatientRow, selectOwnPatients } from "@/lib/patients/tenant"
 import { privilegedClinicClient } from "@/lib/clinics/members"
-import { listCheckInsForPatient, listVasPointsForPatients } from "@/lib/patients/check-ins"
+import {
+  DASHBOARD_VAS_DAYS,
+  DASHBOARD_VAS_POINT_LIMIT,
+  listCheckInsForPatient,
+  listVasPointsForPatients,
+} from "@/lib/patients/check-ins"
 import { readPatientRecordId } from "@/lib/patients/patient-id"
 import { fetchPatientNotes } from "@/lib/patients/patient-notes"
 import type {
@@ -20,11 +25,8 @@ import type {
   PatientRecord,
 } from "@/lib/patients/types-db"
 
-/** Coloane explicite (fără `select(*)`). Embed-ul `check_ins` păstrează toate rândurile
- *  necesare pentru ultimul VAS, check-in-uri azi și frecvența reală pe 7 zile. */
+/** Coloane explicite (fără `select(*)` și fără embed nelimitat de `check_ins`). */
 const PATIENT_LIST_COLUMNS =
-  "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
-const PATIENT_LIST_COLUMNS_PLAIN =
   "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS_STAMPED =
   "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, updated_at, notify_channel"
@@ -33,8 +35,6 @@ const PATIENT_COLUMNS =
 const PATIENT_COLUMNS_STAMPED_NO_CHANNEL =
   "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, updated_at"
 const PATIENT_LIST_COLUMNS_NO_ASSIGN =
-  "id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at, check_ins(patient_id, vas_score, created_at)"
-const PATIENT_LIST_COLUMNS_PLAIN_NO_ASSIGN =
   "id, therapist_id, full_name, email, phone, diagnosis, token, access_code, created_at"
 const PATIENT_COLUMNS_FALLBACK =
   "id, therapist_id, assigned_therapist_id, full_name, email, phone, diagnosis, token, created_at"
@@ -99,27 +99,34 @@ export const listTherapistPatients = cache(async (): Promise<{
     return { patients: [], stats: emptyStats, error: "Sesiunea a expirat.", needsMigration: false }
   }
 
-  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS)
+  const listOptions = { limit: 200 }
+  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS, listOptions)
 
   if (error) {
-    const withoutAssign = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS_NO_ASSIGN)
+    const withoutAssign = await selectOwnPatients(
+      supabase,
+      userId,
+      PATIENT_LIST_COLUMNS_NO_ASSIGN,
+      listOptions,
+    )
     if (!withoutAssign.error) {
       return assemblePatientList((withoutAssign.data ?? []) as Record<string, unknown>[], supabase)
     }
 
-    const fallback = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS_PLAIN)
+    const fallback = await selectOwnPatients(supabase, userId, PATIENT_LIST_COLUMNS, listOptions)
 
     if (fallback.error) {
       const plainNoAssign = await selectOwnPatients(
         supabase,
         userId,
-        PATIENT_LIST_COLUMNS_PLAIN_NO_ASSIGN,
+        PATIENT_LIST_COLUMNS_NO_ASSIGN,
+        listOptions,
       )
       if (!plainNoAssign.error) {
         return assemblePatientList((plainNoAssign.data ?? []) as Record<string, unknown>[], supabase)
       }
 
-      const legacy = await selectOwnPatients(supabase, userId, PATIENT_COLUMNS_FALLBACK)
+      const legacy = await selectOwnPatients(supabase, userId, PATIENT_COLUMNS_FALLBACK, listOptions)
       if (legacy.error) {
         return {
           patients: [],
@@ -169,6 +176,7 @@ async function listExerciseCompletionDaysByPatient(
     .in("patient_id", patientIds)
     .gte("completed_on", fromDateKey)
     .lte("completed_on", toDateKey)
+    .limit(2500)
 
   if (!withCompletedOn.error) {
     for (const row of (withCompletedOn.data ?? []) as unknown as Array<Record<string, unknown>>) {
@@ -183,6 +191,7 @@ async function listExerciseCompletionDaysByPatient(
     .in("patient_id", patientIds)
     .gte("local_date", fromDateKey)
     .lte("local_date", toDateKey)
+    .limit(2500)
 
   if (!withLocalDate.error) {
     for (const row of (withLocalDate.data ?? []) as Array<Record<string, unknown>>) {
@@ -198,19 +207,13 @@ async function assemblePatientList(
   supabase: Awaited<ReturnType<typeof currentTherapist>>["supabase"],
 ) {
   const patients = rawPatients.map(withClinicalNotes)
-  const hasEmbedded = rawPatients.some((row) => Array.isArray(row.check_ins))
-  let checkIns: Array<Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">> = []
-
-  if (hasEmbedded) {
-    checkIns = rawPatients.flatMap((row) => {
-      const nested = row.check_ins
-      return Array.isArray(nested) ? (nested as Array<Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>) : []
-    })
-  } else {
-    const ids = patients.map((patient) => patient.id)
-    const clinicClient = await privilegedClinicClient(supabase)
-    checkIns = await listVasPointsForPatients(clinicClient, ids)
-  }
+  const ids = patients.map((patient) => patient.id)
+  const clinicClient = await privilegedClinicClient(supabase)
+  const since = new Date(Date.now() - DASHBOARD_VAS_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  const checkIns = await listVasPointsForPatients(clinicClient, ids, {
+    since,
+    limit: DASHBOARD_VAS_POINT_LIMIT,
+  })
 
   const latestByPatient = new Map<string, Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>()
 
@@ -278,72 +281,97 @@ async function assemblePatientList(
   }
 }
 
+const resolveOwnPatient = cache(async (id: string) => {
+  const { supabase, userId } = await currentTherapist()
+  if (!userId) {
+    return { supabase, userId: null, patient: null as PatientRecord | null, error: "Sesiunea a expirat." }
+  }
+
+  const stamped = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_STAMPED)
+  if (!stamped.error && stamped.data) {
+    return { supabase, userId, patient: withClinicalNotes(stamped.data as Record<string, unknown>), error: null }
+  }
+
+  const stampedNoChannel = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_STAMPED_NO_CHANNEL)
+  if (!stampedNoChannel.error && stampedNoChannel.data) {
+    return {
+      supabase,
+      userId,
+      patient: withClinicalNotes(stampedNoChannel.data as Record<string, unknown>),
+      error: null,
+    }
+  }
+
+  const { data: patientRow, error } = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS)
+  if (!error && patientRow) {
+    return { supabase, userId, patient: withClinicalNotes(patientRow as Record<string, unknown>), error: null }
+  }
+
+  const fallback = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_FALLBACK)
+  if (fallback.error || !fallback.data) {
+    return { supabase, userId, patient: null, error: "Pacientul nu a fost găsit." }
+  }
+
+  return { supabase, userId, patient: withClinicalNotes(fallback.data as Record<string, unknown>), error: null }
+})
+
+export const getTherapistPatientHeader = cache(async (id: string) => {
+  const resolved = await resolveOwnPatient(id)
+  if (!resolved.patient) {
+    return { patient: null, error: resolved.error }
+  }
+
+  const clinicClient = await privilegedClinicClient(resolved.supabase)
+  const patientId = readPatientRecordId(id, resolved.patient.id) ?? resolved.patient.id
+  const notesRow = await fetchPatientNotes(clinicClient, patientId)
+  if (notesRow) {
+    resolved.patient.clinical_notes = notesRow.notes
+    if (notesRow.updated_at) {
+      resolved.patient.updated_at = notesRow.updated_at
+    }
+  }
+
+  return { patient: resolved.patient, error: resolved.error }
+})
+
+export const getTherapistPatientCheckIns = cache(async (id: string) => {
+  const resolved = await resolveOwnPatient(id)
+  if (!resolved.patient) {
+    return [] as CheckInRecord[]
+  }
+  const clinicClient = await privilegedClinicClient(resolved.supabase)
+  const patientId = readPatientRecordId(id, resolved.patient.id) ?? resolved.patient.id
+  return listCheckInsForPatient(clinicClient, patientId)
+})
+
+export const getTherapistPatientExercises = cache(async (id: string) => {
+  const resolved = await resolveOwnPatient(id)
+  if (!resolved.patient) {
+    return [] as ExerciseRecord[]
+  }
+  const patientId = readPatientRecordId(id, resolved.patient.id) ?? resolved.patient.id
+  const { data } = await resolved.supabase
+    .from("exercises")
+    .select("id, patient_id, title, video_url, sets, reps, notes")
+    .eq("patient_id", patientId)
+    .order("title", { ascending: true })
+    .limit(80)
+  return (data ?? []) as ExerciseRecord[]
+})
+
 export const getTherapistPatient = cache(async (id: string): Promise<{
   patient: PatientRecord | null
   exercises: ExerciseRecord[]
   checkIns: CheckInRecord[]
   error: string | null
 }> => {
-  const { supabase, userId } = await currentTherapist()
-  if (!userId) {
-    return { patient: null, exercises: [], checkIns: [], error: "Sesiunea a expirat." }
-  }
-
-  const stamped = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_STAMPED)
-  if (!stamped.error && stamped.data) {
-    return loadPatientRelations(supabase, withClinicalNotes(stamped.data as Record<string, unknown>), id)
-  }
-
-  const stampedNoChannel = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_STAMPED_NO_CHANNEL)
-  if (!stampedNoChannel.error && stampedNoChannel.data) {
-    return loadPatientRelations(supabase, withClinicalNotes(stampedNoChannel.data as Record<string, unknown>), id)
-  }
-
-  const { data: patientRow, error } = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS)
-
-  if (error || !patientRow) {
-    const fallback = await getOwnPatientRow(supabase, userId, id, PATIENT_COLUMNS_FALLBACK)
-
-    if (fallback.error || !fallback.data) {
-      return { patient: null, exercises: [], checkIns: [], error: "Pacientul nu a fost găsit." }
-    }
-
-    return loadPatientRelations(supabase, withClinicalNotes(fallback.data as Record<string, unknown>), id)
-  }
-
-  return loadPatientRelations(supabase, withClinicalNotes(patientRow as Record<string, unknown>), id)
+  const [{ patient, error }, exercises, checkIns] = await Promise.all([
+    getTherapistPatientHeader(id),
+    getTherapistPatientExercises(id),
+    getTherapistPatientCheckIns(id),
+  ])
+  return { patient, exercises, checkIns, error }
 })
-
-async function loadPatientRelations(
-  supabase: Awaited<ReturnType<typeof currentTherapist>>["supabase"],
-  patient: PatientRecord,
-  patientIdFromUrl: string,
-) {
-  const patientId = readPatientRecordId(patientIdFromUrl, patient.id) ?? patient.id
-  const clinicClient = await privilegedClinicClient(supabase)
-  const notesRow = await fetchPatientNotes(clinicClient, patientId)
-  if (notesRow) {
-    patient.clinical_notes = notesRow.notes
-    if (notesRow.updated_at) {
-      patient.updated_at = notesRow.updated_at
-    }
-  }
-
-  const { data: exercises } = await supabase
-    .from("exercises")
-    .select("id, patient_id, title, video_url, sets, reps, notes")
-    .eq("patient_id", patientId)
-    .order("title", { ascending: true })
-
-  const checkIns = await listCheckInsForPatient(clinicClient, patientId)
-
-  return {
-    patient,
-    exercises: (exercises ?? []) as ExerciseRecord[],
-    checkIns,
-    error: null,
-  }
-}
 
 export const listTherapistPatientSummaries = cache(async () => {
   const { supabase, userId } = await currentTherapist()
@@ -351,10 +379,12 @@ export const listTherapistPatientSummaries = cache(async () => {
     return [] as Array<{ id: string; fullName: string; diagnosis: string | null }>
   }
 
-  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_PICKER_COLUMNS)
+  const { data, error } = await selectOwnPatients(supabase, userId, PATIENT_PICKER_COLUMNS, {
+    limit: 200,
+  })
   const rows = !error
     ? data
-    : (await selectOwnPatients(supabase, userId, "id, full_name, diagnosis")).data
+    : (await selectOwnPatients(supabase, userId, "id, full_name, diagnosis", { limit: 200 })).data
 
   return ((rows ?? []) as Record<string, unknown>[]).map((row) => ({
     id: String(row.id),

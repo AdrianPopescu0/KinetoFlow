@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
 import { hydrateLibraryExercise } from "@/lib/exercises/hydrate"
 import { mergeLibraryCatalog } from "@/lib/exercises/merge-catalog"
@@ -48,7 +50,7 @@ export function mapLibraryRow(row: LibraryRow): LibraryExercise | null {
   })
 }
 
-export async function listStoredLibraryExercises(): Promise<LibraryExercise[]> {
+export const listStoredLibraryExercises = cache(async function listStoredLibraryExercises(): Promise<LibraryExercise[]> {
   const { supabase, user } = await getCachedUser()
   if (!user) {
     return []
@@ -60,6 +62,7 @@ export async function listStoredLibraryExercises(): Promise<LibraryExercise[]> {
       "id, title, description, notes, region, subcategory, difficulty, equipment, position, sets, reps, duration_seconds, youtube_id, video_url",
     )
     .order("created_at", { ascending: false })
+    .limit(200)
 
   if (full.error && /does not exist|schema cache/i.test(full.error.message)) {
     return []
@@ -71,6 +74,7 @@ export async function listStoredLibraryExercises(): Promise<LibraryExercise[]> {
           .from("exercise_library")
           .select("id, title, notes, region, video_url")
           .order("created_at", { ascending: false })
+          .limit(200)
       ).data
     : full.data
 
@@ -81,7 +85,7 @@ export async function listStoredLibraryExercises(): Promise<LibraryExercise[]> {
   return rows
     .map((row) => mapLibraryRow(row as LibraryRow))
     .filter((item): item is LibraryExercise => item !== null)
-}
+})
 
 export async function listLibraryCatalog(): Promise<LibraryExercise[]> {
   const stored = await listStoredLibraryExercises()

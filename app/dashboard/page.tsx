@@ -1,24 +1,18 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
 import { AddPatientDialog } from "@/app/dashboard/add-patient-dialog"
-import { DashboardOverview } from "@/app/dashboard/dashboard-overview"
+import { DashboardData } from "@/app/dashboard/dashboard-data"
+import { DashboardOverviewSkeleton } from "@/components/dashboard/dashboard-skeleton"
 import { OnboardingTour } from "@/components/dashboard/onboarding-tour"
 import { getCachedUser } from "@/lib/auth/session"
-import { listClinicTherapistOptions } from "@/lib/clinics/members"
-import { listTherapistPatients } from "@/lib/patients/queries"
 
 export const metadata: Metadata = {
   title: "Dashboard | KinetoFlow",
 }
 
 export default async function DashboardPage() {
-  const { supabase, user } = await getCachedUser()
-
-  const [{ patients, stats, error, needsMigration }, therapists] = await Promise.all([
-    listTherapistPatients(),
-    user ? listClinicTherapistOptions(supabase, user) : Promise.resolve([]),
-  ])
-
+  const { user } = await getCachedUser()
   const currentTherapistId = user?.id ?? ""
 
   return (
@@ -35,23 +29,9 @@ export default async function DashboardPage() {
         <AddPatientDialog />
       </div>
 
-      {error ? (
-        <section className="rounded-2xl border border-red-200 bg-red-50 px-5 py-6 text-sm text-red-800" role="alert">
-          {error}
-          {needsMigration ? (
-            <span className="mt-2 block text-slate-600">
-              Rulează `supabase/migrations/001_patients.sql` în SQL Editor.
-            </span>
-          ) : null}
-        </section>
-      ) : (
-        <DashboardOverview
-          patients={patients}
-          stats={stats}
-          currentTherapistId={currentTherapistId}
-          therapists={therapists}
-        />
-      )}
+      <Suspense fallback={<DashboardOverviewSkeleton />}>
+        <DashboardData />
+      </Suspense>
     </main>
   )
 }

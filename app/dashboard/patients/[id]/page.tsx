@@ -1,19 +1,22 @@
+import { Suspense } from "react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 
 import { saveClinicalNotes } from "@/app/dashboard/patients/actions"
 import { ClinicalNotesEditor } from "@/app/dashboard/patients/clinical-notes-editor"
-import { ExerciseManager } from "@/app/dashboard/patients/exercise-manager"
 import { NotifyChannelActions } from "@/app/dashboard/patients/notify-channel-actions"
 import { PatientFileActions } from "@/app/dashboard/patients/patient-file-actions"
 import { PatientFileStampProvider } from "@/app/dashboard/patients/patient-file-stamp"
-import { VasChart } from "@/app/dashboard/patients/vas-chart"
+import {
+  PatientExercisesSection,
+  PatientExercisesSkeleton,
+  PatientMonitoringSection,
+  PatientMonitoringSkeleton,
+} from "@/app/dashboard/patients/[id]/patient-file-sections"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
-import { sleepLabel } from "@/lib/patients/display"
-import { formatExerciseDuration } from "@/lib/patients/session-duration"
 import { notifyChannelLabel } from "@/lib/patients/notify-channel"
-import { getTherapistPatient } from "@/lib/patients/queries"
+import { getTherapistPatientHeader } from "@/lib/patients/queries"
 
 type PatientFilePageProps = {
   params: Promise<{ id: string }>
@@ -21,23 +24,24 @@ type PatientFilePageProps = {
 
 export default async function PatientFilePage({ params }: PatientFilePageProps) {
   const { id } = await params
-  const { patient, exercises, checkIns, error } = await getTherapistPatient(id)
+  const { patient, error } = await getTherapistPatientHeader(id)
   if (!patient) {
     notFound()
   }
 
   const phone = patient.phone ?? ""
+  const patientId = patient.id || id
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-8">
       <Link href="/dashboard" prefetch className="inline-flex items-center gap-1 text-sm font-medium text-[#042f2e]">
-          <ArrowLeft className="size-4" />
-          Înapoi la dashboard
-        </Link>
+        <ArrowLeft className="size-4" />
+        Înapoi la dashboard
+      </Link>
 
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-        <PatientFileStampProvider initialUpdatedAt={patient.updated_at}>
+      <PatientFileStampProvider initialUpdatedAt={patient.updated_at}>
         <section className={surfaceCardClassName("p-5")}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -81,69 +85,22 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
           </p>
           <div className="mt-4">
             <ClinicalNotesEditor
-              patientId={patient.id || id}
-              patient_id={patient.id || id}
-              saveAction={saveClinicalNotes.bind(null, patient.id || id)}
+              patientId={patientId}
+              patient_id={patientId}
+              saveAction={saveClinicalNotes.bind(null, patientId)}
               serverNotes={patient.clinical_notes}
             />
           </div>
         </section>
-        </PatientFileStampProvider>
+      </PatientFileStampProvider>
 
-        <section className={surfaceCardClassName("overflow-hidden")}>
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-800">Monitorizare clinică</h2>
-            <p className="text-sm text-slate-600">
-              Evoluția scorului VAS, istoricul check-in-urilor și durata ședinței de exerciții.
-              Istoricul e același pentru toți terapeuții din cabinet — se încarcă după pacient, nu după terapeutul logat.
-            </p>
-          </div>
-          <VasChart checkIns={checkIns} />
-          <div className="overflow-x-auto border-t border-slate-200">
-            {checkIns.length === 0 ? (
-              <p className="px-5 py-6 text-sm text-slate-600">Niciun check-in înregistrat.</p>
-            ) : (
-              <table className="w-full min-w-[48rem] text-left text-sm">
-                <thead className="bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                  <tr>
-                    <th className="px-5 py-3">Data</th>
-                    <th className="px-5 py-3">Durere</th>
-                    <th className="px-5 py-3">Somn</th>
-                    <th className="px-5 py-3">Durată exerciții</th>
-                    <th className="px-5 py-3">Tip durere</th>
-                    <th className="px-5 py-3">Comentarii</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {checkIns.map((row) => (
-                    <tr key={row.id} className="border-t border-slate-100">
-                      <td className="px-5 py-3 text-slate-700">
-                        {new Date(row.created_at).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" })}
-                      </td>
-                      <td className="px-5 py-3 font-semibold text-slate-800">{row.vas_score}/10</td>
-                      <td className="px-5 py-3">{sleepLabel(row.sleep_quality)}</td>
-                      <td className="px-5 py-3 font-medium tabular-nums text-slate-800">
-                        {formatExerciseDuration(row.exercise_duration_seconds)}
-                      </td>
-                      <td className="px-5 py-3">{row.pain_type || "—"}</td>
-                      <td className="px-5 py-3 text-slate-600">{row.notes || "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </section>
+      <Suspense fallback={<PatientMonitoringSkeleton />}>
+        <PatientMonitoringSection patientId={id} />
+      </Suspense>
 
-        <section className={surfaceCardClassName("overflow-hidden")}>
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-800">Exerciții prescrise</h2>
-            <p className="text-sm text-slate-600">
-              Planul pacientului, atribuit din biblioteca verificată de exerciții.
-            </p>
-          </div>
-          <ExerciseManager patientId={patient.id} patientName={patient.full_name} exercises={exercises} />
-        </section>
-      </main>
+      <Suspense fallback={<PatientExercisesSkeleton />}>
+        <PatientExercisesSection patientId={patient.id} patientName={patient.full_name} />
+      </Suspense>
+    </main>
   )
 }

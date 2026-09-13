@@ -8,6 +8,12 @@ const CHECK_IN_COLUMNS =
 const CHECK_IN_COLUMNS_NO_DURATION =
   "id, patient_id, vas_score, sleep_quality, pain_type, notes, created_at"
 
+/** Istoric pe fișă: destul pentru grafic, fără tot arhiva. */
+export const PATIENT_FILE_CHECKIN_LIMIT = 90
+/** Dashboard: VAS + frecvență pe ultimele 30 de zile. */
+export const DASHBOARD_VAS_DAYS = 30
+export const DASHBOARD_VAS_POINT_LIMIT = 800
+
 export function mapCheckInRow(row: Record<string, unknown>): CheckInRecord {
   const duration = row.exercise_duration_seconds
   return {
@@ -41,6 +47,7 @@ export async function listCheckInsForPatient(
     .select(CHECK_IN_COLUMNS)
     .eq("patient_id", id)
     .order("created_at", { ascending: false })
+    .limit(PATIENT_FILE_CHECKIN_LIMIT)
 
   if (!withDuration.error) {
     return ((withDuration.data ?? []) as Record<string, unknown>[]).map(mapCheckInRow)
@@ -60,6 +67,7 @@ export async function listCheckInsForPatient(
     .select(CHECK_IN_COLUMNS_NO_DURATION)
     .eq("patient_id", id)
     .order("created_at", { ascending: false })
+    .limit(PATIENT_FILE_CHECKIN_LIMIT)
 
   if (fallback.error) {
     console.error("[check_ins] list by patient_id", fallback.error.message)
@@ -73,17 +81,26 @@ export async function listCheckInsForPatient(
 export async function listVasPointsForPatients(
   supabase: SupabaseClient,
   patientIds: string[],
+  options?: { since?: string; limit?: number },
 ): Promise<Array<Pick<CheckInRecord, "patient_id" | "vas_score" | "created_at">>> {
   const ids = patientIds.map((value) => readPatientRecordId(value)).filter((id): id is string => Boolean(id))
   if (ids.length === 0) {
     return []
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("check_ins")
     .select("patient_id, vas_score, created_at")
     .in("patient_id", ids)
     .order("created_at", { ascending: false })
+  if (options?.since) {
+    query = query.gte("created_at", options.since)
+  }
+  if (options?.limit && options.limit > 0) {
+    query = query.limit(options.limit)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error("[check_ins] list VAS by patient_id", error.message)

@@ -21,9 +21,11 @@ export async function selectOwnPatients<T = Record<string, unknown>>(
   supabase: SupabaseClient,
   userId: string,
   columns: string,
+  options?: { limit?: number },
 ): Promise<{ data: T[] | null; error: { message: string; code?: string } | null }> {
   const memberIds = await listClinicMemberUserIds(supabase, userId)
   const client = await privilegedClinicClient(supabase)
+  const limit = options?.limit && options.limit > 0 ? options.limit : 200
 
   const idList = memberIds.join(",")
   const byTherapist = await client
@@ -31,6 +33,7 @@ export async function selectOwnPatients<T = Record<string, unknown>>(
     .select(columns)
     .or(`therapist_id.in.(${idList}),assigned_therapist_id.in.(${idList})`)
     .order("created_at", { ascending: false })
+    .limit(limit)
 
   if (!byTherapist.error) {
     return { data: (byTherapist.data as T[] | null) ?? [], error: null }
@@ -42,6 +45,7 @@ export async function selectOwnPatients<T = Record<string, unknown>>(
       .select(columns)
       .in("therapist_id", memberIds)
       .order("created_at", { ascending: false })
+      .limit(limit)
     if (!legacy.error) {
       return { data: (legacy.data as T[] | null) ?? [], error: null }
     }

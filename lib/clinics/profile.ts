@@ -1,3 +1,4 @@
+import { cache } from "react"
 import type { SupabaseClient, User } from "@supabase/supabase-js"
 
 import type { ClinicProfile, ClinicTherapistOption } from "@/lib/clinics/types"
@@ -6,7 +7,7 @@ import { formatSupabaseError } from "@/lib/supabase/format-error"
 
 export { clinicReadyFromUser, invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 
-export async function fetchClinicProfile(
+export const fetchClinicProfile = cache(async function fetchClinicProfile(
   supabase: SupabaseClient,
   therapistId: string,
 ): Promise<{ profile: ClinicProfile | null; error: string | null }> {
@@ -47,7 +48,7 @@ export async function fetchClinicProfile(
   }
 
   return { profile: mapClinicProfile(data as Record<string, unknown>, therapistId), error: null }
-}
+})
 
 function mapClinicProfile(row: Record<string, unknown>, fallbackUserId: string): ClinicProfile {
   const role = row.role === "therapist" ? "therapist" : "admin"
@@ -91,7 +92,7 @@ export async function listClinicTherapists(
   const selfProfile = await fetchClinicProfile(supabase, user.id)
   const clinicName = selfProfile.profile?.clinic_name?.trim() ?? ""
 
-  let query = supabase.from("clinic_profiles").select("user_id, therapist_name, clinic_name")
+  let query = supabase.from("clinic_profiles").select("user_id, therapist_name, clinic_name").limit(40)
   if (clinicName) {
     query = query.eq("clinic_name", clinicName)
   }

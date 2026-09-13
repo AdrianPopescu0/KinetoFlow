@@ -1,30 +1,19 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
-import { ExerciseLibrary } from "@/app/dashboard/exercises/exercise-library"
-import { getCachedUser } from "@/lib/auth/session"
-import { authUserCanEditLibrary } from "@/lib/exercises/library-admin"
-import { listStoredLibraryExercises } from "@/lib/exercises/library-store"
-import { listTherapistPatientSummaries } from "@/lib/patients/queries"
+import { ExercisesData } from "@/app/dashboard/exercises/exercises-data"
+import { ExercisesLibrarySkeleton } from "@/app/dashboard/exercises/exercises-skeleton"
 
 export const metadata: Metadata = {
   title: "Bibliotecă Exerciții | KinetoFlow",
 }
 
-export default async function ExercisesPage() {
-  const [{ user }, patients, storedExercises] = await Promise.all([
-    getCachedUser(),
-    listTherapistPatientSummaries(),
-    listStoredLibraryExercises(),
-  ])
-
+export default function ExercisesPage() {
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col overflow-x-hidden px-5 py-8">
-      <ExerciseLibrary
-        patients={patients}
-        storedExercises={storedExercises}
-        canEditLibrary={authUserCanEditLibrary(user)}
-        viewerEmail={user?.email ?? null}
-      />
+      <Suspense fallback={<ExercisesLibrarySkeleton />}>
+        <ExercisesData />
+      </Suspense>
     </main>
   )
 }

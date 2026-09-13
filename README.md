@@ -157,6 +157,17 @@ vercel.json                      # un singur cron: 22:00 UTC → /api/cron/reset
 public/manifest.webmanifest      # PWA: standalone + iconițe 192/512
 ```
 
+## Performanță (dashboard)
+
+Pagina principală și fișa pacientului evită `select('*')` și interogările nelimitate:
+
+- lista de pacienți: coloane explicite, maxim 200 de fișe (cele mai recente);
+- VAS pe dashboard: ultimele 30 de zile, maxim 800 de puncte (fără embed de `check_ins` pe fiecare pacient);
+- fișa pacientului: ultimele 90 de check-in-uri, maxim 80 de exerciții;
+- biblioteca: maxim 200 de exerciții din `exercise_library`.
+
+Datele de request sunt deduplicate cu `cache()` (React). Navigarea internă din dashboard reutilizează payload-ul RSC ~30s (`experimental.staleTimes.dynamic`), ca să nu se refacă fetch-ul la fiecare click. Mutările apelează `revalidatePath`. Rutele grele au `loading.tsx` și `Suspense` cu schelete vizuale.
+
 ## Instalare PWA (Android / Windows / Mac)
 
 Butonul **Instalează Aplicația KinetoFlow** este vizibil în header-ul programului pacientului pe desktop și mobil. La click:

@@ -51,6 +51,10 @@ test("interogarea de istoric filtrează doar după patient_id", async () => {
           return this
         },
         order() {
+          return this
+        },
+        limit(value: number) {
+          filters.push({ column: "limit", value })
           return Promise.resolve({
             data: [
               {
@@ -73,7 +77,47 @@ test("interogarea de istoric filtrează doar după patient_id", async () => {
   }
 
   const rows = await listCheckInsForPatient(supabase as never, patientId)
-  assert.deepEqual(filters, [{ column: "patient_id", value: patientId }])
+  assert.deepEqual(filters, [
+    { column: "patient_id", value: patientId },
+    { column: "limit", value: 90 },
+  ])
   assert.equal(rows.length, 1)
   assert.equal(rows[0]?.patient_id, patientId)
+})
+
+test("VAS-ul de dashboard limitează perioada și numărul de puncte", async () => {
+  const calls: Array<{ method: string; value: unknown }> = []
+  const patientId = "a3f1c2e4-1234-4abc-8def-0123456789ab"
+  const supabase = {
+    from() {
+      return {
+        select() {
+          return this
+        },
+        in() {
+          return this
+        },
+        order() {
+          return this
+        },
+        gte(_column: string, value: unknown) {
+          calls.push({ method: "gte", value })
+          return this
+        },
+        limit(value: number) {
+          calls.push({ method: "limit", value })
+          return Promise.resolve({ data: [], error: null })
+        },
+      }
+    },
+  }
+
+  await listVasPointsForPatients(supabase as never, [patientId], {
+    since: "2026-08-13T00:00:00.000Z",
+    limit: 800,
+  })
+  assert.deepEqual(calls, [
+    { method: "gte", value: "2026-08-13T00:00:00.000Z" },
+    { method: "limit", value: 800 },
+  ])
 })

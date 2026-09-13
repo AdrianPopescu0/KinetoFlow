@@ -65,6 +65,7 @@ async function loadClinicMembers(
     .select("user_id, therapist_name, clinic_name")
     .ilike("clinic_name", clinicName)
     .order("therapist_name", { ascending: true })
+    .limit(40)
 
   const wanted = normalizeClinicName(clinicName)
   return (data ?? [])
