@@ -29,5 +29,6 @@ test("respinge draft-uri invalide", () => {
   assert.equal(parseCheckinDraft(null), null)
   assert.equal(parseCheckinDraft({ pain: 99, sleep: null, notes: "" }), null)
   assert.equal(parseCheckinDraft({ pain: 3, sleep: "noapte", notes: "" }), null)
+  assert.equal(parseCheckinDraft({ pain: 3, sleep: "intrerupt", notes: "" }), null)
   assert.equal(parseCheckinDraft({ pain: 3, sleep: null, painKind: "efort", notes: "" }), null)
 })

@@ -69,23 +69,24 @@ export function DailyCheckinForm({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
         <fieldset className="flex min-w-0 flex-col gap-3">
           <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Calitatea somnului</legend>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-5 gap-1.5">
             {SLEEP_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
+                aria-pressed={sleep === option.value}
                 onClick={() => onSleepChange(option.value)}
                 className={cn(
-                  "flex min-h-[4.75rem] flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-3 text-center",
+                  "flex min-h-[4.75rem] flex-col items-center justify-center gap-1 rounded-2xl border px-1 py-2 text-center transition-colors",
                   sleep === option.value
                     ? "border-[#042f2e] bg-[#042f2e] text-white"
                     : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
                 )}
               >
-                <span className="text-2xl" aria-hidden="true">
+                <span className="text-xl" aria-hidden="true">
                   {option.emoji}
                 </span>
-                <span className="text-xs font-semibold">{option.label}</span>
+                <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
               </button>
             ))}
           </div>

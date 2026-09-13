@@ -62,6 +62,12 @@ export function painKindLabel(value: string | null): string {
 
 export function sleepLabel(value: string | null): string {
   switch (value) {
+    case "foarte-slab":
+      return "Foarte slab"
+    case "agitat":
+      return "Agitat"
+    case "bun":
+      return "Bun"
     case "odihnitor":
     case "foarte-bun":
       return "Odihnitor"

@@ -1,9 +1,9 @@
-export type SleepQuality = "odihnitor" | "moderat" | "intrerupt"
+export type SleepQuality = "foarte-slab" | "agitat" | "moderat" | "bun" | "odihnitor"
 
-export const SLEEP_QUALITY_VALUES = ["odihnitor", "moderat", "intrerupt"] as const
+export const SLEEP_QUALITY_VALUES = ["foarte-slab", "agitat", "moderat", "bun", "odihnitor"] as const
 
 export function isSleepQuality(value: string | null): value is SleepQuality {
-  return value === "odihnitor" || value === "moderat" || value === "intrerupt"
+  return (SLEEP_QUALITY_VALUES as readonly string[]).includes(value ?? "")
 }
 
 export type PainKind = "oarba" | "ascutita" | "arsura" | "pulsanta" | "amorteala" | "rigiditate"

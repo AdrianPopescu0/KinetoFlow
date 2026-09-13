@@ -24,7 +24,7 @@ test("check-in-ul existent e mapat ca prima evaluare a zilei", () => {
   const checkin = dailyCheckinFromRow(
     {
       vas_score: 4,
-      sleep_quality: "odihnitor",
+      sleep_quality: "bun",
       pain_type: "arsura",
       notes: "Mai bine",
       energy_level: "buna",
@@ -36,7 +36,7 @@ test("check-in-ul existent e mapat ca prima evaluare a zilei", () => {
     ["ex-1"],
   )
   assert.equal(checkin.pain, 4)
-  assert.equal(checkin.sleep, "odihnitor")
+  assert.equal(checkin.sleep, "bun")
   assert.equal(checkin.painKind, "arsura")
   assert.equal(checkin.localDate, "2026-09-10")
   assert.equal(checkin.energy, "buna")

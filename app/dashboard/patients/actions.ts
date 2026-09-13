@@ -814,7 +814,7 @@ export async function submitPatientCheckin(formData: FormData): Promise<SubmitPa
     return { error: "Completează durerea, tipul durerii și calitatea somnului." }
   }
 
-  const sleepQuality: "odihnitor" | "moderat" | "intrerupt" = sleepRaw
+  const sleepQuality = sleepRaw
   const painKind = painTypeRaw
 
   const { createServiceRoleClient } = await import("@/utils/supabase/admin")

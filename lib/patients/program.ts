@@ -111,8 +111,10 @@ export function getPatientProgram(token: string): PatientProgram | null {
 }
 
 export const SLEEP_OPTIONS: { value: SleepQuality; emoji: string; label: string }[] = [
-  { value: "intrerupt", emoji: "😫", label: "Întrerupt" },
+  { value: "foarte-slab", emoji: "😫", label: "Foarte slab" },
+  { value: "agitat", emoji: "😣", label: "Agitat" },
   { value: "moderat", emoji: "😐", label: "Moderat" },
+  { value: "bun", emoji: "🙂", label: "Bun" },
   { value: "odihnitor", emoji: "😊", label: "Odihnitor" },
 ]
 
