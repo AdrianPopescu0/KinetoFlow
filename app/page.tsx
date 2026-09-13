@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { AppShell } from "@/components/brand/app-atmosphere"
 import { RecoverSessionRedirect } from "@/components/auth/recover-session-redirect"
 import { LandingCta } from "@/components/landing/landing-cta"
+import { LandingFaq } from "@/components/landing/landing-faq"
 import { LandingFeatures } from "@/components/landing/landing-features"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { LandingHero } from "@/components/landing/landing-hero"
@@ -22,6 +23,7 @@ export default function HomePage() {
         <LandingHero />
         <LandingFeatures />
         <LandingCta />
+        <LandingFaq />
       </main>
     </AppShell>
   )
