@@ -25,7 +25,7 @@ export function LandingStats() {
         </p>
       </div>
 
-      <div className="kf-stats-photo-mask relative isolate -mt-2 min-h-[18rem] overflow-hidden sm:min-h-[24rem] lg:min-h-[30rem]">
+      <div className="kf-stats-photo-mask relative isolate -mt-2 min-h-[20rem] overflow-hidden sm:min-h-[26rem] lg:min-h-[34rem]">
         <Image
           src="/landing/stats-recovery.jpg"
           alt="Terapeut care evaluează spatele unui pacient în timpul unei ședințe de kinetoterapie"

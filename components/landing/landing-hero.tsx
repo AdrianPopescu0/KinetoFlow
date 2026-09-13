@@ -13,29 +13,31 @@ const highlights = [
 
 export function LandingHero() {
   return (
-    <section className="kf-hero-fade relative isolate min-h-[calc(100svh-4rem)] overflow-hidden">
-      <Image
-        src="/landing/hero-recovery.jpg"
-        alt="Terapeut care urmărește un pacient în timpul unui exercițiu de recuperare pe reformer"
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover object-[68%_40%] sm:object-[78%_42%]"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[linear-gradient(180deg,#071412f2_0%,#0c1615cc_38%,#042f2e99_62%,#0c1615e6_100%)] sm:bg-[linear-gradient(180deg,#071412f0_0%,#0c1615b8_32%,#042f2e66_58%,#0c1615f2_100%)]"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(45,212,191,0.16),transparent_42%)]"
-      />
-      <div className="pointer-events-none absolute inset-0 opacity-80">
-        <LandingHeroArt />
+    <section className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden bg-[#0c1615]">
+      <div className="kf-hero-image-fade absolute inset-0">
+        <Image
+          src="/landing/hero-recovery.jpg"
+          alt="Terapeut care urmărește un pacient în timpul unui exercițiu de recuperare pe reformer"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-[68%_40%] sm:object-[78%_42%]"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(180deg,#071412cc_0%,#0c161599_36%,#042f2e55_62%,transparent_100%)]"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(45,212,191,0.16),transparent_42%)]"
+        />
+        <div className="pointer-events-none absolute inset-0 opacity-80">
+          <LandingHeroArt />
+        </div>
       </div>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-b from-transparent from-0% via-[#0c1615]/25 via-45% to-[#0c1615]"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent from-[28%] via-[#0c1615]/20 via-[62%] to-[#0c1615]"
       />
 
       <div className="relative mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-6xl flex-col justify-between gap-10 px-4 pt-10 pb-16 sm:px-6 sm:pt-16 sm:pb-24">
