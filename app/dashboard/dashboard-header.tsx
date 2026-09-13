@@ -37,9 +37,6 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
             <NavLink href="/dashboard" active={patientsActive}>
               Pacienți
             </NavLink>
-            <NavLink href="/dashboard/arhiva" active={archiveActive}>
-              Arhivă
-            </NavLink>
             <NavLink href="/dashboard/exercises" active={exercisesActive}>
               Bibliotecă
             </NavLink>
@@ -48,6 +45,9 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
                 Echipă
               </NavLink>
             ) : null}
+            <NavLink href="/dashboard/arhiva" active={archiveActive}>
+              Arhivă
+            </NavLink>
             <NavLink href="/dashboard/setari" active={settingsActive}>
               Setări
             </NavLink>
@@ -73,9 +73,6 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
         <NavLink href="/dashboard" active={patientsActive}>
           Pacienți
         </NavLink>
-        <NavLink href="/dashboard/arhiva" active={archiveActive}>
-          Arhivă
-        </NavLink>
         <NavLink href="/dashboard/exercises" active={exercisesActive}>
           Bibliotecă
         </NavLink>
@@ -84,6 +81,9 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
             Echipă
           </NavLink>
         ) : null}
+        <NavLink href="/dashboard/arhiva" active={archiveActive}>
+          Arhivă
+        </NavLink>
         <NavLink href="/dashboard/setari" active={settingsActive}>
           Setări
         </NavLink>
