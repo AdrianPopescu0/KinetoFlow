@@ -18,10 +18,37 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://kinetoflow96.vercel.app"
+const SITE_TITLE = "KinetoFlow"
+const SITE_DESCRIPTION =
+  "Platformă clinică pentru kinetoterapie: optimizează activitatea cabinetului, programele de recuperare și accesul securizat."
+
 export const metadata: Metadata = {
-  title: "KinetoFlow",
-  description:
-    "Platformă clinică pentru kinetoterapie: optimizează activitatea cabinetului, programele de recuperare și accesul securizat.",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_TITLE,
+    locale: "ro_RO",
+    type: "website",
+    images: [
+      {
+        url: "/landing/hero-recovery.jpg",
+        width: 2400,
+        height: 1600,
+        alt: "KinetoFlow — ședință de kinetoterapie și recuperare medicală",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/landing/hero-recovery.jpg"],
+  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
