@@ -146,7 +146,13 @@ const OPTIONS: Array<{
   },
 ]
 
-export function ThemePreferenceSection({ standalone = false }: { standalone?: boolean }) {
+export function ThemePreferenceSection({
+  standalone = false,
+  description = "Alege tema panoului. Se aplică imediat pe tot dashboard-ul.",
+}: {
+  standalone?: boolean
+  description?: string
+}) {
   const { preference, setPreference } = useDashboardTheme()
 
   return (
@@ -158,9 +164,7 @@ export function ThemePreferenceSection({ standalone = false }: { standalone?: bo
     >
       <div>
         <h2 className="text-base font-semibold text-slate-800 dark:text-[var(--kf-text)]">Aspect</h2>
-        <p className="mt-1 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">
-          Alege tema panoului. Se aplică imediat pe tot dashboard-ul.
-        </p>
+        <p className="mt-1 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">{description}</p>
       </div>
       <div role="radiogroup" aria-label="Tema aplicației" className="grid gap-2 sm:grid-cols-3">
         {OPTIONS.map((option, index) => {

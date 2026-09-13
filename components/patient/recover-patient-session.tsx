@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 
 import { Logo } from "@/components/Logo"
 import { PatientThemeProvider } from "@/components/theme/dashboard-theme"
-import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { PatientSettingsButton } from "@/components/patient/patient-settings"
 import { patientPublicPath } from "@/lib/patients/session"
 import { readStoredPatientToken } from "@/lib/patients/token-storage"
 
@@ -27,7 +27,7 @@ export function RecoverPatientSession() {
     <PatientThemeProvider>
     <div className="relative flex min-h-full flex-1 flex-col bg-slate-50 dark:bg-[var(--kf-canvas)]">
       <div className="absolute top-4 right-4 z-10 sm:top-5 sm:right-5">
-        <ThemeToggle variant="surface" />
+        <PatientSettingsButton variant="surface" />
       </div>
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-12">
         <Link href="/" className="mb-8 inline-flex items-center">
