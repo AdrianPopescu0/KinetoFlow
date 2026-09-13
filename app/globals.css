@@ -290,6 +290,15 @@ body:has([data-landing-page]) footer button:hover {
   color: #5eead4;
 }
 
+.kf-stats-photo-mask {
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
 .kf-hero-flow {
   stroke-dasharray: 14 22;
   animation: kf-hero-flow 22s linear infinite;
