@@ -8,6 +8,12 @@ export function isSleepQuality(value: string | null): value is SleepQuality {
 
 export type PainKind = "efort" | "continua" | "rigiditate" | "fara"
 
+export const PAIN_KIND_VALUES = ["efort", "continua", "rigiditate", "fara"] as const
+
+export function isPainKind(value: string | null): value is PainKind {
+  return value === "efort" || value === "continua" || value === "rigiditate" || value === "fara"
+}
+
 export type EnergyLevel = "epuizat" | "scazuta" | "moderata" | "buna" | "maxima"
 
 export const ENERGY_LEVEL_VALUES = ["epuizat", "scazuta", "moderata", "buna", "maxima"] as const

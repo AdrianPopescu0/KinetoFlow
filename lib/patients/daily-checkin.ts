@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-import { isEnergyLevel, isSleepQuality, type DailyCheckin, type SleepQuality } from "./types.ts"
+import { isEnergyLevel, isPainKind, isSleepQuality, type DailyCheckin, type SleepQuality } from "./types.ts"
 import { bucharestDateKey, startOfTodayIso, startOfTomorrowIso } from "../time/bucharest.ts"
 
 export const CHECKIN_ALREADY_SUBMITTED_MESSAGE =
@@ -48,7 +48,7 @@ export function dailyCheckinFromRow(
     localDate: rowDate,
     pain: typeof row.vas_score === "number" ? row.vas_score : Number(row.vas_score) || 0,
     sleep: sleepFromRow(row.sleep_quality),
-    painKind: null,
+    painKind: typeof row.pain_type === "string" && isPainKind(row.pain_type) ? row.pain_type : null,
     energy: typeof energyRaw === "string" && isEnergyLevel(energyRaw) ? energyRaw : null,
     notes: typeof row.notes === "string" ? row.notes : "",
     completedExerciseIds,

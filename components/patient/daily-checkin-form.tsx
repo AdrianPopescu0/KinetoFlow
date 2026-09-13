@@ -6,14 +6,15 @@ import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { VasScale } from "@/components/patient/vas-scale"
-import { ENERGY_OPTIONS, SLEEP_OPTIONS } from "@/lib/patients/program"
-import type { EnergyLevel, SleepQuality } from "@/lib/patients/types"
+import { ENERGY_OPTIONS, PAIN_KIND_OPTIONS, SLEEP_OPTIONS } from "@/lib/patients/program"
+import type { EnergyLevel, PainKind, SleepQuality } from "@/lib/patients/types"
 import { cn } from "@/lib/utils"
 
 type DailyCheckinFormProps = {
   pain: number
   sleep: SleepQuality | null
   energy: EnergyLevel | null
+  painKind: PainKind | null
   notes: string
   error: string | null
   errorTone?: "error" | "offline"
@@ -25,6 +26,7 @@ type DailyCheckinFormProps = {
   onPainChange: (value: number) => void
   onSleepChange: (value: SleepQuality) => void
   onEnergyChange: (value: EnergyLevel) => void
+  onPainKindChange: (value: PainKind) => void
   onNotesChange: (value: string) => void
   onSubmit: () => void
 }
@@ -33,6 +35,7 @@ export function DailyCheckinForm({
   pain,
   sleep,
   energy,
+  painKind,
   notes,
   error,
   errorTone = "error",
@@ -44,6 +47,7 @@ export function DailyCheckinForm({
   onPainChange,
   onSleepChange,
   onEnergyChange,
+  onPainKindChange,
   onNotesChange,
   onSubmit,
 }: DailyCheckinFormProps) {
@@ -112,6 +116,28 @@ export function DailyCheckinForm({
           </div>
         </fieldset>
       </div>
+
+      <fieldset className="flex min-w-0 flex-col gap-3">
+        <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Tip durere</legend>
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          {PAIN_KIND_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={painKind === option.value}
+              onClick={() => onPainKindChange(option.value)}
+              className={cn(
+                "flex min-h-[4.75rem] items-center justify-center rounded-2xl border px-3 py-3 text-center",
+                painKind === option.value
+                  ? "border-[#042f2e] bg-[#042f2e] text-white"
+                  : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
+              )}
+            >
+              <span className="text-xs font-semibold leading-tight sm:text-sm">{option.label}</span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
 
       <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
         <div className="flex min-w-0 flex-col gap-2">

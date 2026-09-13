@@ -1,7 +1,7 @@
 import { ExerciseManager } from "@/app/dashboard/patients/exercise-manager"
 import { VasChart } from "@/app/dashboard/patients/vas-chart"
 import { surfaceCardClassName } from "@/components/brand/app-atmosphere"
-import { sleepLabel } from "@/lib/patients/display"
+import { painKindLabel, sleepLabel } from "@/lib/patients/display"
 import {
   getTherapistPatientCheckIns,
   getTherapistPatientExercises,
@@ -63,8 +63,8 @@ export async function PatientMonitoringSection({ patientId }: { patientId: strin
                 <th className="px-5 py-3">Data</th>
                 <th className="px-5 py-3">Durere</th>
                 <th className="px-5 py-3">Somn</th>
-                <th className="px-5 py-3">Durată exerciții</th>
                 <th className="px-5 py-3">Tip durere</th>
+                <th className="px-5 py-3">Durată exerciții</th>
                 <th className="px-5 py-3">Comentarii</th>
               </tr>
             </thead>
@@ -76,10 +76,10 @@ export async function PatientMonitoringSection({ patientId }: { patientId: strin
                   </td>
                   <td className="px-5 py-3 font-semibold text-slate-800">{row.vas_score}/10</td>
                   <td className="px-5 py-3">{sleepLabel(row.sleep_quality)}</td>
+                  <td className="px-5 py-3">{painKindLabel(row.pain_type)}</td>
                   <td className="px-5 py-3 font-medium tabular-nums text-slate-800">
                     {formatExerciseDuration(row.exercise_duration_seconds)}
                   </td>
-                  <td className="px-5 py-3">{row.pain_type || "—"}</td>
                   <td className="px-5 py-3 text-slate-600">{row.notes || "—"}</td>
                 </tr>
               ))}

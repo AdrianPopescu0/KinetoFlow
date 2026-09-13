@@ -43,7 +43,7 @@ import {
   subscribePatientStorage,
 } from "@/lib/patients/storage"
 import { computeExerciseDurationSeconds } from "@/lib/patients/session-duration"
-import type { DailyCheckin, EnergyLevel, PatientProgram, SleepQuality } from "@/lib/patients/types"
+import type { DailyCheckin, EnergyLevel, PainKind, PatientProgram, SleepQuality } from "@/lib/patients/types"
 import { EXERCISES_COMPLETE_MESSAGE, OFFLINE_CHECKIN_MESSAGE, OFFLINE_EXERCISE_TOAST } from "@/lib/patients/ux-copy"
 import { toast } from "@/components/ui/toaster"
 
@@ -75,6 +75,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
   const [pain, setPain] = useState(3)
   const [sleep, setSleep] = useState<SleepQuality | null>(null)
   const [energy, setEnergy] = useState<EnergyLevel | null>(null)
+  const [painKind, setPainKind] = useState<PainKind | null>(null)
   const [notes, setNotes] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -121,6 +122,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         setPain(draft.pain)
         setSleep(draft.sleep)
         setEnergy(draft.energy)
+        setPainKind(draft.painKind)
         setNotes(draft.notes)
       }
     }
@@ -131,8 +133,8 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
     if (!draftReady || storedCheckin) {
       return
     }
-    saveCheckinDraft(program.token, localDate, { pain, sleep, energy, notes })
-  }, [draftReady, energy, localDate, notes, pain, program.token, sleep, storedCheckin])
+    saveCheckinDraft(program.token, localDate, { pain, sleep, energy, painKind, notes })
+  }, [draftReady, energy, localDate, notes, pain, painKind, program.token, sleep, storedCheckin])
 
   useEffect(() => {
     if (!online) {
@@ -299,8 +301,12 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       setError("Alege calitatea somnului ca să trimiți check-in-ul.")
       return
     }
+    if (painKind === null) {
+      setError("Alege tipul durerii ca să trimiți check-in-ul.")
+      return
+    }
     if (!isBrowserOnline()) {
-      saveCheckinDraft(program.token, localDate, { pain, sleep, energy, notes })
+      saveCheckinDraft(program.token, localDate, { pain, sleep, energy, painKind, notes })
       setErrorTone("offline")
       setError(OFFLINE_CHECKIN_MESSAGE)
       return
@@ -319,7 +325,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         localDate,
         pain: vasScore,
         sleep,
-        painKind: null,
+        painKind,
         energy,
         notes: notes.trim(),
         completedExerciseIds: completedIds,
@@ -330,6 +336,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
       formData.set("token", program.token)
       formData.set("vas", String(vasScore))
       formData.set("sleep", sleep)
+      formData.set("pain_type", painKind)
       if (energy) {
         formData.set("energy", energy)
       }
@@ -354,7 +361,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
         setJustSubmitted(!result.alreadySubmitted)
       } catch (err) {
         if (isLikelyOfflineError(err)) {
-          saveCheckinDraft(program.token, localDate, { pain, sleep, energy, notes })
+          saveCheckinDraft(program.token, localDate, { pain, sleep, energy, painKind, notes })
           setErrorTone("offline")
           setError(OFFLINE_CHECKIN_MESSAGE)
           return
@@ -386,6 +393,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
               pain={pain}
               sleep={sleep}
               energy={energy}
+              painKind={painKind}
               notes={notes}
               error={error}
               errorTone={errorTone}
@@ -397,6 +405,7 @@ export function PatientPortal({ program }: { program: PatientProgram }) {
               onPainChange={setPain}
               onSleepChange={setSleep}
               onEnergyChange={setEnergy}
+              onPainKindChange={setPainKind}
               onNotesChange={setNotes}
               onSubmit={submitCheckin}
             />

@@ -8,23 +8,26 @@ test("parsează un draft de check-in valid", () => {
     pain: 4,
     sleep: "moderat",
     energy: "buna",
+    painKind: "efort",
     notes: "Mai bine azi",
   })
   assert.deepEqual(draft, {
     pain: 4,
     sleep: "moderat",
     energy: "buna",
+    painKind: "efort",
     notes: "Mai bine azi",
   })
 })
 
-test("acceptă somn și energie goale", () => {
+test("acceptă somn, energie și tip durere goale", () => {
   const draft = parseCheckinDraft({ pain: 2, sleep: null, energy: null, notes: "" })
-  assert.deepEqual(draft, { pain: 2, sleep: null, energy: null, notes: "" })
+  assert.deepEqual(draft, { pain: 2, sleep: null, energy: null, painKind: null, notes: "" })
 })
 
 test("respinge draft-uri invalide", () => {
   assert.equal(parseCheckinDraft(null), null)
   assert.equal(parseCheckinDraft({ pain: 99, sleep: null, notes: "" }), null)
   assert.equal(parseCheckinDraft({ pain: 3, sleep: "noapte", notes: "" }), null)
+  assert.equal(parseCheckinDraft({ pain: 3, sleep: null, painKind: "arsura", notes: "" }), null)
 })

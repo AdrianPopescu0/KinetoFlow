@@ -11,7 +11,7 @@ import {
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
 import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
-import { isEnergyLevel, isSleepQuality, type DailyCheckin } from "@/lib/patients/types"
+import { isEnergyLevel, isPainKind, isSleepQuality, type DailyCheckin } from "@/lib/patients/types"
 import { composeIntervalExerciseNotes, isDateKey } from "@/lib/exercises/schedule"
 import {
   assignedExerciseMatchesInterval,
@@ -793,6 +793,7 @@ export async function submitPatientCheckin(formData: FormData): Promise<SubmitPa
   const token = readOptional(formData, "token")
   const notes = readOptional(formData, "notes")
   const sleepRaw = readOptional(formData, "sleep")
+  const painTypeRaw = readOptional(formData, "pain_type") ?? readOptional(formData, "painKind")
   const energyRaw = readOptional(formData, "energy")
   const energy = isEnergyLevel(energyRaw) ? energyRaw : null
   const completedRaw = readOptional(formData, "completedExerciseIds")
@@ -805,14 +806,16 @@ export async function submitPatientCheckin(formData: FormData): Promise<SubmitPa
   if (
     !token ||
     !isSleepQuality(sleepRaw) ||
+    !isPainKind(painTypeRaw) ||
     !Number.isInteger(vasScore) ||
     vasScore < 0 ||
     vasScore > 10
   ) {
-    return { error: "Completează durerea și calitatea somnului." }
+    return { error: "Completează durerea, tipul durerii și calitatea somnului." }
   }
 
   const sleepQuality: "odihnitor" | "moderat" | "intrerupt" = sleepRaw
+  const painKind = painTypeRaw
 
   const { createServiceRoleClient } = await import("@/utils/supabase/admin")
   const {
@@ -876,6 +879,7 @@ export async function submitPatientCheckin(formData: FormData): Promise<SubmitPa
     patient_id: patient.id,
     vas_score: vasScore,
     sleep_quality: sleepQuality,
+    pain_type: painKind,
     notes,
   }
 

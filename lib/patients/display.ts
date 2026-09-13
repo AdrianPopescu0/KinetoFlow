@@ -35,6 +35,21 @@ export function vasBadgeClass(score: number | null): string {
   return "bg-slate-100 text-slate-600 ring-slate-200"
 }
 
+export function painKindLabel(value: string | null): string {
+  switch (value) {
+    case "efort":
+      return "Doar la efort/mișcare"
+    case "continua":
+      return "Continuă / În repaus"
+    case "rigiditate":
+      return "Rigiditate dimineața"
+    case "fara":
+      return "Fără durere"
+    default:
+      return value || "—"
+  }
+}
+
 export function sleepLabel(value: string | null): string {
   switch (value) {
     case "odihnitor":

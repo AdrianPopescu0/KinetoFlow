@@ -135,6 +135,13 @@ export const PAIN_KIND_OPTIONS: { value: PainKind; label: string }[] = [
   { value: "fara", label: "Fără durere" },
 ]
 
+export function painKindLabel(value: PainKind | string | null | undefined): string {
+  if (!value) {
+    return "—"
+  }
+  return PAIN_KIND_OPTIONS.find((option) => option.value === value)?.label ?? value
+}
+
 export function painIntensityCopy(pain: number): { label: string; tone: "green" | "orange" | "red" } {
   if (pain <= 3) {
     return { label: "Durere ușoară", tone: "green" }
