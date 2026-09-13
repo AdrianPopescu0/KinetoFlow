@@ -5,8 +5,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { logout } from "@/app/dashboard/actions"
+import { LogoutConfirmButton } from "@/components/auth/logout-confirm-button"
 import { Logo } from "@/components/Logo"
-import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { cn } from "@/lib/utils"
 
 type DashboardHeaderProps = {
@@ -57,16 +57,12 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
           <p className="hidden max-w-[16rem] truncate text-sm text-teal-50/85 lg:block" title={email}>
             {label}
           </p>
-          <form action={logout}>
-            <PendingSubmitButton
-              type="submit"
-              variant="outline"
-              pendingLabel="Ieșire…"
-              className="h-11 min-h-[44px] rounded-xl border-white/20 bg-white/10 px-3 text-white hover:bg-white/15 hover:text-white"
-            >
-              Logout
-            </PendingSubmitButton>
-          </form>
+          <LogoutConfirmButton
+            label="Logout"
+            triggerVariant="onDark"
+            triggerClassName="h-11 min-h-[44px]"
+            onConfirm={logout}
+          />
         </div>
       </div>
       <nav className="flex flex-wrap gap-1 border-t border-white/10 px-4 py-2 sm:hidden">

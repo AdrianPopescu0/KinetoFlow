@@ -4,9 +4,9 @@ import { redirect } from "next/navigation"
 
 import { OnboardingClient } from "@/app/onboarding/onboarding-client"
 import { logout } from "@/app/dashboard/actions"
+import { LogoutConfirmButton } from "@/components/auth/logout-confirm-button"
 import { InvitedTherapistOnboardingGate } from "@/components/auth/pending-therapist-invite"
 import { Logo } from "@/components/Logo"
-import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
 import { getCachedUser } from "@/lib/auth/session"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
@@ -75,11 +75,11 @@ export default async function OnboardingPage() {
       <header className="border-b border-slate-200 bg-white px-5 py-4">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between">
           <Logo size="md" />
-          <form action={logout}>
-            <PendingSubmitButton type="submit" variant="outline" pendingLabel="Ieșire…" className="h-10 rounded-xl">
-              Ieșire
-            </PendingSubmitButton>
-          </form>
+          <LogoutConfirmButton
+            label="Ieșire"
+            triggerClassName="h-10 min-h-10"
+            onConfirm={logout}
+          />
         </div>
       </header>
 

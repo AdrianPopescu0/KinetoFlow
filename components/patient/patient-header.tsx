@@ -3,10 +3,10 @@
 import { BookOpen } from "lucide-react"
 
 import { logoutPatient } from "@/app/acces/actions"
+import { LogoutConfirmButton } from "@/components/auth/logout-confirm-button"
 import { InstallPWAButton } from "@/components/InstallPWAButton"
 import { Logo } from "@/components/Logo"
 import { PatientSettingsButton } from "@/components/patient/patient-settings"
-import { PendingSubmitButton } from "@/components/ui/pending-submit-button"
 import { clearStoredPatientToken } from "@/lib/patients/token-storage"
 
 type PatientHeaderProps = {
@@ -33,20 +33,14 @@ export function PatientHeader({ firstName, dateLabel, onOpenGuide }: PatientHead
                 Ghid recuperare
               </button>
             ) : null}
-            <form
-              action={async () => {
+            <LogoutConfirmButton
+              label="Ieșire"
+              triggerVariant="onDark"
+              onConfirm={async () => {
                 clearStoredPatientToken()
                 await logoutPatient()
               }}
-            >
-              <PendingSubmitButton
-                type="submit"
-                pendingLabel="Ieșire…"
-                className="h-10 rounded-xl border-transparent bg-white/10 text-white hover:bg-white/15 hover:text-white"
-              >
-                Ieșire
-              </PendingSubmitButton>
-            </form>
+            />
             <p className="hidden text-right text-xs text-teal-50/80 sm:block">{dateLabel}</p>
           </div>
         </div>
