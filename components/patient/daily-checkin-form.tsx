@@ -92,25 +92,22 @@ export function DailyCheckinForm({
         </fieldset>
 
         <fieldset className="flex min-w-0 flex-col gap-3">
-          <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Nivel de energie</legend>
-          <div className="grid grid-cols-5 gap-1.5">
-            {ENERGY_OPTIONS.map((option) => (
+          <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Tip durere</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {PAIN_KIND_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
-                aria-pressed={energy === option.value}
-                onClick={() => onEnergyChange(option.value)}
+                aria-pressed={painKind === option.value}
+                onClick={() => onPainKindChange(option.value)}
                 className={cn(
-                  "flex min-h-[4.75rem] flex-col items-center justify-center gap-1 rounded-2xl border px-1 py-2 text-center transition-colors",
-                  energy === option.value
+                  "flex min-h-[4.75rem] items-center justify-center rounded-2xl border px-2 py-3 text-center",
+                  painKind === option.value
                     ? "border-[#042f2e] bg-[#042f2e] text-white"
                     : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
                 )}
               >
-                <span className="text-xl" aria-hidden="true">
-                  {option.emoji}
-                </span>
-                <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
+                <span className="text-xs font-semibold leading-tight sm:text-sm">{option.label}</span>
               </button>
             ))}
           </div>
@@ -118,22 +115,25 @@ export function DailyCheckinForm({
       </div>
 
       <fieldset className="flex min-w-0 flex-col gap-3">
-        <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Tip durere</legend>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-          {PAIN_KIND_OPTIONS.map((option) => (
+        <legend className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Nivel de energie</legend>
+        <div className="grid grid-cols-5 gap-1.5">
+          {ENERGY_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
-              aria-pressed={painKind === option.value}
-              onClick={() => onPainKindChange(option.value)}
+              aria-pressed={energy === option.value}
+              onClick={() => onEnergyChange(option.value)}
               className={cn(
-                "flex min-h-[4.75rem] items-center justify-center rounded-2xl border px-3 py-3 text-center",
-                painKind === option.value
+                "flex min-h-[4.75rem] flex-col items-center justify-center gap-1 rounded-2xl border px-1 py-2 text-center transition-colors",
+                energy === option.value
                   ? "border-[#042f2e] bg-[#042f2e] text-white"
                   : "border-slate-200 bg-slate-50 text-slate-700 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text)]",
               )}
             >
-              <span className="text-xs font-semibold leading-tight sm:text-sm">{option.label}</span>
+              <span className="text-xl" aria-hidden="true">
+                {option.emoji}
+              </span>
+              <span className="text-[11px] leading-tight font-semibold">{option.label}</span>
             </button>
           ))}
         </div>

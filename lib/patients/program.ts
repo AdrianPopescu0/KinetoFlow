@@ -129,10 +129,12 @@ export function energyLabel(value: EnergyLevel | null | undefined): string {
 }
 
 export const PAIN_KIND_OPTIONS: { value: PainKind; label: string }[] = [
-  { value: "efort", label: "Doar la efort/mișcare" },
-  { value: "continua", label: "Continuă / În repaus" },
-  { value: "rigiditate", label: "Rigiditate dimineața" },
-  { value: "fara", label: "Fără durere" },
+  { value: "oarba", label: "Oarbă" },
+  { value: "ascutita", label: "Ascuțită" },
+  { value: "arsura", label: "Arsură" },
+  { value: "pulsanta", label: "Pulsantă" },
+  { value: "amorteala", label: "Amorțeală" },
+  { value: "rigiditate", label: "Rigiditate" },
 ]
 
 export function painKindLabel(value: PainKind | string | null | undefined): string {

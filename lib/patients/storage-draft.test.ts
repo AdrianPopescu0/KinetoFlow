@@ -8,14 +8,14 @@ test("parsează un draft de check-in valid", () => {
     pain: 4,
     sleep: "moderat",
     energy: "buna",
-    painKind: "efort",
+    painKind: "arsura",
     notes: "Mai bine azi",
   })
   assert.deepEqual(draft, {
     pain: 4,
     sleep: "moderat",
     energy: "buna",
-    painKind: "efort",
+    painKind: "arsura",
     notes: "Mai bine azi",
   })
 })
@@ -29,5 +29,5 @@ test("respinge draft-uri invalide", () => {
   assert.equal(parseCheckinDraft(null), null)
   assert.equal(parseCheckinDraft({ pain: 99, sleep: null, notes: "" }), null)
   assert.equal(parseCheckinDraft({ pain: 3, sleep: "noapte", notes: "" }), null)
-  assert.equal(parseCheckinDraft({ pain: 3, sleep: null, painKind: "arsura", notes: "" }), null)
+  assert.equal(parseCheckinDraft({ pain: 3, sleep: null, painKind: "efort", notes: "" }), null)
 })

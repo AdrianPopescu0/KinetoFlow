@@ -37,12 +37,22 @@ export function vasBadgeClass(score: number | null): string {
 
 export function painKindLabel(value: string | null): string {
   switch (value) {
+    case "oarba":
+      return "Oarbă"
+    case "ascutita":
+      return "Ascuțită"
+    case "arsura":
+      return "Arsură"
+    case "pulsanta":
+      return "Pulsantă"
+    case "amorteala":
+      return "Amorțeală"
+    case "rigiditate":
+      return "Rigiditate"
     case "efort":
       return "Doar la efort/mișcare"
     case "continua":
       return "Continuă / În repaus"
-    case "rigiditate":
-      return "Rigiditate dimineața"
     case "fara":
       return "Fără durere"
     default:

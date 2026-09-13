@@ -6,12 +6,19 @@ export function isSleepQuality(value: string | null): value is SleepQuality {
   return value === "odihnitor" || value === "moderat" || value === "intrerupt"
 }
 
-export type PainKind = "efort" | "continua" | "rigiditate" | "fara"
+export type PainKind = "oarba" | "ascutita" | "arsura" | "pulsanta" | "amorteala" | "rigiditate"
 
-export const PAIN_KIND_VALUES = ["efort", "continua", "rigiditate", "fara"] as const
+export const PAIN_KIND_VALUES = [
+  "oarba",
+  "ascutita",
+  "arsura",
+  "pulsanta",
+  "amorteala",
+  "rigiditate",
+] as const
 
 export function isPainKind(value: string | null): value is PainKind {
-  return value === "efort" || value === "continua" || value === "rigiditate" || value === "fara"
+  return (PAIN_KIND_VALUES as readonly string[]).includes(value ?? "")
 }
 
 export type EnergyLevel = "epuizat" | "scazuta" | "moderata" | "buna" | "maxima"

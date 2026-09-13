@@ -25,7 +25,7 @@ test("check-in-ul existent e mapat ca prima evaluare a zilei", () => {
     {
       vas_score: 4,
       sleep_quality: "odihnitor",
-      pain_type: "efort",
+      pain_type: "arsura",
       notes: "Mai bine",
       energy_level: "buna",
       exercise_duration_seconds: 900,
@@ -37,7 +37,7 @@ test("check-in-ul existent e mapat ca prima evaluare a zilei", () => {
   )
   assert.equal(checkin.pain, 4)
   assert.equal(checkin.sleep, "odihnitor")
-  assert.equal(checkin.painKind, "efort")
+  assert.equal(checkin.painKind, "arsura")
   assert.equal(checkin.localDate, "2026-09-10")
   assert.equal(checkin.energy, "buna")
   assert.equal(checkin.exerciseDurationSeconds, 900)
