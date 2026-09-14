@@ -23,7 +23,7 @@ const features = [
   {
     title: "Progres vizibil, nu ghicit",
     description:
-      "Check-in-ul de durere (VAS), frecvența reală și durata ședinței arată dacă programul e urmat.",
+      "Evaluarea durerii (scorul VAS), frecvența reală și durata ședinței arată dacă programul este respectat.",
     icon: LineChart,
   },
   {
@@ -53,7 +53,7 @@ export function LandingFeatures() {
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-semibold tracking-[0.18em] text-[#042f2e] uppercase dark:text-teal-300">Beneficii</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
-            Tot ce trebuie ca să ții activitatea sub control
+            Tot ce ai nevoie ca să ții activitatea sub control
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base dark:text-teal-100/70">
             De la primul pacient până la check-in-ul de seară: mai puțină administrare, mai multă
