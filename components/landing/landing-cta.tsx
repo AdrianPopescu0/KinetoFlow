@@ -16,8 +16,8 @@ export function LandingCta() {
             Gata de lucru în clinică
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-teal-100/75 sm:text-base">
-            Terapeuții și administratorii intră cu email și parolă. Pacienții rămân pe fluxul lor, cu
-            telefonul și codul de 8 cifre.
+            Terapeuții se autentifică în cont. Pacienții intră cu telefon și cod unic, fără parole
+            greoaie.
           </p>
           <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <Link
