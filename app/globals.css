@@ -290,39 +290,6 @@ body:has([data-landing-page]) footer button:hover {
   color: #5eead4;
 }
 
-.kf-hero-image-fade {
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    #000 0%,
-    rgb(0 0 0 / 0.97) 18%,
-    rgb(0 0 0 / 0.9) 32%,
-    rgb(0 0 0 / 0.78) 46%,
-    rgb(0 0 0 / 0.62) 58%,
-    rgb(0 0 0 / 0.45) 68%,
-    rgb(0 0 0 / 0.28) 78%,
-    rgb(0 0 0 / 0.14) 88%,
-    rgb(0 0 0 / 0.05) 95%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    #000 0%,
-    rgb(0 0 0 / 0.97) 18%,
-    rgb(0 0 0 / 0.9) 32%,
-    rgb(0 0 0 / 0.78) 46%,
-    rgb(0 0 0 / 0.62) 58%,
-    rgb(0 0 0 / 0.45) 68%,
-    rgb(0 0 0 / 0.28) 78%,
-    rgb(0 0 0 / 0.14) 88%,
-    rgb(0 0 0 / 0.05) 95%,
-    transparent 100%
-  );
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-}
-
 .kf-stats-photo-mask {
   -webkit-mask-image: linear-gradient(
     to bottom,
