@@ -11,9 +11,9 @@ import { LandingShell } from "@/components/landing/landing-shell"
 import { LandingStats } from "@/components/landing/landing-stats"
 
 export const metadata: Metadata = {
-  title: "KinetoFlow — optimizează activitatea clinicii",
+  title: "KinetoFlow — organizează-ți cabinetul simplu și curat",
   description:
-    "KinetoFlow – Fluxul mișcării și al recuperării. Platformă pentru kinetoterapie: gestionează pacienții, programele de recuperare și echipa.",
+    "Un loc simplu unde ții evidența pacienților, a exercițiilor și a programelor de recuperare. Fără hârtie, fără bătăi de cap.",
 }
 
 export default function HomePage() {

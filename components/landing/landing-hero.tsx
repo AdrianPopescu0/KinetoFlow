@@ -42,19 +42,10 @@ export function LandingHero() {
 
       <div className="relative mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-6xl flex-col justify-between gap-10 px-4 pt-10 pb-16 sm:px-6 sm:pt-16 sm:pb-24">
         <div className="max-w-3xl">
-          <p className="text-xs font-semibold tracking-[0.2em] text-teal-300 uppercase">
-            Platformă clinică pentru kinetoterapie
-          </p>
-          <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-6xl sm:leading-[1.05]">
-            <span className="block text-balance">Optimizează activitatea.</span>
-            <span className="mt-2 block text-balance text-teal-100 sm:mt-3">
-              Gestionează recuperarea dintr-un singur loc.
-            </span>
+          <h1 className="text-4xl font-semibold tracking-tight text-balance text-white sm:text-6xl sm:leading-[1.05]">
+            Organizează-ți cabinetul simplu și curat
           </h1>
-          <p className="mt-5 text-lg font-medium tracking-tight text-pretty text-teal-200 sm:text-2xl">
-            KinetoFlow – Fluxul mișcării și al recuperării.
-          </p>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-pretty text-teal-50/80 sm:text-lg">
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-pretty text-teal-50/80 sm:text-lg">
             Un loc simplu unde ții evidența pacienților, a exercițiilor și a programelor de recuperare.
             Fără hârtie, fără bătăi de cap.
           </p>
