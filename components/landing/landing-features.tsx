@@ -17,7 +17,7 @@ const features = [
   {
     title: "Programe de recuperare clare",
     description:
-      "Construiești planul zilnic din biblioteca de exerciții: seturi, repetări, video și perioada de tratament.",
+      "Construiești planul zilnic din biblioteca de exerciții: seturi, repetări, video și durata tratamentului.",
     icon: Library,
   },
   {
