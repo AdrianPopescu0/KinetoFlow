@@ -41,7 +41,7 @@ const features = [
   {
     title: "Acces securizat, pe roluri",
     description:
-      "Terapeuții se autentifică în cont. Pacienții intră cu telefon și cod unic, fără parole greoaie.",
+      "Terapeuții se autentifică în cont. Pacienții intră cu telefon și cod unic, fără parole complicate.",
     icon: ShieldCheck,
   },
 ]

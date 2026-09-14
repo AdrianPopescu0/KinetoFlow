@@ -17,7 +17,7 @@ export function LandingCta() {
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-teal-100/75 sm:text-base">
             Terapeuții se autentifică în cont. Pacienții intră cu telefon și cod unic, fără parole
-            greoaie.
+            complicate.
           </p>
           <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
             <Link
