@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2 } from "lucide-react"
 
 import { login, register } from "@/app/login/actions"
@@ -16,6 +15,7 @@ import {
   enterTherapistApp,
   GOOGLE_OAUTH_QUERY_PARAMS,
   oauthBrowserRedirectToWithPendingInvite,
+  persistTherapistSessionAndEnter,
 } from "@/lib/auth/oauth-redirect"
 import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
 import { loginHref } from "@/lib/auth/paths"
@@ -36,7 +36,6 @@ export function LoginForm({
   initialInfo?: string | null
 }) {
   const tab = initialTab
-  const router = useRouter()
   const [error, setError] = useState<string | null>(initialError)
   const [info, setInfo] = useState<string | null>(initialInfo)
   const [showPassword, setShowPassword] = useState(false)
@@ -106,6 +105,28 @@ export function LoginForm({
     setInfo(null)
 
     startTransition(async () => {
+      async function finishAuth(result: Awaited<ReturnType<typeof login>>) {
+        if (result?.error) {
+          setError(result.error)
+          return
+        }
+        if (result?.info) {
+          setInfo(result.info)
+          return
+        }
+        if (result?.accessToken && result.refreshToken) {
+          const supabase = createClient()
+          const ok = await persistTherapistSessionAndEnter(supabase, result.next, {
+            access_token: result.accessToken,
+            refresh_token: result.refreshToken,
+          })
+          if (ok) {
+            return
+          }
+        }
+        enterTherapistApp(result?.next)
+      }
+
       if (tab === "register") {
         if (!evaluateRegisterPassword(String(formData.get("password") ?? "")).isValid) {
           setError("Parola trebuie să aibă minim 8 caractere, o majusculă, o cifră și un caracter special.")
@@ -116,29 +137,11 @@ export function LoginForm({
           return
         }
 
-        const result = await register(formData)
-        if (result?.error) {
-          setError(result.error)
-          return
-        }
-        if (result?.info) {
-          setInfo(result.info)
-          return
-        }
-        enterTherapistApp(result?.next)
+        await finishAuth(await register(formData))
         return
       }
 
-      const result = await login(formData)
-      if (result?.error) {
-        setError(result.error)
-        return
-      }
-      if (result?.info) {
-        setInfo(result.info)
-        return
-      }
-      enterTherapistApp(result?.next)
+      await finishAuth(await login(formData))
     })
   }
 
@@ -167,7 +170,7 @@ export function LoginForm({
 
       {info ? (
         <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
-          <AlertTitle>{tab === "register" ? "Cont creat" : "Autentificare"}</AlertTitle>
+          <AlertTitle>Autentificare</AlertTitle>
           <AlertDescription>{info}</AlertDescription>
         </Alert>
       ) : null}
@@ -223,12 +226,10 @@ export function LoginForm({
             </p>
           ) : (
             <p className="text-xs leading-relaxed text-slate-500">
-              Intri direct cu email și parolă.
+              Intră cu email și parolă.
             </p>
           )}
         </div>
-
-        <input type="hidden" name="purpose" value={tab} />
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-3">
@@ -257,7 +258,13 @@ export function LoginForm({
               disabled={busy}
               placeholder={tab === "register" ? "Alege o parolă puternică" : "••••••••"}
               className="h-12 min-h-12 border-slate-300 px-3 pr-12"
-              aria-invalid={tab === "register" && password.length > 0 && !canSubmitRegister ? true : error ? true : undefined}
+              aria-invalid={
+                tab === "register" && password.length > 0 && !canSubmitRegister
+                  ? true
+                  : error
+                    ? true
+                    : undefined
+              }
               aria-describedby={tab === "register" ? "register-password-rules" : undefined}
             />
             <button
@@ -318,7 +325,10 @@ export function LoginForm({
                 onClick={(event) => event.stopPropagation()}
               >
                 Termenii și Condițiile
-              </Link>{" "           href="/confidentialitate"
+              </Link>{" "}
+              și{" "}
+              <Link
+                href="/confidentialitate"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-[#042f2e] underline underline-offset-4"
