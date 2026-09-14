@@ -120,6 +120,24 @@ function AssignExercisesModalContent({
   const [patientMessage, setPatientMessage] = useState("")
 
   useEffect(() => {
+    const body = document.body
+    const html = document.documentElement
+    const previousBodyOverflow = body.style.overflow
+    const previousHtmlOverflow = html.style.overflow
+    const previousBodyOverscroll = body.style.overscrollBehavior
+    body.classList.add("overflow-hidden")
+    body.style.overflow = "hidden"
+    body.style.overscrollBehavior = "none"
+    html.style.overflow = "hidden"
+    return () => {
+      body.classList.remove("overflow-hidden")
+      body.style.overflow = previousBodyOverflow
+      body.style.overscrollBehavior = previousBodyOverscroll
+      html.style.overflow = previousHtmlOverflow
+    }
+  }, [])
+
+  useEffect(() => {
     void loadStoredLibraryExercises().then((stored) => {
       if (stored.length === 0) {
         return
@@ -250,7 +268,7 @@ function AssignExercisesModalContent({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden overscroll-none sm:items-center sm:p-4">
       <button
         type="button"
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
@@ -263,9 +281,9 @@ function AssignExercisesModalContent({
         aria-labelledby="assign-exercises-title"
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
-        className="relative z-10 flex h-[94dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:h-auto sm:max-h-[94vh] sm:rounded-2xl"
+        className="relative z-10 flex h-[90vh] max-h-[90vh] min-h-0 w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:h-[min(90vh,52rem)] sm:rounded-2xl"
       >
-        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-5 sm:py-4">
           <h2 id="assign-exercises-title" className="min-w-0 text-base font-semibold text-slate-900 sm:text-lg">
             Atribuie exerciții — {patientName}
           </h2>
@@ -279,97 +297,99 @@ function AssignExercisesModalContent({
           </button>
         </header>
 
-        <div className="shrink-0 space-y-3 border-b border-slate-100 px-4 py-3 sm:px-5">
-          <section>
-            <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-              Perioadă de tratament
-            </p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
-                De la
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(event) => {
-                    setDatesTouched(true)
-                    setStartDate(event.target.value)
-                  }}
-                  className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
-                />
-              </label>
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
-                Până la
-                <Input
-                  type="date"
-                  min={startDate}
-                  value={endDate}
-                  onChange={(event) => {
-                    setDatesTouched(true)
-                    setEndDate(event.target.value)
-                  }}
-                  className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
-                />
-              </label>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="space-y-3 border-b border-slate-100 px-4 py-3 sm:px-5">
+            <section>
+              <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                Perioadă de tratament
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
+                  De la
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => {
+                      setDatesTouched(true)
+                      setStartDate(event.target.value)
+                    }}
+                    className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
+                  Până la
+                  <Input
+                    type="date"
+                    min={startDate}
+                    value={endDate}
+                    onChange={(event) => {
+                      setDatesTouched(true)
+                      setEndDate(event.target.value)
+                    }}
+                    className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
+              Mesaj sau sfat pentru pacient
+              <Textarea
+                value={patientMessage}
+                onChange={(event) => setPatientMessage(event.target.value.slice(0, PATIENT_ADVICE_MAX_LENGTH))}
+                rows={3}
+                maxLength={PATIENT_ADVICE_MAX_LENGTH}
+                disabled={assignedLoading || isPending}
+                placeholder="Recomandări kinetoterapeut — pacientul le vede la „Kinetoterapeutul tău”."
+                className="min-h-[5.5rem] resize-y text-base md:text-sm"
+              />
+              <span className="font-normal text-slate-500">
+                {patientMessage.length}/{PATIENT_ADVICE_MAX_LENGTH} · apare dinamic în programul pacientului
+              </span>
+            </label>
+
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Caută exerciții după titlu sau regiune"
+                className="h-11 min-h-11 border-slate-300 pl-9 text-base md:text-sm"
+              />
             </div>
-          </section>
+          </div>
 
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
-            Mesaj sau sfat pentru pacient
-            <Textarea
-              value={patientMessage}
-              onChange={(event) => setPatientMessage(event.target.value.slice(0, PATIENT_ADVICE_MAX_LENGTH))}
-              rows={3}
-              maxLength={PATIENT_ADVICE_MAX_LENGTH}
-              disabled={assignedLoading || isPending}
-              placeholder="Recomandări kinetoterapeut — pacientul le vede la „Kinetoterapeutul tău”."
-              className="min-h-[5.5rem] resize-y text-base md:text-sm"
-            />
-            <span className="font-normal text-slate-500">
-              {patientMessage.length}/{PATIENT_ADVICE_MAX_LENGTH} · apare dinamic în programul pacientului
-            </span>
-          </label>
-
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Caută exerciții după titlu sau regiune"
-              className="h-11 min-h-11 border-slate-300 pl-9 text-base md:text-sm"
-            />
+          <div className="px-4 py-3 sm:px-5">
+            {assignedLoading ? (
+              <p className="mb-3 flex items-center gap-2 text-sm text-slate-500">
+                <Loader2 className="size-4 animate-spin" />
+                Se încarcă exercițiile deja din program…
+              </p>
+            ) : null}
+            <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
+              {filtered.length === 0 ? (
+                <li className="px-4 py-8 text-center text-sm text-slate-500">Niciun exercițiu găsit.</li>
+              ) : (
+                filtered.map((exercise) => {
+                  const dose = doses[exercise.id] ?? doseDraftFromCounts(exercise.sets, exercise.reps)
+                  return (
+                    <AssignExerciseRow
+                      key={exercise.id}
+                      exercise={exercise}
+                      checked={selectedIds.includes(exercise.id)}
+                      sets={dose.sets}
+                      reps={dose.reps}
+                      onToggle={toggleExercise}
+                      onDoseChange={updateDose}
+                    />
+                  )
+                })
+              )}
+            </ul>
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
-          {assignedLoading ? (
-            <p className="mb-3 flex items-center gap-2 text-sm text-slate-500">
-              <Loader2 className="size-4 animate-spin" />
-              Se încarcă exercițiile deja din program…
-            </p>
-          ) : null}
-          <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
-            {filtered.length === 0 ? (
-              <li className="px-4 py-8 text-center text-sm text-slate-500">Niciun exercițiu găsit.</li>
-            ) : (
-              filtered.map((exercise) => {
-                const dose = doses[exercise.id] ?? doseDraftFromCounts(exercise.sets, exercise.reps)
-                return (
-                  <AssignExerciseRow
-                    key={exercise.id}
-                    exercise={exercise}
-                    checked={selectedIds.includes(exercise.id)}
-                    sets={dose.sets}
-                    reps={dose.reps}
-                    onToggle={toggleExercise}
-                    onDoseChange={updateDose}
-                  />
-                )
-              })
-            )}
-          </ul>
-        </div>
-
-        <footer className="flex shrink-0 flex-col gap-3 border-t border-slate-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:pb-4">
+        <footer className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:pb-4">
           <p className="text-xs leading-relaxed text-slate-600">
             {selectedIds.length} {selectedIds.length === 1 ? "exercițiu selectat" : "exerciții selectate"}{" "}
             pentru intervalul <span className="font-semibold text-slate-800">{intervalLabel}</span>.
