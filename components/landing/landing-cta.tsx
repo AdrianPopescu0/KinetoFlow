@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 export function LandingCta() {
   return (
     <section className="px-4 pb-12 sm:px-6 sm:pb-16">
-      <div className="relative mx-auto max-w-3xl overflow-hidden rounded-3xl border border-teal-400/20 bg-[#0f2422] px-6 py-10 text-center sm:px-10 sm:py-14">
+      <div className="relative mx-auto max-w-3xl overflow-hidden rounded-3xl border border-teal-700/20 bg-[#042f2e] px-6 py-10 text-center sm:px-10 sm:py-14 dark:border-teal-400/20 dark:bg-[#0f2422]">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(45,212,191,0.16),transparent_55%)]"

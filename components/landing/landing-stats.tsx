@@ -9,18 +9,18 @@ import {
 
 export function LandingStats() {
   return (
-    <section id="cifre" aria-labelledby="cifre-title" className="bg-[#0c1615]">
+    <section id="cifre" aria-labelledby="cifre-title" className="bg-slate-50 dark:bg-[#0c1615]">
       <div className="mx-auto max-w-6xl px-4 pt-4 pb-2 sm:px-6">
-        <p className="text-xs font-semibold tracking-[0.18em] text-teal-300 uppercase">
+        <p className="text-xs font-semibold tracking-[0.18em] text-[#042f2e] uppercase dark:text-teal-300">
           {LANDING_STATS_EYEBROW}
         </p>
         <h2
           id="cifre-title"
-          className="mt-3 max-w-xl text-3xl font-semibold tracking-tight text-white sm:text-4xl"
+          className="mt-3 max-w-xl text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white"
         >
           {LANDING_STATS_TITLE}
         </h2>
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-teal-100/70 sm:text-base">
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base dark:text-teal-100/70">
           {LANDING_STATS_LEAD}
         </p>
       </div>
@@ -42,7 +42,7 @@ export function LandingStats() {
               <p className="text-4xl font-semibold tabular-nums tracking-tight text-teal-300 sm:text-5xl">
                 {stat.value}
               </p>
-              <p className="mt-1.5 text-xs font-medium leading-snug text-teal-100/75 sm:text-sm">
+              <p className="mt-1.5 text-xs font-medium leading-snug text-slate-600 sm:text-sm dark:text-teal-100/75">
                 {stat.label}
               </p>
             </li>

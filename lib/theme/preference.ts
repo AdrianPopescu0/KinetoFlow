@@ -36,6 +36,7 @@ export function resolveTheme(preference: ThemePreference, systemDark: boolean): 
 
 export function isThemedAppPath(pathname: string): boolean {
   return (
+    pathname === "/" ||
     pathname === "/dashboard" ||
     pathname.startsWith("/dashboard/") ||
     pathname === "/patient" ||
@@ -73,4 +74,4 @@ export function applyResolvedTheme(resolved: ResolvedTheme) {
   root.style.colorScheme = resolved
 }
 
-export const DASHBOARD_THEME_BOOT_SCRIPT = `(function(){try{var p=location.pathname;if(!(p==="/dashboard"||p.indexOf("/dashboard/")===0||p==="/patient"||p.indexOf("/patient/")===0||p==="/acces"||p.indexOf("/acces/")===0||p==="/p"||p.indexOf("/p/")===0))return;var k=${JSON.stringify(THEME_STORAGE_KEY)};var raw=(localStorage.getItem(k)||"").trim().toLowerCase();if(raw!=="light"&&raw!=="dark"&&raw!=="system"){var m=document.cookie.match(/(?:^|; )${THEME_COOKIE_NAME}=([^;]*)/);raw=m?decodeURIComponent(m[1]).trim().toLowerCase():"system"}var pref=raw==="light"||raw==="dark"||raw==="system"?raw:"system";var dark=pref==="dark"||(pref==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.classList.toggle("dark",dark);r.dataset.theme=dark?"dark":"light";r.style.colorScheme=dark?"dark":"light"}catch(e){}})();`
+export const DASHBOARD_THEME_BOOT_SCRIPT = `(function(){try{var p=location.pathname;if(!(p==="/"||p==="/dashboard"||p.indexOf("/dashboard/")===0||p==="/patient"||p.indexOf("/patient/")===0||p==="/acces"||p.indexOf("/acces/")===0||p==="/p"||p.indexOf("/p/")===0))return;var k=${JSON.stringify(THEME_STORAGE_KEY)};var raw=(localStorage.getItem(k)||"").trim().toLowerCase();if(raw!=="light"&&raw!=="dark"&&raw!=="system"){var m=document.cookie.match(/(?:^|; )${THEME_COOKIE_NAME}=([^;]*)/);raw=m?decodeURIComponent(m[1]).trim().toLowerCase():"system"}var pref=raw==="light"||raw==="dark"||raw==="system"?raw:"system";var dark=pref==="dark"||(pref==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.classList.toggle("dark",dark);r.dataset.theme=dark?"dark":"light";r.style.colorScheme=dark?"dark":"light"}catch(e){}})();`

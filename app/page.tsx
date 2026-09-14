@@ -7,6 +7,7 @@ import { LandingFaq } from "@/components/landing/landing-faq"
 import { LandingFeatures } from "@/components/landing/landing-features"
 import { LandingHeader } from "@/components/landing/landing-header"
 import { LandingHero } from "@/components/landing/landing-hero"
+import { LandingShell } from "@/components/landing/landing-shell"
 import { LandingStats } from "@/components/landing/landing-stats"
 
 export const metadata: Metadata = {
@@ -17,10 +18,7 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div
-      data-landing-page
-      className="flex min-h-0 max-w-full flex-1 flex-col overflow-x-hidden scroll-smooth bg-[#0c1615] text-[#e8eeed]"
-    >
+    <LandingShell>
       <RecoverSessionRedirect />
       <LandingHeader />
       <main className="flex flex-1 flex-col">
@@ -31,6 +29,6 @@ export default function HomePage() {
         <LandingCta />
         <LandingFaq />
       </main>
-    </div>
+    </LandingShell>
   )
 }

@@ -35,19 +35,20 @@ test("cookie-ul de temă e pe tot site-ul, un an", () => {
   assert.match(themeCookieWrite("dark"), /Max-Age=31536000/)
 })
 
-test("tema se aplică pe dashboard și pe interfața pacientului", () => {
+test("tema se aplică pe landing, dashboard și interfața pacientului", () => {
+  assert.equal(isThemedAppPath("/"), true)
   assert.equal(isThemedAppPath("/dashboard"), true)
   assert.equal(isThemedAppPath("/dashboard/setari"), true)
   assert.equal(isThemedAppPath("/patient/abc"), true)
   assert.equal(isThemedAppPath("/p/abc"), true)
   assert.equal(isThemedAppPath("/acces"), true)
   assert.equal(isThemedAppPath("/acces/"), true)
-  assert.equal(isThemedAppPath("/"), false)
   assert.equal(isThemedAppPath("/login"), false)
 })
 
 test("scriptul de boot aplică tema pe dashboard și pe rutele pacientului", async () => {
   const { DASHBOARD_THEME_BOOT_SCRIPT } = await import("./preference.ts")
+  assert.match(DASHBOARD_THEME_BOOT_SCRIPT, /p==="\/"/)
   assert.match(DASHBOARD_THEME_BOOT_SCRIPT, /\/dashboard/)
   assert.match(DASHBOARD_THEME_BOOT_SCRIPT, /\/patient/)
   assert.match(DASHBOARD_THEME_BOOT_SCRIPT, /\/acces/)

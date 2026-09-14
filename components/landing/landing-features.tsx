@@ -51,11 +51,11 @@ export function LandingFeatures() {
     <section id="beneficii" className="px-4 py-16 sm:px-6 sm:py-24">
       <div className="mx-auto w-full max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-semibold tracking-[0.18em] text-teal-300 uppercase">Beneficii</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          <p className="text-xs font-semibold tracking-[0.18em] text-[#042f2e] uppercase dark:text-teal-300">Beneficii</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
             Tot ce trebuie ca să ții activitatea sub control
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-teal-100/70 sm:text-base">
+          <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base dark:text-teal-100/70">
             De la primul pacient până la check-in-ul de seară: mai puțină administrare, mai multă
             atenție pe recuperare.
           </p>
@@ -66,13 +66,13 @@ export function LandingFeatures() {
             return (
               <li
                 key={feature.title}
-                className="flex h-full flex-col rounded-2xl border border-white/10 bg-[#14201f] p-5 shadow-[0_20px_50px_-28px_rgba(4,47,46,0.9)] sm:p-6"
+                className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#14201f] dark:shadow-[0_20px_50px_-28px_rgba(4,47,46,0.9)]"
               >
-                <span className="flex size-10 items-center justify-center rounded-xl bg-teal-400/12 text-teal-300">
+                <span className="flex size-10 items-center justify-center rounded-xl bg-teal-50 text-[#042f2e] dark:bg-teal-400/12 dark:text-teal-300">
                   <Icon className="size-5" aria-hidden="true" />
                 </span>
-                <h3 className="mt-4 text-base font-semibold text-white">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-teal-100/70">{feature.description}</p>
+                <h3 className="mt-4 text-base font-semibold text-slate-900 dark:text-white">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-teal-100/70">{feature.description}</p>
               </li>
             )
           })}
