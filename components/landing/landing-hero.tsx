@@ -13,11 +13,17 @@ const highlights = [
 export function LandingHero() {
   return (
     <section className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden bg-[#0c1615]">
-      <div
-        role="img"
-        aria-label="Terapeut care urmărește un pacient în timpul unui exercițiu de recuperare pe reformer"
-        className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(12,22,21,0.9),rgba(12,22,21,0.55)),url('/landing/hero-recovery.jpg')] bg-cover bg-no-repeat bg-[position:68%_40%] sm:bg-[position:78%_42%]"
-      >
+      <div className="absolute inset-0 bg-gradient-to-b from-black/90 to-black/50">
+        <div
+          role="img"
+          aria-label="Terapeut care urmărește un pacient în timpul unui exercițiu de recuperare pe reformer"
+          className="absolute inset-0 bg-cover bg-no-repeat bg-[position:68%_40%] sm:bg-[position:78%_42%]"
+          style={{ backgroundImage: "url('/landing/hero-recovery.jpg')" }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-b from-black/90 to-black/50"
+        />
         <div
           aria-hidden="true"
           className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(45,212,191,0.14),transparent_42%)]"
