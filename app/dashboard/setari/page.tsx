@@ -34,27 +34,30 @@ export default async function AccountSettingsPage() {
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col gap-6 overflow-x-hidden px-5 py-8">
       <div>
-        <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase">Account Settings</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-800">Setări cont</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase dark:text-teal-300">Cont terapeut</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-800 dark:text-[var(--kf-text)]">Setări</h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">
           {isAdmin
-            ? "Gestionează datele personale, aspectul panoului, parola și numele clinicii."
-            : "Gestionează datele personale, aspectul panoului și parola."}
+            ? "Tema panoului, datele personale, parola și numele clinicii."
+            : "Tema panoului, datele personale și parola."}
         </p>
       </div>
 
       {error ? (
-        <section className="rounded-2xl border border-red-200 bg-red-50 px-5 py-6 text-sm text-red-800" role="alert">
+        <section className="rounded-2xl border border-red-200 bg-red-50 px-5 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200" role="alert">
           {error}
         </section>
       ) : !profile ? (
         <>
-          <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-6 text-sm text-amber-900">
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-6 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
             Profilul clinicii nu este configurat. Revino la onboarding ca să salvezi cabinetul, apoi poți edita setările
             contului.
           </section>
           <section className={surfaceCardClassName("p-5 sm:p-6")}>
-            <ThemePreferenceSection standalone />
+            <ThemePreferenceSection
+              standalone
+              description="Comută între luminos și întuneric sau lasă tema să urmeze dispozitivul. Se aplică imediat pe tot panoul."
+            />
           </section>
         </>
       ) : (

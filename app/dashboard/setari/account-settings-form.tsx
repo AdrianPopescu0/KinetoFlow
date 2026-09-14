@@ -28,6 +28,10 @@ export function AccountSettingsForm({
 }) {
   return (
     <div className="flex flex-col gap-6">
+      <ThemePreferenceSection
+        standalone
+        description="Comută între luminos și întuneric sau lasă tema să urmeze dispozitivul. Se aplică imediat pe tot panoul."
+      />
       <ProfileForm
         email={email}
         therapistName={therapistName}
@@ -35,7 +39,6 @@ export function AccountSettingsForm({
         clinicName={clinicName}
         isAdmin={isAdmin}
       />
-      <ThemePreferenceSection />
       <PasswordForm />
     </div>
   )
@@ -72,7 +75,7 @@ function ProfileForm({
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-5">
+    <form action={handleSubmit} className="flex flex-col gap-5 border-t border-slate-200 pt-6 dark:border-[var(--kf-border)]">
       {error ? (
         <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
           <AlertCircle />
@@ -83,8 +86,8 @@ function ProfileForm({
 
       <section className="flex flex-col gap-4">
         <div>
-          <h2 className="text-base font-semibold text-slate-800">Date personale</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <h2 className="text-base font-semibold text-slate-800 dark:text-[var(--kf-text)]">Date personale</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">
             Emailul rămâne cel cu care te autentifici. Numele și telefonul apar în echipă și în mesajele către pacienți.
           </p>
         </div>
@@ -129,10 +132,10 @@ function ProfileForm({
       </section>
 
       {isAdmin ? (
-        <section className="flex flex-col gap-4 border-t border-slate-200 pt-5">
+        <section className="flex flex-col gap-4 border-t border-slate-200 pt-5 dark:border-[var(--kf-border)]">
           <div>
-            <h2 className="text-base font-semibold text-slate-800">Preferințe de profil</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-base font-semibold text-slate-800 dark:text-[var(--kf-text)]">Preferințe de profil</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">
               Numele clinicii este vizibil în echipă și în programul pacienților. Doar administratorul îl poate
               schimba; colegii rămân în aceeași clinică.
             </p>
@@ -188,10 +191,10 @@ function PasswordForm() {
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-5 border-t border-slate-200 pt-6" noValidate>
+    <form action={handleSubmit} className="flex flex-col gap-5 border-t border-slate-200 pt-6 dark:border-[var(--kf-border)]" noValidate>
       <div>
-        <h2 className="text-base font-semibold text-slate-800">Parolă</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="text-base font-semibold text-slate-800 dark:text-[var(--kf-text)]">Parolă</h2>
+        <p className="mt-1 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">
           Schimbă parola acestui cont. Dacă te-ai înregistrat cu Google, poți seta totuși o parolă pentru email.
         </p>
       </div>

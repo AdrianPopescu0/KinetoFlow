@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 
 import { logout } from "@/app/dashboard/actions"
 import { LogoutConfirmButton } from "@/components/auth/logout-confirm-button"
+import { TherapistSettingsButton } from "@/components/dashboard/therapist-settings"
 import { Logo } from "@/components/Logo"
 import { cn } from "@/lib/utils"
 
@@ -48,15 +49,13 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
             <NavLink href="/dashboard/arhiva" active={archiveActive}>
               Arhivă
             </NavLink>
-            <NavLink href="/dashboard/setari" active={settingsActive}>
-              Setări
-            </NavLink>
           </nav>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <p className="hidden max-w-[16rem] truncate text-sm text-teal-50/85 lg:block" title={email}>
             {label}
           </p>
+          <TherapistSettingsButton active={settingsActive} />
           <LogoutConfirmButton
             label="Logout"
             triggerVariant="onDark"
@@ -79,9 +78,6 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
         ) : null}
         <NavLink href="/dashboard/arhiva" active={archiveActive}>
           Arhivă
-        </NavLink>
-        <NavLink href="/dashboard/setari" active={settingsActive}>
-          Setări
         </NavLink>
       </nav>
     </header>

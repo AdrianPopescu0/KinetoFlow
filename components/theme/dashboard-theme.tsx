@@ -146,6 +146,42 @@ const OPTIONS: Array<{
   },
 ]
 
+export function ThemeModeToggle() {
+  const { resolved, setPreference } = useDashboardTheme()
+  const dark = resolved === "dark"
+
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)]">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-800 dark:text-[var(--kf-text)]">Mod întuneric</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-slate-600 dark:text-[var(--kf-text-muted)]">
+          {dark ? "Panoul folosește tema întunecată." : "Panoul folosește tema luminoasă."}
+        </p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={dark}
+        aria-label="Comută modul întuneric"
+        onClick={() => setPreference(dark ? "light" : "dark")}
+        className={cn(
+          "relative h-7 w-12 shrink-0 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-[#042f2e]/40 focus-visible:outline-none",
+          dark ? "bg-[#042f2e] dark:bg-teal-400" : "bg-slate-300 dark:bg-slate-600",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 left-0.5 flex size-6 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm transition-transform",
+            dark && "translate-x-5 text-[#042f2e]",
+          )}
+        >
+          {dark ? <Moon className="size-3.5" aria-hidden="true" /> : <Sun className="size-3.5" aria-hidden="true" />}
+        </span>
+      </button>
+    </div>
+  )
+}
+
 export function ThemePreferenceSection({
   standalone = false,
   description = "Alege tema panoului. Se aplică imediat pe tot dashboard-ul.",
@@ -166,6 +202,7 @@ export function ThemePreferenceSection({
         <h2 className="text-base font-semibold text-slate-800 dark:text-[var(--kf-text)]">Aspect</h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-[var(--kf-text-muted)]">{description}</p>
       </div>
+      <ThemeModeToggle />
       <div role="radiogroup" aria-label="Tema aplicației" className="grid gap-2 sm:grid-cols-3">
         {OPTIONS.map((option, index) => {
           const selected = preference === option.value
