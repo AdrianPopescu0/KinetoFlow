@@ -3,9 +3,9 @@
 import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
+import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2 } from "lucide-react"
 
-import { login, requestAuthEmailOtpAction } from "@/app/login/actions"
+import { login, register } from "@/app/login/actions"
 import { prepareTherapistInviteOAuth } from "@/app/auth/invitatie/actions"
 import { GoogleMark } from "@/components/auth/google-mark"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -18,8 +18,7 @@ import {
   oauthBrowserRedirectToWithPendingInvite,
 } from "@/lib/auth/oauth-redirect"
 import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
-import { emailOtpPageHref, loginHref } from "@/lib/auth/paths"
-import { writePendingEmailOtp } from "@/lib/auth/pending-email-otp"
+import { loginHref } from "@/lib/auth/paths"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
@@ -117,21 +116,16 @@ export function LoginForm({
           return
         }
 
-        formData.set("purpose", "register")
-        const requested = await requestAuthEmailOtpAction(formData)
-        if (requested?.error) {
-          setError(requested.error)
+        const result = await register(formData)
+        if (result?.error) {
+          setError(result.error)
           return
         }
-        const email = String(formData.get("email") ?? "").trim().toLowerCase()
-        writePendingEmailOtp({
-          email,
-          password: String(formData.get("password") ?? ""),
-          purpose: "register",
-          legalAccept: formData.get(LEGAL_ACCEPT_FIELD) === "on",
-          devCode: requested?.devCode,
-        })
-        router.push(requested?.continuePath ?? emailOtpPageHref(email, "register"))
+        if (result?.info) {
+          setInfo(result.info)
+          return
+        }
+        enterTherapistApp(result?.next)
         return
       }
 
@@ -173,8 +167,7 @@ export function LoginForm({
 
       {info ? (
         <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
-          <Mail />
-          <AlertTitle>{tab === "register" ? "Confirmă adresa de email" : "Autentificare"}</AlertTitle>
+          <AlertTitle>{tab === "register" ? "Cont creat" : "Autentificare"}</AlertTitle>
           <AlertDescription>{info}</AlertDescription>
         </Alert>
       ) : null}
@@ -226,13 +219,11 @@ export function LoginForm({
           />
           {tab === "register" ? (
             <p className="text-xs leading-relaxed text-slate-500">
-              Cu această adresă vei administra clinica și vei invita colegii. Îți trimitem un
-              cod de 6 cifre doar acum, ca să confirmăm emailul.
+              Cu această adresă vei administra clinica și vei invita colegii.
             </p>
           ) : (
             <p className="text-xs leading-relaxed text-slate-500">
-              După ce ai confirmat adresa la înregistrare, intri doar cu email și parolă — fără un
-              nou cod.
+              Intri direct cu email și parolă.
             </p>
           )}
         </div>
@@ -327,10 +318,7 @@ export function LoginForm({
                 onClick={(event) => event.stopPropagation()}
               >
                 Termenii și Condițiile
-              </Link>{" "}
-              și{" "}
-              <Link
-                href="/confidentialitate"
+              </Link>{" "           href="/confidentialitate"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-[#042f2e] underline underline-offset-4"
@@ -351,7 +339,7 @@ export function LoginForm({
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              {tab === "register" ? "Se trimite codul…" : "Se autentifică…"}
+              {tab === "register" ? "Se creează contul…" : "Se autentifică…"}
             </>
           ) : tab === "register" ? (
             "Creează cont"
