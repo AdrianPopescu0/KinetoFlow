@@ -55,9 +55,8 @@ export function LandingHero() {
             KinetoFlow – Fluxul mișcării și al recuperării.
           </p>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-pretty text-teal-50/80 sm:text-lg">
-            KinetoFlow aduce pacienții, programele de exerciții și echipa clinicii în același flux de
-            lucru. Intră în cont sau înregistrează cabinetul, apoi gestionezi recuperarea fără hârtii
-            și fără un al doilea sistem.
+            Un loc simplu unde ții evidența pacienților, a exercițiilor și a programelor de recuperare.
+            Fără hârtie, fără bătăi de cap.
           </p>
           <div className="mt-8 flex w-full max-w-md flex-col items-stretch gap-3 sm:max-w-none sm:flex-row">
             <Link
