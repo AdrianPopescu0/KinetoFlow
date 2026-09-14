@@ -7,6 +7,11 @@ export function createClient() {
   const { url, anonKey } = getSupabasePublicEnv()
 
   return createBrowserClient<Database>(url, anonKey, {
+    cookieOptions: {
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    },
     auth: {
       detectSessionInUrl: true,
       persistSession: true,

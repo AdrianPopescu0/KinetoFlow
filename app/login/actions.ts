@@ -10,7 +10,7 @@ import {
   isEmailNotConfirmedAuthError,
 } from "@/lib/auth/email-confirmed"
 import { consumeAuthEmailOtp, issueAuthEmailOtp, VERIFIED_OTP_COOKIE } from "@/lib/auth/email-otp-issue"
-import { SIGNED_OUT_GATE_COOKIE } from "@/lib/auth/oauth-redirect"
+import { SIGNED_OUT_GATE_COOKIE, therapistClientSessionFrom } from "@/lib/auth/oauth-redirect"
 import { emailOtpPageHref } from "@/lib/auth/paths"
 import { resolveTherapistAppPath } from "@/lib/auth/redirect-after"
 import {
@@ -33,10 +33,26 @@ export type LoginActionState = {
   devCode?: string
   continuePath?: string
   next?: "/dashboard" | "/onboarding"
+  accessToken?: string
+  refreshToken?: string
 } | null
 
 const EXISTING_ACCOUNT_MESSAGE =
   "Există deja un cont cu acest email. Intră în cont din tabul de autentificare."
+
+async function therapistAuthSuccess(supabase: Awaited<ReturnType<typeof createClient>>): Promise<NonNullable<LoginActionState>> {
+  const next = await resolveTherapistAppPath()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  const tokens = therapistClientSessionFrom(session)
+  return {
+    next,
+    ...(tokens
+      ? { accessToken: tokens.access_token, refreshToken: tokens.refresh_token }
+      : {}),
+  }
+}
 
 const OTP_SENT_INFO =
   "Ți-am trimis un cod de 6 cifre pe email. Introdu-l în aplicație pe același dispozitiv de pe care ai început. Este valabil 10 minute."
@@ -104,7 +120,13 @@ export async function login(formData: FormData): Promise<LoginActionState> {
   const jar = await cookies()
   jar.delete(SIGNED_OUT_GATE_COOKIE)
   jar.delete(VERIFIED_OTP_COOKIE)
-  return { next: await resolveTherapistAppPath() }
+  const tokens = therapistClientSessionFrom(data.session)
+  return {
+    next: await resolveTherapistAppPath(),
+    ...(tokens
+      ? { accessToken: tokens.access_token, refreshToken: tokens.refresh_token }
+      : {}),
+  }
 }
 
 export async function register(formData: FormData): Promise<LoginActionState> {
@@ -124,7 +146,8 @@ export async function register(formData: FormData): Promise<LoginActionState> {
     const jar = await cookies()
     jar.delete(SIGNED_OUT_GATE_COOKIE)
     jar.delete(VERIFIED_OTP_COOKIE)
-    return { next: await resolveTherapistAppPath() }
+    const supabase = await createClient()
+    return therapistAuthSuccess(supabase)
   }
 
   const supabase = await createClient()
@@ -151,7 +174,7 @@ export async function register(formData: FormData): Promise<LoginActionState> {
     if (signedInExisting.ok) {
       const jar = await cookies()
       jar.delete(SIGNED_OUT_GATE_COOKIE)
-      return { next: await resolveTherapistAppPath() }
+      return therapistAuthSuccess(supabase)
     }
     return { error: EXISTING_ACCOUNT_MESSAGE }
   }
@@ -168,5 +191,5 @@ export async function register(formData: FormData): Promise<LoginActionState> {
 
   const jar = await cookies()
   jar.delete(SIGNED_OUT_GATE_COOKIE)
-  return { next: await resolveTherapistAppPath() }
+  return therapistAuthSuccess(supabase)
 }

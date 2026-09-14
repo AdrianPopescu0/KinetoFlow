@@ -16,7 +16,11 @@ export async function createClient() {
       setAll(cookiesToSet) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, { ...options, path: "/" })
+            cookieStore.set(name, value, {
+              ...options,
+              path: "/",
+              sameSite: options?.sameSite ?? "lax",
+            })
           })
         } catch {
           // Called from a Server Component; middleware refreshes the session.

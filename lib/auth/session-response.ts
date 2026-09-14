@@ -16,5 +16,5 @@ export function redirectWithAuthCookies(
   const redirectUrl = request.nextUrl.clone()
   redirectUrl.pathname = pathname
   redirectUrl.search = search
-  return copyCookies(source, NextResponse.redirect(redirectUrl))
+  return copyCookies(source, NextResponse.redirect(redirectUrl, 303))
 }

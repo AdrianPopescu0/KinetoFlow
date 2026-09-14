@@ -175,7 +175,7 @@ export async function updateSession(request: NextRequest) {
           request,
         })
         sessionCookies.forEach(({ name, value, options }) => {
-          supabaseResponse.cookies.set(name, value, { ...options, path: "/" })
+          supabaseResponse.cookies.set(name, value, { ...options, path: "/", sameSite: options?.sameSite ?? "lax" })
         })
         if (urlToken) {
           stampPatientCookies(supabaseResponse, urlToken)

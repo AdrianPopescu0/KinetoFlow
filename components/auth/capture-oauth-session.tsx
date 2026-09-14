@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react"
 
-import { enterTherapistApp } from "@/lib/auth/oauth-redirect"
-import { safeAuthNextPath } from "@/lib/auth/paths"
+import { persistTherapistSessionAndEnter } from "@/lib/auth/oauth-redirect"
+import { safeAuthNextPath, shouldStayOnTherapistLogin } from "@/lib/auth/paths"
 import {
   hasOAuthTokensInLocation,
   persistOAuthSessionFromLocation,
@@ -16,8 +16,8 @@ const COMPLETE_TIMEOUT_MS = 8000
 
 /**
  * Preia tokenii din hash/query, îi scrie imediat în sesiune (cookie-uri)
- * și așteaptă `onAuthStateChange` înainte de a intra în aplicație —
- * ca să nu fim aruncați afară pe prima logare, înainte să se salveze sesiunea.
+ * și așteaptă `getSession()` înainte de a intra în aplicație —
+ * ca să nu fim aruncați pe landing înainte să se salveze sesiunea.
  */
 export function CaptureOAuthSession({
   mode,
@@ -30,25 +30,29 @@ export function CaptureOAuthSession({
     const supabase = createClient()
     const location = { search: window.location.search, hash: window.location.hash }
     const params = new URLSearchParams(window.location.search)
+    const signedOut = shouldStayOnTherapistLogin(params)
     const invite = params.get("invite") ?? readStoredTherapistInviteToken()
     if (invite) {
       persistTherapistInviteToken(invite)
     }
     const next = safeAuthNextPath(params.get("next")) ?? "/dashboard"
 
-    function enter() {
-      if (entered.current) {
+    async function enter() {
+      if (entered.current || signedOut) {
         return
       }
       entered.current = true
       stripOAuthTokensFromUrl()
-      enterTherapistApp(next)
+      const persisted = await persistTherapistSessionAndEnter(supabase, next)
+      if (!persisted) {
+        entered.current = false
+      }
     }
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
+      if (!session || signedOut) {
         return
       }
       if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION" && event !== "TOKEN_REFRESHED") {
@@ -58,13 +62,18 @@ export function CaptureOAuthSession({
       if (tokensInUrl && event === "INITIAL_SESSION") {
         return
       }
-      if (tokensInUrl || mode === "complete" || (mode === "landing" && event === "INITIAL_SESSION")) {
-        enter()
+      const shouldEnter =
+        tokensInUrl ||
+        mode === "complete" ||
+        event === "SIGNED_IN" ||
+        ((mode === "landing" || mode === "login") && event === "INITIAL_SESSION")
+      if (shouldEnter) {
+        void enter()
       }
     })
 
     void persistOAuthSessionFromLocation(supabase, location, {
-      exchangeCode: mode === "complete",
+      exchangeCode: mode === "complete" || mode === "landing",
     })
       .then((result) => {
         if (result !== "none") {
