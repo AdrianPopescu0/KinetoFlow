@@ -220,7 +220,10 @@ export function therapistPostAuthHref(
   if (storedInvite && isTherapistInviteToken(storedInvite)) {
     return therapistInviteFinalizeHref(storedInvite)
   }
-  return next === "/onboarding" ? THERAPIST_INVITE_CONTINUE_PATH : "/dashboard"
+  // Fără invitație: mergem direct la destinație. Nu mai sărim prin
+  // /auth/invitatie/continue — acel hop provoca „This page couldn't load”
+  // după OTP (navigări înlănțuite înainte ca sesiunea să se stabilizeze).
+  return next === "/onboarding" ? "/onboarding" : "/dashboard"
 }
 
 /**

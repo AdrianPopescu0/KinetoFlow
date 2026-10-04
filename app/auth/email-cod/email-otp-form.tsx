@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { AlertCircle, Loader2, Mail } from "lucide-react"
 
@@ -9,7 +9,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { enterTherapistApp, persistTherapistSessionAndEnter } from "@/lib/auth/oauth-redirect"
+import {
+  clearTherapistAppEnterGuard,
+  enterTherapistApp,
+  therapistEnterPath,
+} from "@/lib/auth/oauth-redirect"
 import { loginHref } from "@/lib/auth/paths"
 import {
   clearPendingEmailOtp,
@@ -36,7 +40,8 @@ export function EmailOtpForm({
     "Deschide emailul, copiază codul de 6 cifre și tastează-l aici pe același dispozitiv.",
   )
   const [devCode, setDevCode] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
   const backHref = loginHref(purpose === "register" ? "signup" : "signin")
 
   useEffect(() => {
@@ -46,7 +51,10 @@ export function EmailOtpForm({
     setReady(true)
   }, [email, purpose])
 
-  const canSubmit = useMemo(() => Boolean(pending && otp.length === 6), [otp, pending])
+  const canSubmit = useMemo(
+    () => Boolean(pending && otp.length === 6 && !isSubmitting && !isRedirecting),
+    [otp, pending, isSubmitting, isRedirecting],
+  )
 
   async function finishAuth(result: Awaited<ReturnType<typeof login>>) {
     if (result?.error) {
@@ -57,24 +65,49 @@ export function EmailOtpForm({
       setInfo(result.info)
       return
     }
+
+    setIsRedirecting(true)
     clearPendingEmailOtp()
-    if (result?.accessToken && result.refreshToken) {
-      const supabase = createClient()
-      const ok = await persistTherapistSessionAndEnter(supabase, result.next, {
-        access_token: result.accessToken,
-        refresh_token: result.refreshToken,
-      })
-      if (ok) {
-        return
+    clearTherapistAppEnterGuard()
+
+    const next = therapistEnterPath(result?.next)
+
+    try {
+      if (result?.accessToken && result.refreshToken) {
+        const supabase = createClient()
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: result.accessToken,
+          refresh_token: result.refreshToken,
+        })
+        if (sessionError) {
+          console.error("OTP setSession:", sessionError.message)
+        }
+        // Așteptăm persistarea în storage înainte de hard navigation.
+        await supabase.auth.getSession()
+      }
+
+      // Navigare de document în afara startTransition — evită ecranul
+      // „This page couldn't load” când React încă ține tranziția deschisă.
+      window.location.assign(next)
+    } catch (error) {
+      console.error("OTP redirect failed:", error)
+      try {
+        enterTherapistApp(next)
+      } catch {
+        setIsRedirecting(false)
+        setError(
+          "Codul e valid și sesiunea e creată, dar redirecționarea a eșuat. Apasă Reload sau deschide dashboard-ul.",
+        )
       }
     }
-    enterTherapistApp(result?.next)
   }
 
-  function handleSubmit(formData: FormData) {
+  async function handleSubmit(formData: FormData) {
     setError(null)
-    if (!pending) {
-      setError("Sesiunea de confirmare lipsește pe acest dispozitiv. Revino și cere un cod nou.")
+    if (!pending || isSubmitting || isRedirecting) {
+      if (!pending) {
+        setError("Sesiunea de confirmare lipsește pe acest dispozitiv. Revino și cere un cod nou.")
+      }
       return
     }
 
@@ -86,18 +119,24 @@ export function EmailOtpForm({
       formData.set(LEGAL_ACCEPT_FIELD, "on")
     }
 
-    startTransition(async () => {
-      if (pending.purpose === "login") {
-        await finishAuth(await login(formData))
-        return
-      }
-      await finishAuth(await register(formData))
-    })
+    setIsSubmitting(true)
+    try {
+      const result =
+        pending.purpose === "login" ? await login(formData) : await register(formData)
+      await finishAuth(result)
+    } catch (error) {
+      console.error("OTP verify failed:", error)
+      setError("Nu am putut valida codul. Încearcă din nou.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  function resend() {
-    if (!pending) {
-      setError("Sesiunea de confirmare lipsește pe acest dispozitiv. Revino și cere un cod nou.")
+  async function resend() {
+    if (!pending || isSubmitting || isRedirecting) {
+      if (!pending) {
+        setError("Sesiunea de confirmare lipsește pe acest dispozitiv. Revino și cere un cod nou.")
+      }
       return
     }
     setError(null)
@@ -108,7 +147,8 @@ export function EmailOtpForm({
     if (pending.legalAccept) {
       formData.set(LEGAL_ACCEPT_FIELD, "on")
     }
-    startTransition(async () => {
+    setIsSubmitting(true)
+    try {
       const requested = await requestAuthEmailOtpAction(formData)
       if (requested?.error) {
         setError(requested.error)
@@ -121,7 +161,12 @@ export function EmailOtpForm({
       setDevCode(requested?.devCode ?? null)
       setInfo(requested?.info ?? "Ți-am trimis un cod nou. Este valabil 10 minute.")
       setOtp("")
-    })
+    } catch (error) {
+      console.error("OTP resend failed:", error)
+      setError("Nu am putut retrimite codul. Încearcă din nou.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (!ready) {
@@ -129,6 +174,16 @@ export function EmailOtpForm({
       <div className="flex items-center gap-2 text-sm text-slate-500">
         <Loader2 className="size-4 animate-spin" />
         Se încarcă…
+      </div>
+    )
+  }
+
+  if (isRedirecting) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-sm">
+        <Loader2 className="size-5 animate-spin text-teal-700" aria-hidden="true" />
+        <p className="font-medium text-slate-800">Cod valid. Te ducem în clinică…</p>
+        <p className="text-xs text-slate-500">Nu închide această fereastră.</p>
       </div>
     )
   }
@@ -191,7 +246,7 @@ export function EmailOtpForm({
           maxLength={6}
           required
           autoFocus
-          disabled={isPending}
+          disabled={isSubmitting || isRedirecting}
           value={otp}
           onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
           placeholder="000000"
@@ -208,10 +263,10 @@ export function EmailOtpForm({
 
       <Button
         type="submit"
-        disabled={isPending || !canSubmit}
+        disabled={!canSubmit}
         className="h-12 min-h-[48px] w-full rounded-xl text-sm font-semibold"
       >
-        {isPending ? (
+        {isSubmitting ? (
           <>
             <Loader2 className="size-4 animate-spin" />
             Se verifică…
@@ -226,9 +281,11 @@ export function EmailOtpForm({
       <div className="flex flex-col items-center gap-2 text-sm">
         <button
           type="button"
-          disabled={isPending}
+          disabled={isSubmitting || isRedirecting}
           className="font-medium text-[#042f2e] underline-offset-4 hover:underline disabled:opacity-50"
-          onClick={resend}
+          onClick={() => {
+            void resend()
+          }}
         >
           Trimite un cod nou
         </button>

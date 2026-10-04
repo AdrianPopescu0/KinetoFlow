@@ -63,7 +63,7 @@ test("scriptul inline salvează imediat tokenul în localStorage și cookie-ul c
 test("după login, invitația în așteptare bate ecranul de clinică nouă", () => {
   assert.equal(therapistPostAuthHref("/onboarding", token), `/auth/invitatie/finalize?invite=${token}`)
   assert.equal(therapistPostAuthHref("/dashboard", token), `/auth/invitatie/finalize?invite=${token}`)
-  assert.equal(therapistPostAuthHref("/onboarding", null), THERAPIST_INVITE_CONTINUE_PATH)
+  assert.equal(therapistPostAuthHref("/onboarding", null), "/onboarding")
   assert.equal(therapistPostAuthHref("/dashboard", null), "/dashboard")
   assert.equal(therapistPostAuthHref(null, "nu"), "/dashboard")
 })
