@@ -11,8 +11,13 @@ function escapeHtml(value: string): string {
 
 export const AUTH_OTP_FROM_DEFAULT = "KinetoFlow <no-reply@kinetoflow.ro>"
 
+/** Preferă RESEND_AUTH_FROM, apoi RESEND_FROM (deja folosit la suport), apoi default-ul de domeniu. */
 export function authOtpFromAddress(): string {
-  return process.env.RESEND_AUTH_FROM?.trim() || AUTH_OTP_FROM_DEFAULT
+  return (
+    process.env.RESEND_AUTH_FROM?.trim() ||
+    process.env.RESEND_FROM?.trim() ||
+    AUTH_OTP_FROM_DEFAULT
+  )
 }
 
 export function buildAuthOtpEmail(input: {

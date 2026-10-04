@@ -7,6 +7,7 @@ import {
   EMAIL_OTP_MAX_ATTEMPTS,
   EMAIL_OTP_RESEND_MS,
   EMAIL_OTP_TTL_MS,
+  generateEmailOtpCode,
   generateEmailOtpLinkToken,
   hashEmailOtpCode,
   hashEmailOtpLinkToken,
@@ -235,17 +236,28 @@ async function generateAuthEmailOtpLink(input: {
         status: described.status,
       }
     }
-    const otp = data.properties?.email_otp
-    if (otp && isEmailOtpCode(otp)) {
-      return { code: otp }
+    const properties = (data.properties ?? {}) as Record<string, unknown>
+    const candidates = [properties.email_otp, properties.emailOtp, properties.otp]
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && isEmailOtpCode(candidate)) {
+        return { code: candidate.trim() }
+      }
     }
-    logOtpMailerError("auth.generateLink-fara-otp", {
-      via: "auth.admin.generateLink",
+
+    // Unele proiecte Supabase returnează generateLink fără email_otp (doar hashed_token).
+    // Generăm noi codul de 6 cifre: îl validăm în auth_email_otps, apoi sesiunea se creează
+    // cu email+parolă (signInAfterEmailVerified / confirmare admin).
+    const fallbackCode = generateEmailOtpCode()
+    logOtpMailerInfo("auth.generateLink-fallback-otp", {
+      via: "generateEmailOtpCode",
       type: input.type,
       email: input.email,
-      verificationType: data.properties?.verification_type ?? null,
+      verificationType:
+        typeof properties.verification_type === "string" ? properties.verification_type : null,
+      propertyKeys: Object.keys(properties),
+      note: "Supabase nu a returnat email_otp; folosim cod propriu livrat prin Resend.",
     })
-    return { error: "Nu am putut genera codul de confirmare. Încearcă din nou.", status: 503 }
+    return { code: fallbackCode }
   } catch (error) {
     const described = describeOtpMailerError("supabase", error)
     logOtpMailerError("auth.generateLink-exceptie", {
