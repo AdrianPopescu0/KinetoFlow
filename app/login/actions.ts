@@ -52,7 +52,8 @@ export async function login(formData: FormData): Promise<LoginActionState> {
     return { error: AUTH_ERROR_MESSAGE }
   }
 
-  // Fără OTP / confirmare pe email — autentificare directă cu email + parolă.
+  // Fără OTP: autentificare directă cu email + parolă.
+  // requestAuthEmailOtpAction a fost eliminată — nu mai e exportată din acest modul.
   const signedIn = await signInAfterEmailVerified({
     email: credentials.email,
     password: credentials.password,
