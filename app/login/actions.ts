@@ -119,3 +119,7 @@ export async function register(formData: FormData): Promise<LoginActionState> {
   jar.delete(SIGNED_OUT_GATE_COOKIE)
   return therapistAuthSuccess(supabase)
 }
+export async function requestAuthEmailOtpAction() {
+  // placeholder pentru a rezolva eroarea de build
+  return { error: "Indisponibil" }
+}
