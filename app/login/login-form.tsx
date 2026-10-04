@@ -2,27 +2,20 @@
 
 import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
-import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
 
-import { login, register } from "@/app/login/actions"
-import { prepareTherapistInviteOAuth } from "@/app/auth/invitatie/actions"
-import { GoogleMark } from "@/components/auth/google-mark"
+import { requestAuthEmailOtpAction } from "@/app/login/actions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  enterTherapistApp,
-  GOOGLE_OAUTH_QUERY_PARAMS,
-  oauthBrowserRedirectToWithPendingInvite,
-  persistTherapistSessionAndEnter,
-} from "@/lib/auth/oauth-redirect"
 import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
-import { loginHref } from "@/lib/auth/paths"
+import { emailOtpPageHref, loginHref } from "@/lib/auth/paths"
+import { writePendingEmailOtp } from "@/lib/auth/pending-email-otp"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
-import { createClient } from "@/utils/supabase/client"
 
 type AuthTab = "login" | "register"
 
@@ -36,16 +29,15 @@ export function LoginForm({
   initialInfo?: string | null
 }) {
   const tab = initialTab
+  const router = useRouter()
   const [error, setError] = useState<string | null>(initialError)
   const [info, setInfo] = useState<string | null>(initialInfo)
   const [showPassword, setShowPassword] = useState(false)
   const [password, setPassword] = useState("")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [googlePending, setGooglePending] = useState(false)
   const passwordChecks = evaluateRegisterPassword(password)
   const canSubmitRegister = passwordChecks.isValid && acceptedTerms
-  const busy = isPending || googlePending
 
   useEffect(() => {
     const invite = new URLSearchParams(window.location.search).get("invite")
@@ -54,79 +46,11 @@ export function LoginForm({
     }
   }, [])
 
-  const handleGoogleAuth = async () => {
-    if (tab === "register" && !acceptedTerms) {
-      setError(LEGAL_ACCEPT_ERROR)
-      return
-    }
-
-    setError(null)
-    setInfo(null)
-    setGooglePending(true)
-
-    const pendingInvite = readStoredTherapistInviteToken()
-    if (pendingInvite) {
-      persistTherapistInviteToken(pendingInvite)
-      const prepared = await prepareTherapistInviteOAuth(pendingInvite)
-      if (prepared?.error) {
-        setError(prepared.error)
-        setGooglePending(false)
-        return
-      }
-    }
-
-    try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: oauthBrowserRedirectToWithPendingInvite(
-            window.location.origin,
-            "/dashboard",
-          ),
-          queryParams: { ...GOOGLE_OAUTH_QUERY_PARAMS },
-        },
-      })
-      if (error) {
-        console.error("Eroare la logarea cu Google:", error.message)
-        setError("Nu am putut porni autentificarea cu Google. Încearcă din nou.")
-        setGooglePending(false)
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.error("Eroare la logarea cu Google:", message)
-      setError("Nu am putut porni autentificarea cu Google. Încearcă din nou.")
-      setGooglePending(false)
-    }
-  }
-
   function handleSubmit(formData: FormData) {
     setError(null)
     setInfo(null)
 
     startTransition(async () => {
-      async function finishAuth(result: Awaited<ReturnType<typeof login>>) {
-        if (result?.error) {
-          setError(result.error)
-          return
-        }
-        if (result?.info) {
-          setInfo(result.info)
-          return
-        }
-        if (result?.accessToken && result.refreshToken) {
-          const supabase = createClient()
-          const ok = await persistTherapistSessionAndEnter(supabase, result.next, {
-            access_token: result.accessToken,
-            refresh_token: result.refreshToken,
-          })
-          if (ok) {
-            return
-          }
-        }
-        enterTherapistApp(result?.next)
-      }
-
       if (tab === "register") {
         if (!evaluateRegisterPassword(String(formData.get("password") ?? "")).isValid) {
           setError("Parola trebuie să aibă minim 8 caractere, o majusculă, o cifră și un caracter special.")
@@ -136,12 +60,29 @@ export function LoginForm({
           setError(LEGAL_ACCEPT_ERROR)
           return
         }
+      }
 
-        await finishAuth(await register(formData))
+      formData.set("purpose", tab === "register" ? "register" : "login")
+      const requested = await requestAuthEmailOtpAction(formData)
+      if (requested?.error) {
+        setError(requested.error)
         return
       }
 
-      await finishAuth(await login(formData))
+      const email = String(formData.get("email") ?? "").trim().toLowerCase()
+      const purpose = tab === "register" ? "register" : "login"
+      writePendingEmailOtp({
+        email,
+        password: String(formData.get("password") ?? ""),
+        purpose,
+        legalAccept: formData.get(LEGAL_ACCEPT_FIELD) === "on",
+        devCode: requested?.devCode,
+        inviteToken: readStoredTherapistInviteToken() ?? undefined,
+      })
+      if (requested?.info) {
+        setInfo(requested.info)
+      }
+      router.push(requested?.continuePath ?? emailOtpPageHref(email, purpose))
     })
   }
 
@@ -170,34 +111,11 @@ export function LoginForm({
 
       {info ? (
         <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
-          <AlertTitle>Autentificare</AlertTitle>
+          <Mail />
+          <AlertTitle>Cod trimis pe email</AlertTitle>
           <AlertDescription>{info}</AlertDescription>
         </Alert>
       ) : null}
-
-      <Button
-        type="button"
-        variant="outline"
-        disabled={busy}
-        aria-label={tab === "register" ? "Creează cont cu Google" : "Intră cu Google"}
-        onClick={() => {
-          void handleGoogleAuth()
-        }}
-        className="h-12 min-h-[48px] w-full rounded-xl border-slate-300 bg-white text-sm font-semibold text-slate-800"
-      >
-        {googlePending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <GoogleMark className="size-5" />
-        )}
-        {tab === "register" ? "Creează cont cu Google" : "Intră cu Google"}
-      </Button>
-
-      <div className="flex items-center gap-3" role="separator" aria-label="sau">
-        <span className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">sau</span>
-        <span className="h-px flex-1 bg-slate-200" />
-      </div>
 
       <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
         <div className="flex flex-col gap-2">
@@ -211,7 +129,7 @@ export function LoginForm({
             autoComplete="email"
             inputMode="email"
             required
-            disabled={busy}
+            disabled={isPending}
             placeholder={
               tab === "register"
                 ? "exemplu@gmail.com sau email@clinica.ro"
@@ -220,16 +138,12 @@ export function LoginForm({
             className="h-12 min-h-12 border-slate-300 px-3"
             aria-invalid={error ? true : undefined}
           />
-          {tab === "register" ? (
-            <p className="text-xs leading-relaxed text-slate-500">
-              Cu această adresă vei administra clinica și vei invita colegii.
-            </p>
-          ) : (
-            <p className="text-xs leading-relaxed text-slate-500">
-              Intră cu email și parolă.
-            </p>
-          )}
+          <p className="text-xs leading-relaxed text-slate-500">
+            După email și parolă îți trimitem un cod de 6 cifre pe email pentru confirmare.
+          </p>
         </div>
+
+        <input type="hidden" name="purpose" value={tab === "register" ? "register" : "login"} />
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-3">
@@ -255,7 +169,7 @@ export function LoginForm({
               minLength={tab === "register" ? 8 : undefined}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              disabled={busy}
+              disabled={isPending}
               placeholder={tab === "register" ? "Alege o parolă puternică" : "••••••••"}
               className="h-12 min-h-12 border-slate-300 px-3 pr-12"
               aria-invalid={
@@ -270,7 +184,7 @@ export function LoginForm({
             <button
               type="button"
               onClick={() => setShowPassword((visible) => !visible)}
-              disabled={busy}
+              disabled={isPending}
               className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500 transition-colors hover:text-slate-900 disabled:opacity-50"
               aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
               aria-pressed={showPassword}
@@ -312,7 +226,7 @@ export function LoginForm({
               required
               checked={acceptedTerms}
               onChange={(event) => setAcceptedTerms(event.target.checked)}
-              disabled={busy}
+              disabled={isPending}
               className="mt-1 size-4 shrink-0 rounded border-slate-300 accent-[#042f2e]"
             />
             <span>
@@ -343,18 +257,18 @@ export function LoginForm({
 
         <Button
           type="submit"
-          disabled={busy || (tab === "register" && !canSubmitRegister)}
+          disabled={isPending || (tab === "register" && !canSubmitRegister)}
           className="h-12 min-h-[48px] w-full rounded-xl text-sm font-semibold"
         >
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              {tab === "register" ? "Se creează contul…" : "Se autentifică…"}
+              Se trimite codul…
             </>
           ) : tab === "register" ? (
-            "Creează cont"
+            "Continuă cu cod pe email"
           ) : (
-            "Intră în cont"
+            "Continuă cu cod pe email"
           )}
         </Button>
       </form>

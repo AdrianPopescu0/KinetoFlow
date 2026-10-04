@@ -8,8 +8,8 @@ import { normalizeAuthEmail, parseAuthEmailOtpPurpose } from "@/lib/auth/email-o
 import { loginHref } from "@/lib/auth/paths"
 
 export const metadata: Metadata = {
-  title: "Confirmă adresa | KinetoFlow",
-  description: "Introdu codul de 6 cifre primit pe email pentru a confirma contul.",
+  title: "Cod de confirmare | KinetoFlow",
+  description: "Introdu codul de 6 cifre primit pe email pentru a finaliza autentificarea.",
 }
 
 type EmailOtpPageProps = {
@@ -19,17 +19,17 @@ type EmailOtpPageProps = {
 export default async function EmailOtpPage({ searchParams }: EmailOtpPageProps) {
   const params = await searchParams
   const purpose = parseAuthEmailOtpPurpose(params.purpose)
-  if (purpose !== "register") {
-    redirect(loginHref("signin"))
-  }
-
   const email = normalizeAuthEmail(params.email ?? "") ?? ""
   const hadLegacyLink = Boolean(params.token?.trim())
 
+  if (!email) {
+    redirect(loginHref(purpose === "register" ? "signup" : "signin"))
+  }
+
   return (
     <AuthSplitLayout
-      title="Confirmă adresa de email"
-      description="Tastează manual codul de 6 cifre. Nu te autentificăm din linkul din inbox."
+      title={purpose === "register" ? "Confirmă crearea contului" : "Confirmă autentificarea"}
+      description="Tastează manual codul de 6 cifre primit pe email. Linkul din inbox nu te autentifică automat."
       footer={
         <p className="mt-8 text-center text-xs leading-relaxed text-slate-500">
           Dacă ai deschis emailul pe alt dispozitiv, lasă acest ecran deschis aici și copiază doar cifrele.
@@ -38,17 +38,11 @@ export default async function EmailOtpPage({ searchParams }: EmailOtpPageProps) 
     >
       {hadLegacyLink ? (
         <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
-          Linkul din email nu mai confirmă automat contul. Introdu codul de 6 cifre pe dispozitivul de pe care ai
-          început înregistrarea.
+          Linkul din email nu confirmă automat contul. Introdu codul de 6 cifre pe dispozitivul de pe care ai
+          început.
         </p>
       ) : null}
-      {email ? (
-        <EmailOtpForm email={email} purpose={purpose} />
-      ) : (
-        <p className="text-sm text-slate-600">
-          Lipsește adresa de email. Revino la înregistrare și cere un cod nou.
-        </p>
-      )}
+      <EmailOtpForm email={email} purpose={purpose} />
     </AuthSplitLayout>
   )
 }

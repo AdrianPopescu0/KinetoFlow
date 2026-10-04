@@ -58,7 +58,7 @@ test("emailul OTP conține codul și nu are buton de autologin", () => {
   assert.equal(built.html.includes("inline-block;background:#042f2e"), false)
 })
 
-test("OTP-ul de 6 cifre e doar pentru înregistrare, nu pentru Sign In", () => {
+test("purpose-ul OTP acceptă login și register", () => {
   assert.equal(parseAuthEmailOtpPurpose("register"), "register")
   assert.equal(parseAuthEmailOtpPurpose("login"), "login")
   assert.equal(parseAuthEmailOtpPurpose(undefined), "login")

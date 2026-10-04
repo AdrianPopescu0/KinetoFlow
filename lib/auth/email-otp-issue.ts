@@ -366,7 +366,20 @@ async function supabaseEmailOtpCode(input: {
     return issued
   }
 
-  return { error: "Codul de 6 cifre se trimite doar la crearea contului. Intră cu email și parolă." }
+  // Login: OTP pentru un cont existent (fără a reseta parola).
+  try {
+    const existing = await loadAuthUserByEmail(input.email)
+    if (!existing) {
+      return { error: "Email sau parolă greșită.", status: 400 }
+    }
+    return generateOtpForExistingEmailUser({ email: input.email })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Nu am putut verifica emailul."
+    if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+      return { error: "Lipsește cheia de serviciu. Adaugă SUPABASE_SERVICE_ROLE_KEY în .env.local." }
+    }
+    return { error: message, status: 503 }
+  }
 }
 
 export async function issueAuthEmailOtp(input: {
@@ -382,13 +395,6 @@ export async function issueAuthEmailOtp(input: {
     return { ok: false, error: "Introdu o adresă de email validă.", status: 400 }
   }
   const purpose = parseAuthEmailOtpPurpose(input.purpose)
-  if (purpose !== "register") {
-    return {
-      ok: false,
-      error: "Codul de 6 cifre se trimite doar la crearea contului. Intră cu email și parolă.",
-      status: 400,
-    }
-  }
 
   try {
     const admin = createServiceRoleClient()
@@ -442,7 +448,7 @@ export async function issueAuthEmailOtp(input: {
       input.returnPath.startsWith("/") &&
       !input.returnPath.startsWith("//")
         ? `${origin}${input.returnPath}`
-        : `${origin}${loginHref("signup")}`
+        : `${origin}${loginHref(purpose === "register" ? "signup" : "signin")}`
 
     const { data: inserted, error: insertError } = await admin
       .from("auth_email_otps")
