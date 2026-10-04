@@ -5,17 +5,24 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AlertCircle, Check, Circle, Eye, EyeOff, Loader2, Mail } from "lucide-react"
 
+import { prepareTherapistInviteOAuth } from "@/app/auth/invitatie/actions"
 import { requestAuthEmailOtpAction } from "@/app/login/actions"
+import { GoogleMark } from "@/components/auth/google-mark"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
+import {
+  GOOGLE_OAUTH_QUERY_PARAMS,
+  oauthBrowserRedirectToWithPendingInvite,
+} from "@/lib/auth/oauth-redirect"
 import { emailOtpPageHref, loginHref } from "@/lib/auth/paths"
 import { writePendingEmailOtp } from "@/lib/auth/pending-email-otp"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
+import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/utils/supabase/client"
 
 type AuthTab = "login" | "register"
 
@@ -36,8 +43,10 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [googlePending, setGooglePending] = useState(false)
   const passwordChecks = evaluateRegisterPassword(password)
   const canSubmitRegister = passwordChecks.isValid && acceptedTerms
+  const busy = isPending || googlePending
 
   useEffect(() => {
     const invite = new URLSearchParams(window.location.search).get("invite")
@@ -45,6 +54,53 @@ export function LoginForm({
       persistTherapistInviteToken(invite)
     }
   }, [])
+
+  async function handleGoogleAuth() {
+    if (tab === "register" && !acceptedTerms) {
+      setError(LEGAL_ACCEPT_ERROR)
+      return
+    }
+
+    setError(null)
+    setInfo(null)
+    setGooglePending(true)
+
+    const pendingInvite = readStoredTherapistInviteToken()
+    if (pendingInvite) {
+      persistTherapistInviteToken(pendingInvite)
+      const prepared = await prepareTherapistInviteOAuth(pendingInvite)
+      if (prepared?.error) {
+        setError(prepared.error)
+        setGooglePending(false)
+        return
+      }
+    }
+
+    try {
+      const supabase = createClient()
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          // Callback-ul decide /dashboard vs /onboarding după clinică / invitație.
+          redirectTo: oauthBrowserRedirectToWithPendingInvite(
+            window.location.origin,
+            tab === "register" ? "/onboarding" : "/dashboard",
+          ),
+          queryParams: { ...GOOGLE_OAUTH_QUERY_PARAMS },
+        },
+      })
+      if (oauthError) {
+        console.error("Eroare la logarea cu Google:", oauthError.message)
+        setError("Nu am putut porni autentificarea cu Google. Încearcă din nou.")
+        setGooglePending(false)
+      }
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : String(caught)
+      console.error("Eroare la logarea cu Google:", message)
+      setError("Nu am putut porni autentificarea cu Google. Încearcă din nou.")
+      setGooglePending(false)
+    }
+  }
 
   function handleSubmit(formData: FormData) {
     setError(null)
@@ -117,6 +173,30 @@ export function LoginForm({
         </Alert>
       ) : null}
 
+      <Button
+        type="button"
+        variant="outline"
+        disabled={busy}
+        aria-label={tab === "register" ? "Creează cont cu Google" : "Intră cu Google"}
+        onClick={() => {
+          void handleGoogleAuth()
+        }}
+        className="h-12 min-h-[48px] w-full rounded-xl border-slate-300 bg-white text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
+      >
+        {googlePending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <GoogleMark className="size-5" />
+        )}
+        {tab === "register" ? "Creează cont cu Google" : "Intră cu Google"}
+      </Button>
+
+      <div className="flex items-center gap-3" role="separator" aria-label="sau">
+        <span className="h-px flex-1 bg-slate-200" />
+        <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">sau</span>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
+
       <form action={handleSubmit} className="flex flex-col gap-5" noValidate>
         <div className="flex flex-col gap-2">
           <Label htmlFor="email" className="text-slate-900">
@@ -129,7 +209,7 @@ export function LoginForm({
             autoComplete="email"
             inputMode="email"
             required
-            disabled={isPending}
+            disabled={busy}
             placeholder={
               tab === "register"
                 ? "exemplu@gmail.com sau email@clinica.ro"
@@ -169,7 +249,7 @@ export function LoginForm({
               minLength={tab === "register" ? 8 : undefined}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              disabled={isPending}
+              disabled={busy}
               placeholder={tab === "register" ? "Alege o parolă puternică" : "••••••••"}
               className="h-12 min-h-12 border-slate-300 px-3 pr-12"
               aria-invalid={
@@ -184,7 +264,7 @@ export function LoginForm({
             <button
               type="button"
               onClick={() => setShowPassword((visible) => !visible)}
-              disabled={isPending}
+              disabled={busy}
               className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500 transition-colors hover:text-slate-900 disabled:opacity-50"
               aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
               aria-pressed={showPassword}
@@ -226,7 +306,7 @@ export function LoginForm({
               required
               checked={acceptedTerms}
               onChange={(event) => setAcceptedTerms(event.target.checked)}
-              disabled={isPending}
+              disabled={busy}
               className="mt-1 size-4 shrink-0 rounded border-slate-300 accent-[#042f2e]"
             />
             <span>
@@ -257,7 +337,7 @@ export function LoginForm({
 
         <Button
           type="submit"
-          disabled={isPending || (tab === "register" && !canSubmitRegister)}
+          disabled={busy || (tab === "register" && !canSubmitRegister)}
           className="h-12 min-h-[48px] w-full rounded-xl text-sm font-semibold"
         >
           {isPending ? (
@@ -265,8 +345,6 @@ export function LoginForm({
               <Loader2 className="size-4 animate-spin" />
               Se trimite codul…
             </>
-          ) : tab === "register" ? (
-            "Continuă cu cod pe email"
           ) : (
             "Continuă cu cod pe email"
           )}
