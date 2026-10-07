@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
-import dynamic from "next/dynamic"
 import { Search } from "lucide-react"
 
 import { PatientMobileCard, PatientTableRow } from "@/app/dashboard/patient-list-rows"
@@ -22,11 +21,7 @@ import {
 } from "@/lib/patients/dashboard-filter"
 import type { PatientListItem } from "@/lib/patients/types-db"
 import { cn } from "@/lib/utils"
-
-const AssignExercisesModal = dynamic(
-  () => import("@/app/dashboard/assign-exercises-modal").then((mod) => ({ default: mod.AssignExercisesModal })),
-  { ssr: false },
-)
+import { AssignExercisesModal } from "@/app/dashboard/assign-exercises-modal"
 
 export function PatientList({
   patients,

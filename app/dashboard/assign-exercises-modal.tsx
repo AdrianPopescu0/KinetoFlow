@@ -1,12 +1,14 @@
 "use client"
 
-import { memo, useCallback, useEffect, useMemo, useState, useTransition } from "react"
-import { Check, Loader2, Search, X } from "lucide-react"
+import { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
+import { Check, Loader2, Search } from "lucide-react"
 
-import { loadStoredLibraryExercises } from "@/app/dashboard/exercises/actions"
-import { assignExercisesBatch, listAssignedExercisesForPatient } from "@/app/dashboard/patients/actions"
+import { assignExercisesBatch } from "@/app/dashboard/patients/actions"
 import { DoseCountInput } from "@/components/exercises/dose-count-input"
+import { LibraryQuickFilters } from "@/components/exercises/library-quick-filters"
+import { useAssignLibrary } from "@/components/exercises/assign-library-provider"
 import { Button } from "@/components/ui/button"
+import { CenteredModal } from "@/components/ui/centered-modal"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
@@ -15,12 +17,11 @@ import {
   preferredTreatmentInterval,
   type AssignedProgramExercise,
 } from "@/lib/exercises/assigned-selection"
-import { LIBRARY_EXERCISES } from "@/lib/exercises/catalog"
-import { loadCustomExercises } from "@/lib/exercises/extras"
 import { doseCountDraft, parseDoseCount } from "@/lib/exercises/dose-input"
+import { EMPTY_FILTERS, filterLibrary } from "@/lib/exercises/filter"
 import { formatTreatmentInterval } from "@/lib/exercises/schedule"
-import { regionById, regionLabels } from "@/lib/exercises/taxonomy"
-import type { LibraryExercise } from "@/lib/exercises/types"
+import { regionById } from "@/lib/exercises/taxonomy"
+import type { LibraryExercise, LibraryFilters } from "@/lib/exercises/types"
 import { PATIENT_ADVICE_MAX_LENGTH } from "@/lib/patients/patient-advice"
 import { cn } from "@/lib/utils"
 
@@ -44,6 +45,12 @@ function intervalFromToday(days: number): { startDate: string; endDate: string }
   return { startDate: localDateKey(start), endDate: localDateKey(end) }
 }
 
+function dosesFromSelection(selection: { doses: Record<string, { sets: number; reps: number }> }): Record<string, Dose> {
+  return Object.fromEntries(
+    Object.entries(selection.doses).map(([id, dose]) => [id, doseDraftFromCounts(dose.sets, dose.reps)]),
+  )
+}
+
 export function AssignExercisesModal({
   patientId,
   patientName,
@@ -51,6 +58,7 @@ export function AssignExercisesModal({
   onClose,
   onSaved,
   initialAssigned,
+  initialPatientMessage,
 }: {
   patientId: string
   patientName: string
@@ -58,6 +66,7 @@ export function AssignExercisesModal({
   onClose: () => void
   onSaved?: () => void
   initialAssigned?: AssignedProgramExercise[]
+  initialPatientMessage?: string
 }) {
   if (!open) {
     return null
@@ -70,7 +79,8 @@ export function AssignExercisesModal({
       patientName={patientName}
       onClose={onClose}
       onSaved={onSaved}
-      initialAssigned={initialAssigned}
+      initialAssigned={initialAssigned ?? []}
+      initialPatientMessage={initialPatientMessage ?? ""}
     />
   )
 }
@@ -80,106 +90,55 @@ function AssignExercisesModalContent({
   patientName,
   onClose,
   onSaved,
-  initialAssigned = [],
+  initialAssigned,
+  initialPatientMessage,
 }: {
   patientId: string
   patientName: string
   onClose: () => void
   onSaved?: () => void
-  initialAssigned?: AssignedProgramExercise[]
+  initialAssigned: AssignedProgramExercise[]
+  initialPatientMessage: string
 }) {
+  const { catalog: libraryCatalog, protocols } = useAssignLibrary()
+  const [sessionExtras, setSessionExtras] = useState<LibraryExercise[]>([])
+  const catalog = useMemo(() => {
+    if (sessionExtras.length === 0) {
+      return libraryCatalog
+    }
+    const ids = new Set(libraryCatalog.map((item) => item.id))
+    return [...libraryCatalog, ...sessionExtras.filter((item) => !ids.has(item.id))]
+  }, [libraryCatalog, sessionExtras])
+
   const fallbackInterval = intervalFromToday(7)
   const openingInterval = preferredTreatmentInterval(
     initialAssigned,
     fallbackInterval,
     localDateKey(new Date()),
   )
-  const openingCatalog = [...loadCustomExercises(), ...LIBRARY_EXERCISES]
   const openingSelection = librarySelectionForAssignedInterval(
-    openingCatalog,
+    catalog,
     initialAssigned,
     openingInterval,
   )
+
   const [query, setQuery] = useState("")
+  const [filters, setFilters] = useState<LibraryFilters>(EMPTY_FILTERS)
   const [startDate, setStartDate] = useState(openingInterval.startDate)
   const [endDate, setEndDate] = useState(openingInterval.endDate)
   const [datesTouched, setDatesTouched] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>(openingSelection.selectedIds)
-  const [assigned, setAssigned] = useState<AssignedProgramExercise[]>(initialAssigned)
-  const [assignedLoading, setAssignedLoading] = useState(true)
-  const [catalog, setCatalog] = useState<LibraryExercise[]>(openingCatalog)
-  const [doses, setDoses] = useState<Record<string, Dose>>(() => ({
-    ...Object.fromEntries(
-      openingCatalog.map((exercise) => [exercise.id, doseDraftFromCounts(exercise.sets, exercise.reps)]),
-    ),
-    ...Object.fromEntries(
-      Object.entries(openingSelection.doses).map(([id, dose]) => [id, doseDraftFromCounts(dose.sets, dose.reps)]),
-    ),
-  }))
+  const [doses, setDoses] = useState<Record<string, Dose>>(() => dosesFromSelection(openingSelection))
   const [isPending, startTransition] = useTransition()
-  const [patientMessage, setPatientMessage] = useState("")
+  const [patientMessage, setPatientMessage] = useState(initialPatientMessage)
+  const [appliedProtocolId, setAppliedProtocolId] = useState("")
+  const selectionModeRef = useRef<"auto" | "manual">("auto")
 
-  useEffect(() => {
-    const body = document.body
-    const html = document.documentElement
-    const previousBodyOverflow = body.style.overflow
-    const previousHtmlOverflow = html.style.overflow
-    const previousBodyOverscroll = body.style.overscrollBehavior
-    body.classList.add("overflow-hidden")
-    body.style.overflow = "hidden"
-    body.style.overscrollBehavior = "none"
-    html.style.overflow = "hidden"
-    return () => {
-      body.classList.remove("overflow-hidden")
-      body.style.overflow = previousBodyOverflow
-      body.style.overscrollBehavior = previousBodyOverscroll
-      html.style.overflow = previousHtmlOverflow
-    }
-  }, [])
-
-  useEffect(() => {
-    void loadStoredLibraryExercises().then((stored) => {
-      if (stored.length === 0) {
-        return
-      }
-      setCatalog((current) => {
-        const ids = new Set(stored.map((item) => item.id))
-        return [...stored, ...current.filter((item) => !ids.has(item.id))]
-      })
-      setDoses((current) => {
-        const next = { ...current }
-        for (const exercise of stored) {
-          next[exercise.id] = current[exercise.id] ?? doseDraftFromCounts(exercise.sets, exercise.reps)
-        }
-        return next
-      })
-    })
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    void listAssignedExercisesForPatient(patientId).then((result) => {
-      if (cancelled) {
-        return
-      }
-      if (result.error) {
-        toast(result.error)
-        setAssignedLoading(false)
-        return
-      }
-      setAssigned(result.exercises)
-      setPatientMessage(result.patientMessage)
-      setAssignedLoading(false)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [patientId])
-
+  // Remapează selecția doar local când se schimbă intervalul — fără rețea.
   useEffect(() => {
     if (!datesTouched) {
       const preferred = preferredTreatmentInterval(
-        assigned,
+        initialAssigned,
         intervalFromToday(7),
         localDateKey(new Date()),
       )
@@ -189,32 +148,31 @@ function AssignExercisesModalContent({
         return
       }
     }
-    const selection = librarySelectionForAssignedInterval(catalog, assigned, { startDate, endDate })
+    if (selectionModeRef.current === "manual") {
+      return
+    }
+    const selection = librarySelectionForAssignedInterval(catalog, initialAssigned, { startDate, endDate })
     setSelectedIds(selection.selectedIds)
     setDoses((current) => ({
       ...current,
-      ...Object.fromEntries(
-        Object.entries(selection.doses).map(([id, dose]) => [id, doseDraftFromCounts(dose.sets, dose.reps)]),
-      ),
+      ...dosesFromSelection(selection),
     }))
-  }, [assigned, catalog, datesTouched, endDate, startDate])
+  }, [catalog, datesTouched, endDate, initialAssigned, startDate])
 
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase("ro-RO")
-    if (!needle) {
-      return catalog
-    }
-    return catalog.filter((exercise) =>
-      `${exercise.title} ${exercise.description} ${regionLabels(exercise.regions)}`
-        .toLocaleLowerCase("ro-RO")
-        .includes(needle),
-    )
-  }, [catalog, query])
+  const updateFilter = useCallback(<K extends keyof LibraryFilters>(key: K, value: LibraryFilters[K]) => {
+    setFilters((current) => ({ ...current, [key]: value }))
+  }, [])
+
+  const filtered = useMemo(
+    () => filterLibrary(catalog, { ...filters, query }),
+    [catalog, filters, query],
+  )
 
   const intervalValid = Boolean(startDate && endDate && startDate <= endDate)
   const intervalLabel = intervalValid ? formatTreatmentInterval(startDate, endDate) : "interval invalid"
 
   const toggleExercise = useCallback((id: string) => {
+    selectionModeRef.current = "manual"
     setSelectedIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     )
@@ -226,6 +184,84 @@ function AssignExercisesModalContent({
       [id]: { ...(current[id] ?? { sets: "0", reps: "0" }), [field]: raw },
     }))
   }, [])
+
+  const applyProtocol = useCallback(
+    (protocolId: string) => {
+      setAppliedProtocolId(protocolId)
+      if (!protocolId) {
+        selectionModeRef.current = "auto"
+        return
+      }
+      const protocol = protocols.find((item) => item.id === protocolId)
+      if (!protocol || protocol.exercises.length === 0) {
+        toast("Protocolul nu are exerciții.")
+        return
+      }
+
+      selectionModeRef.current = "manual"
+
+      const nextIds: string[] = []
+      const nextDoses: Record<string, Dose> = {}
+      const missing: string[] = []
+      const extras: LibraryExercise[] = []
+
+      for (const item of protocol.exercises) {
+        const byId = item.libraryExerciseId
+          ? catalog.find((exercise) => exercise.id === item.libraryExerciseId)
+          : undefined
+        const byTitle = catalog.find(
+          (exercise) =>
+            exercise.title.trim().toLocaleLowerCase("ro-RO") === item.title.trim().toLocaleLowerCase("ro-RO"),
+        )
+        const matched = byId ?? byTitle
+        if (matched) {
+          nextIds.push(matched.id)
+          nextDoses[matched.id] = doseDraftFromCounts(item.sets ?? matched.sets, item.reps ?? matched.reps)
+          continue
+        }
+
+        const fallbackId = item.libraryExerciseId || `protocol-${protocol.id}-${item.id}`
+        extras.push({
+          id: fallbackId,
+          title: item.title,
+          description: item.description ?? "",
+          region: "lumbar",
+          regions: ["lumbar"],
+          subcategory: "mobility",
+          objectives: ["mobility"],
+          difficulty: "usor",
+          equipment: "none",
+          equipments: ["none"],
+          position: "sitting",
+          sets: item.sets ?? 3,
+          reps: item.reps ?? 10,
+          durationSeconds: 90,
+          youtubeId: null,
+          videoUrl: item.videoUrl,
+          custom: true,
+        })
+        nextIds.push(fallbackId)
+        nextDoses[fallbackId] = doseDraftFromCounts(item.sets ?? 3, item.reps ?? 10)
+        missing.push(item.title)
+      }
+
+      if (extras.length > 0) {
+        setSessionExtras((current) => {
+          const ids = new Set(current.map((item) => item.id))
+          return [...current, ...extras.filter((item) => !ids.has(item.id))]
+        })
+      }
+
+      setSelectedIds((current) => [...new Set([...current, ...nextIds])])
+      setDoses((current) => ({ ...current, ...nextDoses }))
+      toast(
+        missing.length > 0
+          ? `Protocol aplicat (${nextIds.length} exerciții). Unele nu erau în catalogul curent și au fost adăugate din șablon.`
+          : `Protocol „${protocol.title}” aplicat — ${nextIds.length} exerciții selectate.`,
+      )
+    },
+    [catalog, protocols],
+  )
 
   function save() {
     if (selectedIds.length === 0) {
@@ -268,128 +304,13 @@ function AssignExercisesModalContent({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden overscroll-none sm:items-center sm:p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-        aria-label="Închide"
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="assign-exercises-title"
-        onClick={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-        className="relative z-10 flex h-[90vh] max-h-[90vh] min-h-0 w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:h-[min(90vh,52rem)] sm:rounded-2xl"
-      >
-        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-5 sm:py-4">
-          <h2 id="assign-exercises-title" className="min-w-0 text-base font-semibold text-slate-900 sm:text-lg">
-            Atribuie exerciții — {patientName}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-            aria-label="Închide"
-          >
-            <X className="size-4" />
-          </button>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <div className="space-y-3 border-b border-slate-100 px-4 py-3 sm:px-5">
-            <section>
-              <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                Perioadă de tratament
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
-                  De la
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(event) => {
-                      setDatesTouched(true)
-                      setStartDate(event.target.value)
-                    }}
-                    className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
-                  Până la
-                  <Input
-                    type="date"
-                    min={startDate}
-                    value={endDate}
-                    onChange={(event) => {
-                      setDatesTouched(true)
-                      setEndDate(event.target.value)
-                    }}
-                    className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
-                  />
-                </label>
-              </div>
-            </section>
-
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
-              Mesaj sau sfat pentru pacient
-              <Textarea
-                value={patientMessage}
-                onChange={(event) => setPatientMessage(event.target.value.slice(0, PATIENT_ADVICE_MAX_LENGTH))}
-                rows={3}
-                maxLength={PATIENT_ADVICE_MAX_LENGTH}
-                disabled={assignedLoading || isPending}
-                placeholder="Recomandări kinetoterapeut — pacientul le vede la „Kinetoterapeutul tău”."
-                className="min-h-[5.5rem] resize-y text-base md:text-sm"
-              />
-              <span className="font-normal text-slate-500">
-                {patientMessage.length}/{PATIENT_ADVICE_MAX_LENGTH} · apare dinamic în programul pacientului
-              </span>
-            </label>
-
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Caută exerciții după titlu sau regiune"
-                className="h-11 min-h-11 border-slate-300 pl-9 text-base md:text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="px-4 py-3 sm:px-5">
-            {assignedLoading ? (
-              <p className="mb-3 flex items-center gap-2 text-sm text-slate-500">
-                <Loader2 className="size-4 animate-spin" />
-                Se încarcă exercițiile deja din program…
-              </p>
-            ) : null}
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
-              {filtered.length === 0 ? (
-                <li className="px-4 py-8 text-center text-sm text-slate-500">Niciun exercițiu găsit.</li>
-              ) : (
-                filtered.map((exercise) => {
-                  const dose = doses[exercise.id] ?? doseDraftFromCounts(exercise.sets, exercise.reps)
-                  return (
-                    <AssignExerciseRow
-                      key={exercise.id}
-                      exercise={exercise}
-                      checked={selectedIds.includes(exercise.id)}
-                      sets={dose.sets}
-                      reps={dose.reps}
-                      onToggle={toggleExercise}
-                      onDoseChange={updateDose}
-                    />
-                  )
-                })
-              )}
-            </ul>
-          </div>
-        </div>
-
-        <footer className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:pb-4">
+    <CenteredModal
+      wide
+      title={`Atribuie exerciții — ${patientName}`}
+      titleId="assign-exercises-title"
+      onClose={onClose}
+      footer={
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-relaxed text-slate-600">
             {selectedIds.length} {selectedIds.length === 1 ? "exercițiu selectat" : "exerciții selectate"}{" "}
             pentru intervalul <span className="font-semibold text-slate-800">{intervalLabel}</span>.
@@ -420,9 +341,113 @@ function AssignExercisesModalContent({
               )}
             </Button>
           </div>
-        </footer>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <section>
+          <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">Protocol predefinit</p>
+          <select
+            value={appliedProtocolId}
+            onChange={(event) => applyProtocol(event.target.value)}
+            disabled={isPending}
+            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm"
+            aria-label="Alege un protocol predefinit"
+          >
+            <option value="">
+              {protocols.length === 0
+                ? "Niciun protocol în bibliotecă"
+                : "Alege un protocol — imporți toate exercițiile"}
+            </option>
+            {protocols.map((protocol) => (
+              <option key={protocol.id} value={protocol.id}>
+                {protocol.title} ({protocol.exercises.length}{" "}
+                {protocol.exercises.length === 1 ? "exercițiu" : "exerciții"})
+              </option>
+            ))}
+          </select>
+        </section>
+
+        <section>
+          <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">Perioadă de tratament</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
+              De la
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(event) => {
+                  setDatesTouched(true)
+                  setStartDate(event.target.value)
+                }}
+                className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
+              Până la
+              <Input
+                type="date"
+                min={startDate}
+                value={endDate}
+                onChange={(event) => {
+                  setDatesTouched(true)
+                  setEndDate(event.target.value)
+                }}
+                className="h-11 min-h-11 border-slate-300 text-base md:text-sm"
+              />
+            </label>
+          </div>
+        </section>
+
+        <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
+          Mesaj sau sfat pentru pacient
+          <Textarea
+            value={patientMessage}
+            onChange={(event) => setPatientMessage(event.target.value.slice(0, PATIENT_ADVICE_MAX_LENGTH))}
+            rows={2}
+            maxLength={PATIENT_ADVICE_MAX_LENGTH}
+            disabled={isPending}
+            placeholder="Recomandări kinetoterapeut — pacientul le vede la „Kinetoterapeutul tău”."
+            className="min-h-[4rem] resize-y text-base md:text-sm"
+          />
+        </label>
+
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Caută exerciții după titlu sau regiune"
+            className="h-11 min-h-11 border-slate-300 pl-9 text-base md:text-sm"
+          />
+        </div>
+
+        <LibraryQuickFilters filters={filters} onChange={updateFilter} />
+
+        <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
+          {filtered.length === 0 ? (
+            <li className="px-4 py-8 text-center text-sm text-slate-500">
+              Niciun exercițiu nu corespunde filtrelor.
+            </li>
+          ) : (
+            filtered.map((exercise) => {
+              const dose = doses[exercise.id] ?? doseDraftFromCounts(exercise.sets, exercise.reps)
+              return (
+                <AssignExerciseRow
+                  key={exercise.id}
+                  exercise={exercise}
+                  checked={selectedIds.includes(exercise.id)}
+                  sets={dose.sets}
+                  reps={dose.reps}
+                  onToggle={toggleExercise}
+                  onDoseChange={updateDose}
+                />
+              )
+            })
+          )}
+        </ul>
       </div>
-    </div>
+    </CenteredModal>
   )
 }
 
@@ -503,4 +528,3 @@ const AssignExerciseRow = memo(function AssignExerciseRow({
     </li>
   )
 })
-
