@@ -45,6 +45,88 @@ export type Database = {
         Update: Partial<ExerciseLibraryRow>
         Relationships: []
       }
+      training_protocols: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          notes: string | null
+          region: string | null
+          difficulty: string | null
+          clinic_name: string
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          notes?: string | null
+          region?: string | null
+          difficulty?: string | null
+          clinic_name: string
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          title?: string
+          description?: string | null
+          notes?: string | null
+          region?: string | null
+          difficulty?: string | null
+          clinic_name?: string
+          created_by?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      training_protocol_exercises: {
+        Row: {
+          id: string
+          protocol_id: string
+          library_exercise_id: string | null
+          title: string
+          description: string | null
+          video_url: string | null
+          sets: number | null
+          reps: number | null
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          protocol_id: string
+          library_exercise_id?: string | null
+          title: string
+          description?: string | null
+          video_url?: string | null
+          sets?: number | null
+          reps?: number | null
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          protocol_id?: string
+          library_exercise_id?: string | null
+          title?: string
+          description?: string | null
+          video_url?: string | null
+          sets?: number | null
+          reps?: number | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_protocol_exercises_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "training_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           id: string

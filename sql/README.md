@@ -10,3 +10,4 @@ Aceste fișiere **nu** se rulează la build-ul Vercel. Le lipești în **Supabas
 - `023_patient_push_tokens.sql` — FCM web push
 - `030_patient_notes.sql` — notițe clinice (`patient_notes.patient_id` → `patients.id`; **nu** coloana `patients.clinical_notes`)
 - `031_patient_notes_clinic.sql` — acces pentru toți terapeuții din același cabinet + coloana `updated_by`
+- `035_exercises_rls_clinic_members.sql` — repară RLS pe `exercises` / `check_ins` (INSERT/UPDATE pentru terapeuții din cabinet)

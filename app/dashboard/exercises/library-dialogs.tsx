@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toaster"
+import { useAssignLibraryOptional } from "@/components/exercises/assign-library-provider"
 import {
   DIFFICULTIES,
   EQUIPMENT,
@@ -194,6 +195,7 @@ export function AddExerciseDialog({
   onClose: () => void
   onCreated: (exercise: LibraryExercise) => void
 }) {
+  const assignLibrary = useAssignLibraryOptional()
   const [isPending, startCreate] = useTransition()
   const [sets, setSets] = useState("3")
   const [reps, setReps] = useState("10")
@@ -209,6 +211,7 @@ export function AddExerciseDialog({
         return
       }
       onCreated(result.exercise)
+      assignLibrary?.upsertLibraryExercise(result.exercise)
       toast("Exercițiul a fost adăugat în bibliotecă.")
       onClose()
     })

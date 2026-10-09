@@ -1,20 +1,15 @@
 "use client"
 
 import { memo, useCallback, useOptimistic, useState, useTransition } from "react"
-import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { Trash2 } from "lucide-react"
 
+import { AssignExercisesModal } from "@/app/dashboard/assign-exercises-modal"
 import { deleteExercise } from "@/app/dashboard/patients/actions"
 import { VideoPreview } from "@/components/media/video-preview"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/toaster"
 import type { ExerciseRecord } from "@/lib/patients/types-db"
-
-const AssignExercisesModal = dynamic(
-  () => import("@/app/dashboard/assign-exercises-modal").then((mod) => ({ default: mod.AssignExercisesModal })),
-  { ssr: false },
-)
 
 export function ExerciseManager({
   patientId,
@@ -44,18 +39,14 @@ export function ExerciseManager({
     [patientId, removeOptimistic],
   )
 
-  const closeLibrary = useCallback(() => {
-    setLibraryOpen(false)
-  }, [])
-
-  const refreshAfterSave = useCallback(() => {
-    router.refresh()
-  }, [router])
-
   return (
     <div className="flex flex-col gap-5 p-5">
       <div className="flex justify-end">
-        <Button type="button" onClick={() => setLibraryOpen(true)} className="h-11 w-full min-h-[44px] rounded-xl sm:w-auto">
+        <Button
+          type="button"
+          onClick={() => setLibraryOpen(true)}
+          className="h-11 w-full min-h-[44px] rounded-xl sm:w-auto"
+        >
           Atribuie din Bibliotecă
         </Button>
       </div>
@@ -82,8 +73,8 @@ export function ExerciseManager({
         patientId={patientId}
         patientName={patientName}
         initialAssigned={exercises}
-        onClose={closeLibrary}
-        onSaved={refreshAfterSave}
+        onClose={() => setLibraryOpen(false)}
+        onSaved={() => router.refresh()}
       />
     </div>
   )

@@ -22,6 +22,7 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
   const patientsActive = pathname === "/dashboard" || pathname.startsWith("/dashboard/patients")
   const archiveActive = pathname === "/dashboard/arhiva" || pathname.startsWith("/dashboard/arhiva/")
   const exercisesActive = pathname.startsWith("/dashboard/exercises")
+  const protocolsActive = pathname.startsWith("/dashboard/protocols")
   const teamActive = pathname.startsWith("/dashboard/echipa")
   const settingsActive = pathname.startsWith("/dashboard/setari")
   const label = clinicName ? `${displayName} · ${clinicName}` : displayName
@@ -40,6 +41,9 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
             </NavLink>
             <NavLink href="/dashboard/exercises" active={exercisesActive}>
               Bibliotecă
+            </NavLink>
+            <NavLink href="/dashboard/protocols" active={protocolsActive}>
+              Protocoale
             </NavLink>
             {isAdmin ? (
               <NavLink href="/dashboard/echipa" active={teamActive}>
@@ -70,6 +74,9 @@ export function DashboardHeader({ email, displayName, clinicName, isAdmin = fals
         </NavLink>
         <NavLink href="/dashboard/exercises" active={exercisesActive}>
           Bibliotecă
+        </NavLink>
+        <NavLink href="/dashboard/protocols" active={protocolsActive}>
+          Protocoale
         </NavLink>
         {isAdmin ? (
           <NavLink href="/dashboard/echipa" active={teamActive}>
