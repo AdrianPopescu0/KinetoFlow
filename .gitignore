@@ -19,10 +19,13 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
 *.pem
+.turbo
+.cache
 
 # debug
 npm-debug.log*
