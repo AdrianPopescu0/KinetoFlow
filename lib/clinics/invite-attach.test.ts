@@ -180,6 +180,16 @@ test("decideTherapistInviteAttach leagă terapeutul de clinica din invitație", 
     }).error,
     INVITE_OTHER_CLINIC_ERROR,
   )
+  // Invitație expirată + clinică existentă: nu bloca login-ul.
+  assert.equal(
+    decideTherapistInviteAttach({
+      email: "ana@gmail.com",
+      userId: "user-1",
+      invite: { clinic_name: "KinetoCare", expires_at: past, accepted_at: past },
+      existingClinicName: "Altă Clinică",
+    }).action,
+    "already_member",
+  )
 })
 
 test("mesajele de pe pagina de invitație acoperă eșecul Google", () => {

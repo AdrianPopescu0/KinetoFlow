@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function SetPasswordPage() {
   const { user } = await getCachedUser()
   if (!user) {
-    redirect("/login?reason=otp_expired")
+    redirect("/login?reason=session")
   }
 
   return (

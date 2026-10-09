@@ -70,6 +70,22 @@ export async function GET(request: NextRequest) {
 
   const attached = await attachTherapistInviteToUser({ token: inviteToken, user })
   if (!attached.ok) {
+    const clinicReady =
+      clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
+    // Invitație expirată, dar contul e deja în clinică → nu deconecta.
+    if (attached.reason === "expired" && clinicReady) {
+      const response = NextResponse.redirect(absoluteUrl(request, "/dashboard"), 303)
+      clearInviteCookie(response)
+      return response
+    }
+    if (attached.reason === "expired" || attached.reason === "no_invite") {
+      const response = NextResponse.redirect(
+        absoluteUrl(request, clinicReady ? "/dashboard" : "/onboarding"),
+        303,
+      )
+      clearInviteCookie(response)
+      return response
+    }
     await supabase.auth.signOut()
     const response = NextResponse.redirect(
       absoluteUrl(request, therapistInvitePagePath(inviteToken, attached.reason)),

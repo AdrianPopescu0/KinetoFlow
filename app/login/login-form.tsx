@@ -20,7 +20,11 @@ import { emailOtpPageHref, loginHref } from "@/lib/auth/paths"
 import { writePendingEmailOtp } from "@/lib/auth/pending-email-otp"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
-import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
+import {
+  clearStoredTherapistInviteToken,
+  persistTherapistInviteToken,
+  readStoredTherapistInviteToken,
+} from "@/lib/clinics/invite-session"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/utils/supabase/client"
 
@@ -65,14 +69,13 @@ export function LoginForm({
     setInfo(null)
     setGooglePending(true)
 
+    // Invitațiile vechi din localStorage/cookie nu trebuie să blocheze login-ul Google.
     const pendingInvite = readStoredTherapistInviteToken()
     if (pendingInvite) {
       persistTherapistInviteToken(pendingInvite)
       const prepared = await prepareTherapistInviteOAuth(pendingInvite)
       if (prepared?.error) {
-        setError(prepared.error)
-        setGooglePending(false)
-        return
+        clearStoredTherapistInviteToken()
       }
     }
 

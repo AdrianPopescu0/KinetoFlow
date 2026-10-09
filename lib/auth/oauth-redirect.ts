@@ -101,6 +101,7 @@ export function enterTherapistApp(next?: string | null) {
   if (invite) {
     persistTherapistInviteToken(invite)
   }
+  // Finalize validează invitația; dacă e expirată, păstrează sesiunea și duce în clinică.
   window.location.replace(therapistPostAuthHref(next, invite))
 }
 
