@@ -1,0 +1,88 @@
+import type { Metadata } from "next";
+import Script from "next/script";
+
+import { Footer } from "@/components/Footer";
+import { Toaster } from "@/components/ui/toaster";
+import { DASHBOARD_THEME_BOOT_SCRIPT } from "@/lib/theme/preference";
+import "./globals.css";
+
+const SITE_URL = "https://kinetoflow96.vercel.app"
+const SITE_TITLE = "KinetoFlow"
+const SITE_DESCRIPTION =
+  "Platformă clinică pentru kinetoterapie: optimizează activitatea cabinetului, programele de recuperare și accesul securizat."
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_TITLE,
+    locale: "ro_RO",
+    type: "website",
+    images: [
+      {
+        url: "/landing/hero-recovery.jpg",
+        width: 2400,
+        height: 1600,
+        alt: "KinetoFlow — ședință de kinetoterapie și recuperare medicală",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/landing/hero-recovery.jpg"],
+  },
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+  },
+  appleWebApp: {
+    capable: true,
+    title: "KinetoFlow",
+    statusBarStyle: "default",
+  },
+}
+
+export const viewport = {
+  themeColor: "#042f2e",
+};
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <html
+      lang="ro"
+      suppressHydrationWarning={true}
+      className="min-h-screen max-w-full overflow-x-hidden antialiased"
+    >
+      <body className="flex min-h-screen max-w-full flex-col justify-between overflow-x-hidden bg-slate-50 text-slate-800 dark:bg-[var(--kf-canvas)] dark:text-[var(--kf-text)]">
+        <Script id="dashboard-theme-boot" strategy="beforeInteractive">
+          {DASHBOARD_THEME_BOOT_SCRIPT}
+        </Script>
+        <Script id="pwa-install-capture" strategy="beforeInteractive">
+          {`(function () {
+  window.addEventListener("beforeinstallprompt", function (event) {
+    event.preventDefault();
+    window.__pwaInstallPrompt = event;
+  });
+  window.addEventListener("appinstalled", function () {
+    window.__pwaInstallPrompt = undefined;
+  });
+})();`}
+        </Script>
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <Footer />
+        <Toaster />
+      </body>
+    </html>
+  );
+}
