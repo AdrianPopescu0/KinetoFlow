@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
   if (!attached.ok) {
     const clinicReady =
       clinicReadyFromUser(user) || (await therapistHasClinicProfile(supabase, user.id))
-    // Invitație expirată, dar contul e deja autentificat → nu deconecta login-ul normal.
+    // Invitație expirată / absentă, dar contul e deja autentificat → nu deconecta login-ul normal.
     if (attached.reason === "expired" || attached.reason === "no_invite") {
       const response = NextResponse.redirect(
         absoluteUrl(request, clinicReady ? "/dashboard" : "/onboarding"),

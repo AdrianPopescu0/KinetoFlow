@@ -211,7 +211,7 @@ export function PatientList({
           {/* Tabel clasic — doar md+ */}
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[52rem] text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)] dark:text-[var(--kf-text-soft)]">
                 <tr>
                   <th className="border-l-4 border-l-transparent px-5 py-3">Pacient</th>
                   <th className="px-5 py-3">Diagnostic</th>
