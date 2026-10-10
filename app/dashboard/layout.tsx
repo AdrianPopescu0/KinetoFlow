@@ -55,7 +55,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             clinicName={clinicName}
             isAdmin={isClinicAdmin(profile)}
           />
-          {children}
+          <div className="flex min-h-0 flex-1 flex-col pb-[calc(3.75rem+env(safe-area-inset-bottom))] sm:pb-0">
+            {children}
+          </div>
         </AssignLibraryProvider>
       </DashboardThemeProvider>
     </AppShell>
