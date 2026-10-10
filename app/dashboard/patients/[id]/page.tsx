@@ -7,6 +7,7 @@ import { saveClinicalNotes } from "@/app/dashboard/patients/actions"
 import { ClinicalNotesEditor } from "@/app/dashboard/patients/clinical-notes-editor"
 import { NotifyChannelActions } from "@/app/dashboard/patients/notify-channel-actions"
 import { PatientFileActions } from "@/app/dashboard/patients/patient-file-actions"
+import { PatientFileHeader } from "@/app/dashboard/patients/patient-file-header"
 import { PatientFileStampProvider } from "@/app/dashboard/patients/patient-file-stamp"
 import {
   PatientExercisesSection,
@@ -21,7 +22,6 @@ import {
   fetchClinicSubscription,
   isClinicSubscriptionActive,
 } from "@/lib/clinics/subscription"
-import { notifyChannelLabel } from "@/lib/patients/notify-channel"
 import { getTherapistPatientHeader } from "@/lib/patients/queries"
 
 type PatientFilePageProps = {
@@ -30,7 +30,7 @@ type PatientFilePageProps = {
 
 export default async function PatientFilePage({ params }: PatientFilePageProps) {
   const { id } = await params
-  const { patient, error } = await getTherapistPatientHeader(id)
+  const { patient, error, summary } = await getTherapistPatientHeader(id)
   if (!patient) {
     notFound()
   }
@@ -68,49 +68,23 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
       <Link
         href={archived ? "/dashboard/arhiva" : "/dashboard"}
         prefetch
-        className="inline-flex items-center gap-1 text-sm font-medium text-[#042f2e]"
+        className="inline-flex items-center gap-1 text-sm font-medium text-[#042f2e] dark:text-teal-300"
       >
         <ArrowLeft className="size-4" />
         {archived ? "Înapoi la arhivă" : "Înapoi la dashboard"}
       </Link>
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-red-700 dark:text-red-300">{error}</p> : null}
 
       <PatientFileStampProvider initialUpdatedAt={patient.updated_at}>
         <section className={surfaceCardClassName("p-5")}>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold tracking-wide text-[#042f2e] uppercase">Fișa pacientului</p>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold text-slate-800">{patient.full_name}</h1>
-                {archived ? (
-                  <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                    Arhivat
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-2 text-sm text-slate-600">
-                <span className="font-medium text-slate-800">Diagnostic:</span> {patient.diagnosis || "—"}
-              </p>
-              <p className="mt-1 text-sm text-slate-600">
-                {patient.email || "Fără email"} · {patient.phone || "Fără telefon"}
-              </p>
-              {patient.access_code ? (
-                <p className="mt-2 font-mono text-lg font-semibold tracking-[0.18em] text-slate-900">
-                  Cod acces: {patient.access_code}
-                </p>
-              ) : null}
-              <p className="mt-2 text-sm text-slate-600">
-                Canal notificări:{" "}
-                <span className="font-medium text-slate-800">{notifyChannelLabel(patient.notify_channel)}</span>
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <PatientFileActions patient={patient} />
-            </div>
-          </div>
+          <PatientFileHeader
+            patient={patient}
+            summary={summary}
+            actions={<PatientFileActions patient={patient} />}
+          />
           {phone ? (
-            <div className="mt-5 max-w-md border-t border-slate-200 pt-4">
+            <div className="mt-5 max-w-md border-t border-slate-200 pt-4 dark:border-[var(--kf-border)]">
               <NotifyChannelActions
                 patientId={patient.id}
                 phone={phone}
@@ -121,8 +95,8 @@ export default async function PatientFilePage({ params }: PatientFilePageProps) 
         </section>
 
         <section className={surfaceCardClassName("p-5")}>
-          <h2 className="text-base font-semibold text-slate-800">Notițe clinice</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Notițe clinice</h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             Notițele sunt salvate și vizibile pentru toți terapeuții din clinică.
           </p>
           <div className="mt-4">

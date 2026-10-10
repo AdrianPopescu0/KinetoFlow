@@ -316,15 +316,39 @@ const resolveOwnPatient = cache(async (id: string) => {
   return { supabase, userId, patient: withClinicalNotes(fallback.data as Record<string, unknown>), error: null }
 })
 
+export type PatientFileHeaderSummary = {
+  lastCheckInAt: string | null
+  lastVas: number | null
+  exerciseCount: number
+}
+
 export const getTherapistPatientHeader = cache(async (id: string) => {
+  const emptySummary: PatientFileHeaderSummary = {
+    lastCheckInAt: null,
+    lastVas: null,
+    exerciseCount: 0,
+  }
+
   const resolved = await resolveOwnPatient(id)
   if (!resolved.patient) {
-    return { patient: null, error: resolved.error }
+    return { patient: null, error: resolved.error, summary: emptySummary }
   }
 
   const clinicClient = await privilegedClinicClient(resolved.supabase)
   const patientId = readPatientRecordId(id, resolved.patient.id) ?? resolved.patient.id
-  const notesRow = await fetchPatientNotes(clinicClient, patientId)
+
+  const [notesRow, lastCheckInResult, exerciseCountResult] = await Promise.all([
+    fetchPatientNotes(clinicClient, patientId),
+    clinicClient
+      .from("check_ins")
+      .select("vas_score, created_at")
+      .eq("patient_id", patientId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    clinicClient.from("exercises").select("id", { count: "exact", head: true }).eq("patient_id", patientId),
+  ])
+
   if (notesRow) {
     resolved.patient.clinical_notes = notesRow.notes
     if (notesRow.updated_at) {
@@ -332,7 +356,14 @@ export const getTherapistPatientHeader = cache(async (id: string) => {
     }
   }
 
-  return { patient: resolved.patient, error: resolved.error }
+  const lastCheckIn = lastCheckInResult.data as { vas_score?: number; created_at?: string } | null
+  const summary: PatientFileHeaderSummary = {
+    lastCheckInAt: typeof lastCheckIn?.created_at === "string" ? lastCheckIn.created_at : null,
+    lastVas: typeof lastCheckIn?.vas_score === "number" ? lastCheckIn.vas_score : null,
+    exerciseCount: exerciseCountResult.count ?? 0,
+  }
+
+  return { patient: resolved.patient, error: resolved.error, summary }
 })
 
 export const getTherapistPatientCheckIns = cache(async (id: string) => {
