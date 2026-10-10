@@ -5,6 +5,7 @@ import {
   isThemedAppPath,
   isThemePreference,
   parseThemePreference,
+  resolveClientThemePreference,
   resolveTheme,
   themeCookieWrite,
 } from "./preference.ts"
@@ -33,6 +34,13 @@ test("rezolvă tema automată după sistem", () => {
 test("cookie-ul de temă e pe tot site-ul, un an", () => {
   assert.match(themeCookieWrite("system"), /kf_theme=system/)
   assert.match(themeCookieWrite("dark"), /Max-Age=31536000/)
+})
+
+test("pe cont, light/dark din server bate localStorage vechi", () => {
+  assert.equal(resolveClientThemePreference("dark", "light"), "dark")
+  assert.equal(resolveClientThemePreference("light", "dark"), "light")
+  assert.equal(resolveClientThemePreference("system", "dark"), "dark")
+  assert.equal(resolveClientThemePreference("system", null), "system")
 })
 
 test("tema se aplică pe landing, dashboard și interfața pacientului", () => {

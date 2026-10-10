@@ -49,7 +49,24 @@ export function isThemedAppPath(pathname: string): boolean {
 }
 
 export function themeCookieWrite(preference: ThemePreference): string {
-  return `${THEME_COOKIE_NAME}=${preference}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`
+  const secure =
+    typeof window !== "undefined" && window.location.protocol === "https:" ? "; Secure" : ""
+  return `${THEME_COOKIE_NAME}=${preference}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax${secure}`
+}
+
+/**
+ * Pe dashboard (cont autentificat), preferința din cookie / metadate Supabase
+ * bate localStorage — altfel un dispozitiv vechi poate rescrie tema din cloud.
+ * Pentru `system`, localStorage poate păstra o alegere explicită pe același browser.
+ */
+export function resolveClientThemePreference(
+  initialPreference: ThemePreference,
+  storedRaw: string | null,
+): ThemePreference {
+  if (initialPreference === "light" || initialPreference === "dark") {
+    return initialPreference
+  }
+  return parseThemePreference(storedRaw, initialPreference)
 }
 
 export function writeThemePreference(preference: ThemePreference) {

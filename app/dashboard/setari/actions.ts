@@ -187,13 +187,22 @@ export async function persistAccountTheme(theme: ThemePreference): Promise<Accou
     data: { theme },
   })
   if (error) {
+    console.error("[persistAccountTheme] updateUser failed:", error.message, error)
     return { error: formatSupabaseError(error) }
   }
-  const jar = await cookies()
-  jar.set(THEME_COOKIE_NAME, theme, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
-  })
+  try {
+    const jar = await cookies()
+    jar.set(THEME_COOKIE_NAME, theme, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    })
+  } catch (cookieError) {
+    console.error("[persistAccountTheme] cookie write failed:", cookieError)
+    return {
+      error: "Tema a fost salvată în cont, dar cookie-ul local nu a putut fi actualizat. Reîncarcă pagina.",
+    }
+  }
   return { ok: true }
 }

@@ -4,10 +4,11 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { Monitor, Moon, Sun } from "lucide-react"
 
 import { persistAccountTheme } from "@/app/dashboard/setari/actions"
+import { toast } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 import {
   applyResolvedTheme,
-  parseThemePreference,
+  resolveClientThemePreference,
   resolveTheme,
   THEME_STORAGE_KEY,
   writeThemePreference,
@@ -42,7 +43,11 @@ export function DashboardThemeProvider({
   )
 
   useEffect(() => {
-    const stored = parseThemePreference(window.localStorage.getItem(THEME_STORAGE_KEY), initialPreference)
+    // Cont autentificat: cookie/metadate din SSR bat localStorage învechit.
+    const stored = resolveClientThemePreference(
+      initialPreference,
+      window.localStorage.getItem(THEME_STORAGE_KEY),
+    )
     setPreferenceState(stored)
     writeThemePreference(stored)
     const next = resolveTheme(stored, systemPrefersDark())
@@ -80,9 +85,15 @@ export function DashboardThemeProvider({
         const applied = resolveTheme(next, systemPrefersDark())
         setResolved(applied)
         applyResolvedTheme(applied)
-        if (persistAccount) {
-          void persistAccountTheme(next)
+        if (!persistAccount) {
+          return
         }
+        void persistAccountTheme(next).then((result) => {
+          if (result?.error) {
+            console.error("[theme] persistAccountTheme failed:", result.error)
+            toast(result.error)
+          }
+        })
       },
     }),
     [persistAccount, preference, resolved],
