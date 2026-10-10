@@ -139,9 +139,9 @@ export function PatientList({
 
   return (
     <div className="min-w-0 overflow-x-hidden">
-      <div className="border-b border-slate-200 px-5 py-4">
+      <div className="border-b border-slate-200 px-5 py-4 dark:border-[var(--kf-border)]">
         <div
-          className="mb-3 inline-flex w-full rounded-xl border border-slate-200 bg-slate-50 p-1 sm:w-auto"
+          className="mb-3 inline-flex w-full rounded-xl border border-slate-200 bg-slate-50 p-1 sm:w-auto dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)]"
           role="tablist"
           aria-label="Vizualizare pacienți"
         >
@@ -152,7 +152,9 @@ export function PatientList({
             onClick={() => selectScope("mine")}
             className={cn(
               "flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:flex-none",
-              scope === "mine" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900",
+              scope === "mine"
+                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100",
             )}
           >
             Pacienții mei
@@ -164,7 +166,9 @@ export function PatientList({
             onClick={() => selectScope("clinic")}
             className={cn(
               "flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:flex-none",
-              scope === "clinic" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900",
+              scope === "clinic"
+                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100",
             )}
           >
             Toți pacienții cabinetului
@@ -184,7 +188,7 @@ export function PatientList({
       {filter === "checkins" ? (
         <CheckinsTodayPanel patients={scoped} query={query} scope={scope} />
       ) : filtered.length === 0 ? (
-        <p className="px-5 py-8 text-center text-sm text-slate-600">
+        <p className="px-5 py-8 text-center text-sm text-slate-600 dark:text-slate-300">
           {query.trim()
             ? "Nu am găsit pacienți pentru filtrul selectat."
             : filter !== "all"
@@ -211,7 +215,7 @@ export function PatientList({
           {/* Tabel clasic — doar md+ */}
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[52rem] text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:border-[var(--kf-border)] dark:bg-slate-900/70 dark:text-slate-300">
                 <tr>
                   <th className="border-l-4 border-l-transparent px-5 py-3">Pacient</th>
                   <th className="px-5 py-3">Diagnostic</th>

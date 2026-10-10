@@ -40,14 +40,16 @@ function PatientVasExpandPanel({ patient }: { patient: PatientListItem }) {
     <div
       id={`vas-history-${patient.id}`}
       className={cn(
-        "rounded-xl border bg-white p-3 sm:p-4",
-        highPain ? "border-red-200" : "border-slate-200",
+        "rounded-xl border bg-white p-3 sm:p-4 dark:bg-slate-900/80",
+        highPain
+          ? "border-red-200 dark:border-red-800"
+          : "border-slate-200 dark:border-[var(--kf-border)]",
       )}
     >
       <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-slate-800">Evoluție VAS</p>
-          <p className="text-xs text-slate-600">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Evoluție VAS</p>
+          <p className="text-xs text-slate-600 dark:text-slate-300">
             {days.length === 0
               ? "Nu există check-in-uri înregistrate."
               : days.length === 1
@@ -56,7 +58,7 @@ function PatientVasExpandPanel({ patient }: { patient: PatientListItem }) {
           </p>
         </div>
         {highPain ? (
-          <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-800 ring-1 ring-red-200 ring-inset">
+          <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-800 ring-1 ring-red-200 ring-inset dark:bg-red-950/60 dark:text-red-200 dark:ring-red-800">
             Alertă durere
           </span>
         ) : null}
@@ -92,15 +94,17 @@ function ExpandNameButton({
     >
       <ChevronDown
         className={cn(
-          "mt-0.5 size-4 shrink-0 text-slate-400 transition-transform",
-          expanded && "rotate-180 text-[#042f2e]",
+          "mt-0.5 size-4 shrink-0 text-slate-400 transition-transform dark:text-slate-400",
+          expanded && "rotate-180 text-[#042f2e] dark:text-teal-300",
         )}
       />
       <span className="min-w-0">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="block break-words font-medium text-slate-800">{patient.full_name}</span>
+          <span className="block break-words font-medium text-slate-800 dark:text-slate-100">
+            {patient.full_name}
+          </span>
           {isHighPainVas(patient.lastVas) ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-red-800 uppercase">
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-red-800 uppercase dark:bg-red-950/70 dark:text-red-200">
               <AlertTriangle className="size-3" />
               Alertă
             </span>
@@ -129,8 +133,9 @@ export const PatientMobileCard = memo(function PatientMobileCard({
       className={cn(
         "flex min-w-0 flex-col gap-3 rounded-2xl border p-4 shadow-sm",
         highPain
-          ? "border-red-300 bg-red-50/70 ring-1 ring-red-200"
-          : "border-slate-200 bg-white",
+          ? "border-red-300 bg-red-50/70 ring-1 ring-red-200 dark:border-red-800 dark:bg-red-950/40 dark:ring-red-900"
+          : "border-slate-200 bg-white dark:border-[var(--kf-border)] dark:bg-[var(--kf-raised)]",
+        expanded && !highPain && "dark:bg-slate-800/90",
       )}
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
@@ -138,7 +143,11 @@ export const PatientMobileCard = memo(function PatientMobileCard({
           patient={patient}
           expanded={expanded}
           onToggle={onToggleExpanded}
-          subtitle={<span className="mt-0.5 block break-words text-xs text-slate-500">{patient.phone || "Fără telefon"}</span>}
+          subtitle={
+            <span className="mt-0.5 block break-words text-xs text-slate-500 dark:text-slate-300">
+              {patient.phone || "Fără telefon"}
+            </span>
+          }
         />
         <button
           type="button"
@@ -157,7 +166,7 @@ export const PatientMobileCard = memo(function PatientMobileCard({
       {expanded ? <PatientVasExpandPanel patient={patient} /> : null}
 
       <div className="flex min-w-0 flex-col gap-1.5">
-        <span className="text-xs font-medium text-slate-500">Terapeut responsabil</span>
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-300">Terapeut responsabil</span>
         <AssignedTherapistSelect
           fullWidth
           patientId={patient.id}
@@ -205,9 +214,11 @@ export const PatientTableRow = memo(function PatientTableRow({
     <>
       <tr
         className={cn(
-          "cursor-pointer border-b border-slate-100",
-          highPain ? "bg-red-50/70 hover:bg-red-50" : "hover:bg-slate-50/80",
-          expanded && !highPain && "bg-slate-50",
+          "cursor-pointer border-b border-slate-100 dark:border-[var(--kf-border)]",
+          highPain
+            ? "bg-red-50/70 hover:bg-red-50 dark:bg-red-950/35 dark:hover:bg-red-950/55"
+            : "bg-white hover:bg-slate-50/80 dark:bg-[var(--kf-surface)] dark:hover:bg-slate-800/90",
+          expanded && !highPain && "bg-slate-50 dark:bg-slate-800/90",
         )}
         onClick={(event) => toggleFromRowClick(event, patient, onToggleExpanded)}
       >
@@ -217,11 +228,13 @@ export const PatientTableRow = memo(function PatientTableRow({
             expanded={expanded}
             onToggle={onToggleExpanded}
             subtitle={
-              <span className="mt-0.5 block text-xs text-slate-500">{patient.email || patient.phone || "—"}</span>
+              <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-300">
+                {patient.email || patient.phone || "—"}
+              </span>
             }
           />
         </td>
-        <td className="px-5 py-4 text-slate-700">{patient.diagnosis || "—"}</td>
+        <td className="px-5 py-4 text-slate-700 dark:text-slate-200">{patient.diagnosis || "—"}</td>
         <td className="px-5 py-4">
           <span
             className={cn(
@@ -262,7 +275,12 @@ export const PatientTableRow = memo(function PatientTableRow({
         </td>
       </tr>
       {expanded ? (
-        <tr className={cn("border-b border-slate-100", highPain ? "bg-red-50/50" : "bg-slate-50")}>
+        <tr
+          className={cn(
+            "border-b border-slate-100 dark:border-[var(--kf-border)]",
+            highPain ? "bg-red-50/50 dark:bg-red-950/25" : "bg-slate-50 dark:bg-slate-800/90",
+          )}
+        >
           <td
             colSpan={5}
             className={cn("border-l-4 px-5 py-4", highPain ? "border-l-red-500" : "border-l-transparent")}

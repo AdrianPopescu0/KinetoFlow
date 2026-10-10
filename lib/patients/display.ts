@@ -24,15 +24,15 @@ export function vasTone(score: number | null): "green" | "orange" | "red" | "mut
 export function vasBadgeClass(score: number | null): string {
   const tone = vasTone(score)
   if (tone === "green") {
-    return "bg-emerald-50 text-emerald-800 ring-emerald-200"
+    return "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:ring-emerald-800"
   }
   if (tone === "orange") {
-    return "bg-amber-50 text-amber-800 ring-amber-200"
+    return "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/45 dark:text-amber-200 dark:ring-amber-800"
   }
   if (tone === "red") {
-    return "bg-red-50 text-red-800 ring-red-200"
+    return "bg-red-50 text-red-800 ring-red-200 dark:bg-red-950/50 dark:text-red-200 dark:ring-red-800"
   }
-  return "bg-slate-100 text-slate-600 ring-slate-200"
+  return "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-600"
 }
 
 export function painKindLabel(value: string | null): string {
