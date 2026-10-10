@@ -29,8 +29,7 @@ cp .env.example .env.local
 
 Adaugă URL-urile de redirect pentru recuperarea parolei și invitațiile WhatsApp:
 
-- `http://localhost:43123/auth/callback`
-- `http://127.0.0.1:43123/auth/callback`
+- `http://localhost:3000/auth/callback`
 - `https://kinetoflow.ro/auth/callback`
 - `https://kinetoflow.ro/auth/callback?next=/auth/set-password`
 - `https://kinetoflow.ro/auth/callback?next=/dashboard` (inclusiv `?invite=` pentru invitațiile de terapeut)
@@ -42,10 +41,10 @@ Adaugă URL-urile de redirect pentru recuperarea parolei și invitațiile WhatsA
 
 ```bash
 npm install
-npm run dev -- --port 43123 --hostname 127.0.0.1
+npm run dev
 ```
 
-Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123/) pentru landing, [http://127.0.0.1:43123/login](http://127.0.0.1:43123/login) pentru autentificare, sau programul pacient [http://127.0.0.1:43123/patient/demo](http://127.0.0.1:43123/patient/demo).
+Deschide [http://localhost:3000](http://localhost:3000/) pentru landing, [http://localhost:3000/login](http://localhost:3000/login) pentru autentificare, sau programul pacient [http://localhost:3000/patient/demo](http://localhost:3000/patient/demo).
 
 ## Autentificare
 

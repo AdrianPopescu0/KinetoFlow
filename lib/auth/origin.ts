@@ -9,6 +9,7 @@ export {
   normalizeOrigin,
   oauthCallbackUrl,
   requestAppOrigin,
+  requestOAuthCallbackOrigin,
   resolveAppOrigin,
   stripTrailingSlash,
 } from "@/lib/auth/site-origin"

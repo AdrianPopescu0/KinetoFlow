@@ -47,7 +47,7 @@ test("emailul OTP conține codul și nu are buton de autologin", () => {
   const built = buildAuthOtpEmail({
     code: "654321",
     purpose: "register",
-    loginUrl: "http://127.0.0.1:43123/login?mode=signup",
+    loginUrl: "http://localhost:3000/login?mode=signup",
   })
   assert.match(built.html, /654321/)
   assert.match(built.text, /Codul tău: 654321/)

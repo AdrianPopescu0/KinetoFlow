@@ -67,11 +67,8 @@ export function DashboardThemeProvider({
     return () => media.removeEventListener("change", onChange)
   }, [preference])
 
-  useEffect(() => {
-    return () => {
-      applyResolvedTheme("light")
-    }
-  }, [])
+  // Nu resetăm tema la unmount: altfel navigarea între layout-uri forțează light
+  // și reintră în conflict cu boot script / cookie.
 
   const value = useMemo<ThemeContextValue>(
     () => ({

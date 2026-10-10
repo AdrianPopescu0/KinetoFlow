@@ -3,8 +3,9 @@ import { NextResponse, type NextRequest } from "next/server"
 import type { EmailOtpType } from "@supabase/supabase-js"
 
 import { isEmailConfirmedUser } from "@/lib/auth/email-confirmed"
-import { requestAppOrigin } from "@/lib/auth/site-origin"
+import { requestOAuthCallbackOrigin } from "@/lib/auth/site-origin"
 import { SET_PASSWORD_PATH, safeAuthNextPath } from "@/lib/auth/paths"
+import { isSupabaseAuthLinkExpiredError } from "@/lib/auth/supabase-auth-errors"
 import { attachTherapistInviteToUser } from "@/lib/clinics/attach-therapist-invite"
 import { invitedTherapistFromUser } from "@/lib/clinics/clinic-ready"
 import { readTherapistInviteToken, therapistInvitePagePath } from "@/lib/clinics/invite-attach"
@@ -44,7 +45,8 @@ function isEmailOtpType(value: string | null): value is EmailOtpType {
 }
 
 function callbackAbsoluteUrl(request: NextRequest, path: string) {
-  const origin = requestAppOrigin(request)
+  // Același host care a primit `code` (PKCE) — nu rescriem pe producție hardcodată.
+  const origin = requestOAuthCallbackOrigin(request)
   const normalizedPath = path.startsWith("/") ? path : `/${path}`
   return `${origin}${normalizedPath}`
 }
@@ -78,22 +80,32 @@ export async function GET(request: NextRequest) {
   const otpType = searchParams.get("type")
   const errorCode = searchParams.get("error_code") ?? searchParams.get("error")
   const next = safeAuthNextPath(searchParams.get("next")) ?? "/dashboard"
-  const inviteToken = readTherapistInviteToken(
+  // Invitația din query/path e explicită; cookie-urile pot fi rămășițe vechi.
+  const explicitInviteToken = readTherapistInviteToken(
     searchParams.get("invite"),
     inviteTokenFromPathname(next),
+  )
+  const inviteToken = readTherapistInviteToken(
+    explicitInviteToken,
     request.cookies.get(THERAPIST_INVITE_COOKIE)?.value,
     request.cookies.get(THERAPIST_INVITE_CLIENT_COOKIE)?.value,
   )
 
   if (errorCode === "otp_expired") {
-    return NextResponse.redirect(callbackAbsoluteUrl(request, "/login?reason=otp_expired"))
+    const response = NextResponse.redirect(callbackAbsoluteUrl(request, "/login?reason=otp_expired"))
+    if (!explicitInviteToken) {
+      clearInviteCookie(response)
+    }
+    return response
   }
 
   if (errorCode && !code && !(tokenHash && isEmailOtpType(otpType))) {
-    if (inviteToken) {
-      return NextResponse.redirect(callbackAbsoluteUrl(request, therapistInvitePagePath(inviteToken, "oauth")))
+    if (explicitInviteToken) {
+      return NextResponse.redirect(callbackAbsoluteUrl(request, therapistInvitePagePath(explicitInviteToken, "oauth")))
     }
-    return NextResponse.redirect(callbackAbsoluteUrl(request, "/login?reason=oauth"))
+    const response = NextResponse.redirect(callbackAbsoluteUrl(request, "/login?reason=oauth"))
+    clearInviteCookie(response)
+    return response
   }
 
   // Fără `code` / `token_hash`: tokenii pot fi în hash (implicit). Nu-i trimitem
@@ -148,18 +160,20 @@ export async function GET(request: NextRequest) {
   }
 
   if (sessionError) {
-    const expired =
-      sessionError.toLowerCase().includes("expired") ||
-      sessionError.toLowerCase().includes("otp") ||
-      sessionError.toLowerCase().includes("invalid")
-    if (inviteToken) {
+    const expired = isSupabaseAuthLinkExpiredError(sessionError)
+    const pkceMissing =
+      sessionError.toLowerCase().includes("code verifier") ||
+      sessionError.toLowerCase().includes("pkce") ||
+      sessionError.toLowerCase().includes("both auth code and code verifier")
+    if (explicitInviteToken) {
       return NextResponse.redirect(
-        callbackAbsoluteUrl(request, therapistInvitePagePath(inviteToken, expired ? "expired" : "oauth")),
+        callbackAbsoluteUrl(request, therapistInvitePagePath(explicitInviteToken, expired ? "expired" : "oauth")),
       )
     }
-    return NextResponse.redirect(
-      callbackAbsoluteUrl(request, expired ? "/login?reason=otp_expired" : "/login"),
-    )
+    const reason = expired ? "otp_expired" : pkceMissing ? "oauth_pkce" : "oauth"
+    const response = NextResponse.redirect(callbackAbsoluteUrl(request, `/login?reason=${reason}`))
+    clearInviteCookie(response)
+    return response
   }
 
   if (next === SET_PASSWORD_PATH) {
@@ -203,7 +217,10 @@ export async function GET(request: NextRequest) {
       clearInviteCookie(response)
       return response
     }
-    if (resolvedInviteToken && attached.reason !== "no_invite") {
+    // Invitație expirată doar din cookie → nu blochează login-ul normal.
+    if (resolvedInviteToken && attached.reason === "expired" && !explicitInviteToken) {
+      // Continuă mai jos cu verificarea clinicii / onboarding.
+    } else if (resolvedInviteToken && attached.reason !== "no_invite") {
       await supabase.auth.signOut()
       const response = redirectWithCookies(
         request,
@@ -216,7 +233,11 @@ export async function GET(request: NextRequest) {
   }
 
   if (resolvedInviteToken && !user) {
-    const response = redirectWithCookies(request, therapistInvitePagePath(resolvedInviteToken, "oauth"), sessionCookies)
+    const response = redirectWithCookies(
+      request,
+      therapistInvitePagePath(resolvedInviteToken, "oauth"),
+      sessionCookies,
+    )
     stampInviteCookie(response, resolvedInviteToken)
     return response
   }
@@ -232,26 +253,33 @@ export async function GET(request: NextRequest) {
         await supabase.auth.refreshSession()
       }
     }
+    // Cookie de invitație expirat: nu trimite utilizatorul la finalize.
+    const inviteForPath = explicitInviteToken ? resolvedInviteToken : null
     const path = afterGoogleOAuthPath({
       attached: false,
       clinicReady,
-      inviteToken: resolvedInviteToken,
+      inviteToken: inviteForPath,
     })
     const response = redirectWithCookies(request, path, sessionCookies)
-    if (resolvedInviteToken && path !== "/dashboard") {
-      stampInviteCookie(response, resolvedInviteToken)
+    if (inviteForPath && path !== "/dashboard") {
+      stampInviteCookie(response, inviteForPath)
+    } else {
+      clearInviteCookie(response)
     }
     return response
   }
 
+  const inviteForPath = explicitInviteToken ? resolvedInviteToken : null
   const destination = afterGoogleOAuthPath({
     attached: false,
     clinicReady: false,
-    inviteToken: resolvedInviteToken,
+    inviteToken: inviteForPath,
   })
   const response = redirectWithCookies(request, destination, sessionCookies)
-  if (resolvedInviteToken) {
-    stampInviteCookie(response, resolvedInviteToken)
+  if (inviteForPath) {
+    stampInviteCookie(response, inviteForPath)
+  } else {
+    clearInviteCookie(response)
   }
   return response
 }

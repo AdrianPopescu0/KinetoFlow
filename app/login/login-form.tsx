@@ -20,7 +20,11 @@ import { emailOtpPageHref, loginHref } from "@/lib/auth/paths"
 import { writePendingEmailOtp } from "@/lib/auth/pending-email-otp"
 import { evaluateRegisterPassword } from "@/lib/auth/password"
 import { LEGAL_ACCEPT_ERROR, LEGAL_ACCEPT_FIELD } from "@/lib/auth/validation"
-import { persistTherapistInviteToken, readStoredTherapistInviteToken } from "@/lib/clinics/invite-session"
+import {
+  clearStoredTherapistInviteToken,
+  persistTherapistInviteToken,
+  readStoredTherapistInviteToken,
+} from "@/lib/clinics/invite-session"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/utils/supabase/client"
 
@@ -65,23 +69,22 @@ export function LoginForm({
     setInfo(null)
     setGooglePending(true)
 
+    // Invitațiile vechi din storage nu trebuie să blocheze login-ul Google normal.
     const pendingInvite = readStoredTherapistInviteToken()
     if (pendingInvite) {
       persistTherapistInviteToken(pendingInvite)
       const prepared = await prepareTherapistInviteOAuth(pendingInvite)
       if (prepared?.error) {
-        setError(prepared.error)
-        setGooglePending(false)
-        return
+        clearStoredTherapistInviteToken()
       }
     }
 
     try {
       const supabase = createClient()
+      // redirectTo = origin curent + /auth/callback (PKCE pe același host).
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // Callback-ul decide /dashboard vs /onboarding după clinică / invitație.
           redirectTo: oauthBrowserRedirectToWithPendingInvite(
             window.location.origin,
             tab === "register" ? "/onboarding" : "/dashboard",

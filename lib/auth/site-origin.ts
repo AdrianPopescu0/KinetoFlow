@@ -1,6 +1,6 @@
 /** Domeniul canonic de producție — nu URL-ul de deployment Vercel. */
 export const CANONICAL_PRODUCTION_ORIGIN = "https://kinetoflow.ro"
-export const LOCAL_DEV_ORIGIN = "http://127.0.0.1:43123"
+export const LOCAL_DEV_ORIGIN = "http://localhost:3000"
 
 export function stripTrailingSlash(value: string): string {
   return value.replace(/\/$/, "")
@@ -67,8 +67,12 @@ function isUsablePublicOrigin(origin: string, production: boolean): boolean {
 }
 
 /**
- * Originea pentru redirecturi de auth: hostul curent al request-ului / ferestrei,
- * niciodată un `*.vercel.app`. Dacă tot ce avem e Vercel, folosim kinetoflow.ro.
+ * Originea pentru linkuri absolute pe server (email recovery, invitații, WhatsApp).
+ * Preferă hostul request-ului; `NEXT_PUBLIC_SITE_URL` e doar fallback.
+ * Nu folosi pentru Google OAuth din browser — vezi `oauthBrowserRedirectTo`
+ * (trebuie să rămână pe același host cu cookie-ul PKCE).
+ *
+ * Niciodată `*.vercel.app`. Dacă tot ce avem e Vercel, folosim kinetoflow.ro.
  */
 export function resolveAppOrigin(input: ResolveAppOriginInput = {}): string {
   const production = input.production ?? process.env.NODE_ENV === "production"
@@ -105,4 +109,26 @@ export function requestAppOrigin(request: {
     host: request.headers.get("host"),
     envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL,
   })
+}
+
+/**
+ * Originea pentru redirect-uri după `/auth/callback` (schimb PKCE / sesiune).
+ * Folosește hostul care a primit `code` — niciodată `CANONICAL_PRODUCTION_ORIGIN`.
+ */
+export function requestOAuthCallbackOrigin(request: {
+  nextUrl: { origin: string }
+  headers: { get: (name: string) => string | null }
+}): string {
+  const nextOrigin = normalizeOrigin(request.nextUrl.origin)
+  const protoHint =
+    request.headers.get("x-forwarded-proto") ??
+    (nextOrigin?.startsWith("https:") ? "https" : nextOrigin?.startsWith("http:") ? "http" : null)
+
+  return (
+    originFromHost(request.headers.get("x-forwarded-host"), protoHint) ??
+    nextOrigin ??
+    originFromHost(request.headers.get("host"), protoHint) ??
+    normalizeOrigin(process.env.NEXT_PUBLIC_SITE_URL ?? "") ??
+    LOCAL_DEV_ORIGIN
+  )
 }

@@ -17,10 +17,19 @@ type LoginPageProps = {
 
 function loginReasonMessage(reason: string | undefined): string | null {
   if (reason === "otp_expired") {
-    return "Linkul de invitație a expirat sau a fost deja folosit. Cere administratorului un link nou."
+    return "Linkul de autentificare a expirat sau a fost deja folosit. Intră din nou în cont din formular."
   }
   if (reason === "otp_invalid") {
     return "Codul de autentificare este invalid sau a expirat. Cere un cod nou din formular."
+  }
+  if (reason === "invite_expired") {
+    return "Linkul de invitație a expirat sau a fost deja folosit. Cere administratorului un link nou."
+  }
+  if (reason === "session") {
+    return "Sesiunea a expirat. Autentifică-te din nou pentru a continua."
+  }
+  if (reason === "oauth_pkce") {
+    return "Autentificarea cu Google nu a putut fi finalizată (sesiunea PKCE s-a pierdut). Închide tab-urile vechi și încearcă din nou pe http://localhost:3000."
   }
   if (reason === "oauth") {
     return "Autentificarea cu Google a fost anulată sau a eșuat. Încearcă din nou."

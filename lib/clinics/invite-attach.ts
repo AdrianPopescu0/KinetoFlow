@@ -155,19 +155,24 @@ export function decideTherapistInviteAttach(input: {
   }
 
   const acceptedBySelf = input.invite.accepted_user_id === input.userId
-  if (!acceptedBySelf && !isTherapistInviteOpen(input.invite, input.nowMs)) {
-    return { action: "expired", error: INVITE_EXPIRED_ERROR }
-  }
+  const inviteOpen = acceptedBySelf || isTherapistInviteOpen(input.invite, input.nowMs)
+  const sameClinic =
+    Boolean(input.existingClinicName) &&
+    normalizeClinicName(input.existingClinicName) === normalizeClinicName(input.invite.clinic_name)
 
-  if (
-    input.existingClinicName &&
-    normalizeClinicName(input.existingClinicName) !== normalizeClinicName(input.invite.clinic_name)
-  ) {
-    return { action: "other_clinic", error: INVITE_OTHER_CLINIC_ERROR }
-  }
-
+  // Conturile deja în clinică nu trebuie blocate de un cookie/token de invitație expirat.
   if (input.existingClinicName) {
+    if (sameClinic) {
+      return { action: "already_member" }
+    }
+    if (inviteOpen) {
+      return { action: "other_clinic", error: INVITE_OTHER_CLINIC_ERROR }
+    }
     return { action: "already_member" }
+  }
+
+  if (!inviteOpen) {
+    return { action: "expired", error: INVITE_EXPIRED_ERROR }
   }
 
   return { action: "attach" }

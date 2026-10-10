@@ -6,6 +6,7 @@ import {
   LOCAL_DEV_ORIGIN,
   isVercelAppOrigin,
   oauthCallbackUrl,
+  requestOAuthCallbackOrigin,
   resolveAppOrigin,
 } from "./site-origin.ts"
 
@@ -13,7 +14,7 @@ test("recunoaște orice host Vercel, nu doar preview-urile git", () => {
   assert.equal(isVercelAppOrigin("https://kinetoflow96.vercel.app"), true)
   assert.equal(isVercelAppOrigin("https://kinetoflow-git-main.vercel.app"), true)
   assert.equal(isVercelAppOrigin("https://kinetoflow.ro"), false)
-  assert.equal(isVercelAppOrigin("http://127.0.0.1:43123"), false)
+  assert.equal(isVercelAppOrigin("http://localhost:3000"), false)
 })
 
 test("loginul pe kinetoflow.ro rămâne pe kinetoflow.ro", () => {
@@ -68,21 +69,33 @@ test("în producție, SITE_URL de localhost nu bate kinetoflow.ro", () => {
   assert.equal(
     resolveAppOrigin({
       requestOrigin: "https://kinetoflow96.vercel.app",
-      envSiteUrl: "http://127.0.0.1:43123",
+      envSiteUrl: "http://localhost:3000",
       production: true,
     }),
     CANONICAL_PRODUCTION_ORIGIN,
   )
 })
 
-test("local, originea ferestrei rămâne 127.0.0.1", () => {
+test("local, originea ferestrei rămâne localhost:3000", () => {
   assert.equal(
     resolveAppOrigin({
-      requestOrigin: "http://127.0.0.1:43123",
+      requestOrigin: "http://localhost:3000",
       envSiteUrl: "https://kinetoflow.ro",
       production: false,
     }),
-    "http://127.0.0.1:43123",
+    "http://localhost:3000",
+  )
+})
+
+test("local, SITE_URL greșit pe producție nu bate hostul request-ului pe server", () => {
+  assert.equal(
+    resolveAppOrigin({
+      host: "localhost:3000",
+      forwardedProto: "http",
+      envSiteUrl: "https://kinetoflow.ro",
+      production: false,
+    }),
+    "http://localhost:3000",
   )
 })
 
@@ -95,5 +108,41 @@ test("callback-ul OAuth e pe originea rezolvată", () => {
   assert.equal(
     oauthCallbackUrl(CANONICAL_PRODUCTION_ORIGIN, "/dashboard"),
     "https://kinetoflow.ro/auth/callback?next=%2Fdashboard",
+  )
+})
+
+test("redirect după /auth/callback păstrează hostul request-ului, fără producție hardcodată", () => {
+  assert.equal(
+    requestOAuthCallbackOrigin({
+      nextUrl: { origin: "http://localhost:3000" },
+      headers: { get: (name) => (name === "host" ? "localhost:3000" : null) },
+    }),
+    "http://localhost:3000",
+  )
+  assert.equal(
+    requestOAuthCallbackOrigin({
+      nextUrl: { origin: "https://preview.example" },
+      headers: {
+        get: (name) => {
+          if (name === "x-forwarded-host") return "preview.example"
+          if (name === "x-forwarded-proto") return "https"
+          return null
+        },
+      },
+    }),
+    "https://preview.example",
+  )
+  assert.equal(
+    requestOAuthCallbackOrigin({
+      nextUrl: { origin: "https://kinetoflow.ro" },
+      headers: {
+        get: (name) => {
+          if (name === "x-forwarded-host") return "kinetoflow.ro"
+          if (name === "x-forwarded-proto") return "https"
+          return null
+        },
+      },
+    }),
+    "https://kinetoflow.ro",
   )
 })

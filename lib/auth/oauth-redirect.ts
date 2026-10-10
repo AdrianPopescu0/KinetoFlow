@@ -4,7 +4,7 @@ import {
   therapistPostAuthHref,
   THERAPIST_INVITE_PATH,
 } from "../clinics/invite-session.ts"
-import { resolveAppOrigin } from "./site-origin.ts"
+import { LOCAL_DEV_ORIGIN, normalizeOrigin } from "./site-origin.ts"
 
 export const SIGNED_OUT_GATE_COOKIE = "kf_signed_out"
 
@@ -131,14 +131,31 @@ export async function persistTherapistSessionAndEnter(
   return true
 }
 
+/**
+ * Originea pentru Google OAuth (PKCE) din browser.
+ * 1) `window.location.origin` (obligatoriu — aliniază cookie-ul PKCE)
+ * 2) `NEXT_PUBLIC_SITE_URL` (doar dacă origin lipsește)
+ * 3) `http://localhost:3000`
+ *
+ * Fără adresă de producție hardcodată — păstrăm exact hostul ferestrei.
+ */
+export function browserOAuthRedirectOrigin(origin?: string | null): string {
+  return (
+    normalizeOrigin(origin ?? "") ??
+    normalizeOrigin(process.env.NEXT_PUBLIC_SITE_URL ?? "") ??
+    LOCAL_DEV_ORIGIN
+  )
+}
+
+/**
+ * `redirectTo` pentru `supabase.auth.signInWithOAuth` → `/auth/callback`.
+ * Pe client trece `window.location.origin`; pe server, hostul din request.
+ */
 export function oauthBrowserRedirectTo(
-  origin: string,
+  origin?: string | null,
   options?: { next?: string; invite?: string },
 ): string {
-  const resolved = resolveAppOrigin({
-    requestOrigin: origin,
-    envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL,
-  })
+  const resolved = browserOAuthRedirectOrigin(origin)
   const url = new URL("/auth/callback", resolved)
   url.searchParams.set("next", options?.next ?? "/dashboard")
   if (options?.invite) {
@@ -148,7 +165,7 @@ export function oauthBrowserRedirectTo(
 }
 
 export function oauthBrowserRedirectToWithPendingInvite(
-  origin: string,
+  origin?: string | null,
   fallbackNext: "/dashboard" | "/onboarding" = "/dashboard",
 ): string {
   const invite = readStoredTherapistInviteToken()

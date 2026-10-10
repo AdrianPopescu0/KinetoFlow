@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/toaster";
-import { DASHBOARD_THEME_BOOT_SCRIPT } from "@/lib/theme/preference";
+import {
+  DASHBOARD_THEME_BOOT_SCRIPT,
+  parseThemePreference,
+  THEME_COOKIE_NAME,
+} from "@/lib/theme/preference";
+import { cn } from "@/lib/utils";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -69,13 +75,31 @@ export const viewport = {
   themeColor: "#042f2e",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Cookie-ul e singura sursă sigură pe server (fără localStorage / matchMedia).
+  // Pentru "system", boot script-ul aliniază DOM-ul înainte de hidratare;
+  // suppressHydrationWarning evită mismatch-ul pe class / data-theme / color-scheme.
+  const jar = await cookies()
+  const preference = parseThemePreference(jar.get(THEME_COOKIE_NAME)?.value)
+  const ssrTheme = preference === "dark" || preference === "light" ? preference : undefined
+
   return (
     <html
       lang="ro"
-      className={`${geistSans.variable} ${geistMono.variable} min-h-screen max-w-full overflow-x-hidden antialiased`}
+      suppressHydrationWarning
+      data-theme={ssrTheme}
+      style={ssrTheme ? { colorScheme: ssrTheme } : undefined}
+      className={cn(
+        geistSans.variable,
+        geistMono.variable,
+        "min-h-screen max-w-full overflow-x-hidden antialiased",
+        ssrTheme === "dark" && "dark",
+      )}
     >
-      <body className="flex min-h-screen max-w-full flex-col justify-between overflow-x-hidden bg-slate-50 text-slate-800 dark:bg-[var(--kf-canvas)] dark:text-[var(--kf-text)]">
+      <body
+        suppressHydrationWarning
+        className="flex min-h-screen max-w-full flex-col justify-between overflow-x-hidden bg-slate-50 text-slate-800 dark:bg-[var(--kf-canvas)] dark:text-[var(--kf-text)]"
+      >
         <Script id="dashboard-theme-boot" strategy="beforeInteractive">
           {DASHBOARD_THEME_BOOT_SCRIPT}
         </Script>

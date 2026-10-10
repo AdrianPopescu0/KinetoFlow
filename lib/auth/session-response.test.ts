@@ -3,6 +3,7 @@ import { test } from "node:test"
 
 import { isAuthHandshakePath, isPublicMarketingPath, isSignupAuthMode, loginHref, safeAuthNextPath, shouldStayOnTherapistLogin, therapistAppPath } from "./paths.ts"
 import {
+  browserOAuthRedirectOrigin,
   GOOGLE_OAUTH_QUERY_PARAMS,
   isSupabaseAuthCookieName,
   oauthBrowserRedirectTo,
@@ -68,6 +69,21 @@ test("callback-ul Google duce în dashboard, nu pe pagina principală", () => {
     oauthBrowserRedirectTo("https://app.example", { next: "/dashboard" }),
     "https://app.example/auth/callback?next=%2Fdashboard",
   )
+  // PKCE: păstrăm exact hostul ferestrei (nu forțăm producția).
+  assert.equal(
+    oauthBrowserRedirectTo("http://localhost:3000", { next: "/dashboard" }),
+    "http://localhost:3000/auth/callback?next=%2Fdashboard",
+  )
+  assert.equal(
+    oauthBrowserRedirectTo("http://127.0.0.1:3000", { next: "/dashboard" }),
+    "http://127.0.0.1:3000/auth/callback?next=%2Fdashboard",
+  )
+  assert.equal(
+    oauthBrowserRedirectTo(null, { next: "/dashboard" }),
+    `${browserOAuthRedirectOrigin(null)}/auth/callback?next=%2Fdashboard`,
+  )
+  assert.equal(browserOAuthRedirectOrigin("http://localhost:3000"), "http://localhost:3000")
+  assert.equal(browserOAuthRedirectOrigin("https://kinetoflow.ro"), "https://kinetoflow.ro")
   assert.match(
     oauthBrowserRedirectTo("https://app.example", { next: "/dashboard", invite: "tok" }),
     /invite=tok/,
