@@ -104,6 +104,14 @@ export function PatientList({
     setExerciseTarget(null)
   }, [])
 
+  const assignPatientOptions = useMemo(
+    () =>
+      [...rows]
+        .map((patient) => ({ id: patient.id, name: patient.full_name }))
+        .sort((left, right) => left.name.localeCompare(right.name, "ro")),
+    [rows],
+  )
+
   const isRowExpanded = useCallback(
     (patient: PatientListItem) => expandedIds[patient.id] === true,
     [expandedIds],
@@ -246,6 +254,8 @@ export function PatientList({
         open={Boolean(exerciseTarget)}
         patientId={exerciseTarget?.id ?? ""}
         patientName={exerciseTarget?.name ?? ""}
+        patients={assignPatientOptions}
+        onPatientChange={(id, name) => setExerciseTarget({ id, name })}
         onClose={closeExercises}
       />
     </div>

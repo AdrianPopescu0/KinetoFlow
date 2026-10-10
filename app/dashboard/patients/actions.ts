@@ -10,7 +10,7 @@ import {
 } from "@/lib/clinics/members"
 import { generateAccessCode, isAccessCode } from "@/lib/patients/access-code"
 import { normalizeStoredPhone } from "@/lib/patients/phone"
-import { getOwnPatientRow, patientTenantPayload } from "@/lib/patients/tenant"
+import { getOwnPatientRow, patientTenantPayload, selectOwnPatients } from "@/lib/patients/tenant"
 import { isEnergyLevel, isPainKind, isSleepQuality, type DailyCheckin } from "@/lib/patients/types"
 import { composeIntervalExerciseNotes, isDateKey } from "@/lib/exercises/schedule"
 import {
@@ -679,6 +679,35 @@ export async function assignExercisesBatch(
     revalidatePath(`/patient/${token}`)
   }
   return { error: null, inserted: saved }
+}
+
+export async function listAssignablePatients(): Promise<{
+  error: string | null
+  patients: Array<{ id: string; name: string }>
+}> {
+  const { supabase, user } = await requireUser()
+  if (!user) {
+    return { error: "Sesiunea a expirat.", patients: [] }
+  }
+
+  const { data, error } = await selectOwnPatients<{ id: string; full_name: string | null }>(
+    supabase,
+    user.id,
+    "id, full_name",
+    { limit: 200, archived: "active" },
+  )
+  if (error) {
+    return { error: error.message, patients: [] }
+  }
+
+  const patients = (data ?? [])
+    .map((row) => ({
+      id: String(row.id),
+      name: typeof row.full_name === "string" && row.full_name.trim() ? row.full_name.trim() : "Pacient",
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name, "ro"))
+
+  return { error: null, patients }
 }
 
 export async function listAssignedExercisesForPatient(

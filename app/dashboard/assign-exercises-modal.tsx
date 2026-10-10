@@ -1,9 +1,22 @@
 "use client"
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react"
 import { Check, Loader2, Search } from "lucide-react"
 
-import { assignExercisesBatch } from "@/app/dashboard/patients/actions"
+import {
+  assignExercisesBatch,
+  listAssignablePatients,
+  listAssignedExercisesForPatient,
+} from "@/app/dashboard/patients/actions"
 import { DoseCountInput } from "@/components/exercises/dose-count-input"
 import { LibraryQuickFilters } from "@/components/exercises/library-quick-filters"
 import { useAssignLibrary } from "@/components/exercises/assign-library-provider"
@@ -51,36 +64,172 @@ function dosesFromSelection(selection: { doses: Record<string, { sets: number; r
   )
 }
 
+export type AssignPatientOption = {
+  id: string
+  name: string
+}
+
+const patientSelectClassName = cn(
+  "h-11 w-full min-w-0 rounded-xl border px-3 text-sm font-medium outline-none",
+  "border-slate-300 bg-white text-slate-800",
+  "focus-visible:border-[#042f2e] focus-visible:ring-2 focus-visible:ring-[#042f2e]/20",
+  "dark:border-[var(--kf-border)] dark:bg-slate-900 dark:text-slate-100",
+  "dark:focus-visible:border-teal-400 dark:focus-visible:ring-teal-400/25",
+  "disabled:cursor-wait disabled:opacity-70",
+)
+
 export function AssignExercisesModal({
   patientId,
   patientName,
+  patients: patientsProp,
   open,
   onClose,
   onSaved,
+  onPatientChange,
   initialAssigned,
   initialPatientMessage,
 }: {
   patientId: string
   patientName: string
+  patients?: AssignPatientOption[]
   open: boolean
   onClose: () => void
   onSaved?: () => void
+  onPatientChange?: (patientId: string, patientName: string) => void
   initialAssigned?: AssignedProgramExercise[]
   initialPatientMessage?: string
 }) {
+  const [activeId, setActiveId] = useState(patientId)
+  const [activeName, setActiveName] = useState(patientName)
+  const [assigned, setAssigned] = useState<AssignedProgramExercise[]>(initialAssigned ?? [])
+  const [patientMessage, setPatientMessage] = useState(initialPatientMessage ?? "")
+  const [options, setOptions] = useState<AssignPatientOption[]>(patientsProp ?? [])
+  const [switching, setSwitching] = useState(false)
+  const openGeneration = useRef(0)
+  const wasOpenRef = useRef(false)
+
+  useEffect(() => {
+    if (!open) {
+      wasOpenRef.current = false
+      return
+    }
+    // Doar la deschidere: schimbarea internă a pacientului nu trebuie să șteargă planul încărcat.
+    const justOpened = !wasOpenRef.current
+    wasOpenRef.current = true
+    if (!justOpened) {
+      return
+    }
+    setActiveId(patientId)
+    setActiveName(patientName)
+    setAssigned(initialAssigned ?? [])
+    setPatientMessage(initialPatientMessage ?? "")
+    setSwitching(false)
+  }, [open, patientId, patientName, initialAssigned, initialPatientMessage])
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+    if (patientsProp && patientsProp.length > 0) {
+      setOptions(patientsProp)
+      return
+    }
+
+    const generation = ++openGeneration.current
+    void listAssignablePatients().then((result) => {
+      if (openGeneration.current !== generation) {
+        return
+      }
+      if (result.error) {
+        console.error("[AssignExercisesModal] listAssignablePatients:", result.error)
+        setOptions([{ id: patientId, name: patientName }])
+        return
+      }
+      const next = result.patients
+      if (!next.some((item) => item.id === patientId) && patientId) {
+        setOptions([{ id: patientId, name: patientName }, ...next])
+        return
+      }
+      setOptions(next)
+    })
+  }, [open, patientId, patientName, patientsProp])
+
+  const selectOptions = useMemo(() => {
+    if (options.some((item) => item.id === activeId) || !activeId) {
+      return options
+    }
+    return [{ id: activeId, name: activeName }, ...options]
+  }, [activeId, activeName, options])
+
+  const changePatient = useCallback(
+    async (nextId: string) => {
+      if (!nextId || nextId === activeId || switching) {
+        return
+      }
+      const option = selectOptions.find((item) => item.id === nextId)
+      if (!option) {
+        return
+      }
+
+      setSwitching(true)
+      const result = await listAssignedExercisesForPatient(option.id)
+      if (result.error) {
+        toast(result.error)
+        setSwitching(false)
+        return
+      }
+
+      setActiveId(option.id)
+      setActiveName(option.name)
+      setAssigned(result.exercises)
+      setPatientMessage(result.patientMessage)
+      onPatientChange?.(option.id, option.name)
+      setSwitching(false)
+    },
+    [activeId, onPatientChange, selectOptions, switching],
+  )
+
   if (!open) {
     return null
   }
 
   return (
     <AssignExercisesModalContent
-      key={patientId}
-      patientId={patientId}
-      patientName={patientName}
+      key={activeId}
+      patientId={activeId}
+      patientName={activeName}
       onClose={onClose}
       onSaved={onSaved}
-      initialAssigned={initialAssigned ?? []}
-      initialPatientMessage={initialPatientMessage ?? ""}
+      initialAssigned={assigned}
+      initialPatientMessage={patientMessage}
+      patientPicker={
+        selectOptions.length > 0 ? (
+          <label className="flex min-w-0 flex-col gap-1.5">
+            <span className="flex items-center justify-between gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+              Pacient
+              {switching ? (
+                <span className="inline-flex items-center gap-1 font-medium normal-case tracking-normal text-slate-500 dark:text-slate-400">
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                  Se încarcă…
+                </span>
+              ) : null}
+            </span>
+            <select
+              value={activeId}
+              disabled={switching}
+              onChange={(event) => void changePatient(event.target.value)}
+              className={patientSelectClassName}
+              aria-label="Selectează pacientul pentru atribuire"
+            >
+              {selectOptions.map((patient) => (
+                <option key={patient.id} value={patient.id}>
+                  {patient.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null
+      }
     />
   )
 }
@@ -92,6 +241,7 @@ function AssignExercisesModalContent({
   onSaved,
   initialAssigned,
   initialPatientMessage,
+  patientPicker,
 }: {
   patientId: string
   patientName: string
@@ -99,6 +249,7 @@ function AssignExercisesModalContent({
   onSaved?: () => void
   initialAssigned: AssignedProgramExercise[]
   initialPatientMessage: string
+  patientPicker?: ReactNode
 }) {
   const { catalog: libraryCatalog, protocols } = useAssignLibrary()
   const [sessionExtras, setSessionExtras] = useState<LibraryExercise[]>([])
@@ -308,12 +459,14 @@ function AssignExercisesModalContent({
       wide
       title={`Atribuie exerciții — ${patientName}`}
       titleId="assign-exercises-title"
+      headerExtra={patientPicker}
       onClose={onClose}
       footer={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs leading-relaxed text-slate-600">
+          <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
             {selectedIds.length} {selectedIds.length === 1 ? "exercițiu selectat" : "exerciții selectate"}{" "}
-            pentru intervalul <span className="font-semibold text-slate-800">{intervalLabel}</span>.
+            pentru intervalul{" "}
+            <span className="font-semibold text-slate-800 dark:text-slate-100">{intervalLabel}</span>.
           </p>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:justify-end">
             <Button
@@ -346,12 +499,14 @@ function AssignExercisesModalContent({
     >
       <div className="space-y-4">
         <section>
-          <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">Protocol predefinit</p>
+          <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+            Protocol predefinit
+          </p>
           <select
             value={appliedProtocolId}
             onChange={(event) => applyProtocol(event.target.value)}
             disabled={isPending}
-            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm"
+            className={patientSelectClassName}
             aria-label="Alege un protocol predefinit"
           >
             <option value="">
